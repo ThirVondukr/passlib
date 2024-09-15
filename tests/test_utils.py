@@ -3,6 +3,7 @@
 from functools import partial
 import warnings
 
+import pytest
 
 from passlib.utils import is_ascii_safe, to_bytes
 from passlib.utils.compat import join_bytes
@@ -55,13 +56,9 @@ class MiscTest(TestCase):
 
         self.assertTrue(".. deprecated::" in test_func.__doc__)
 
-        with self.assertWarningList(
-            dict(
-                category=DeprecationWarning,
-                message="the function tests.test_utils.test_func() "
-                "is deprecated as of Passlib 1.6, and will be "
-                "removed in Passlib 1.8.",
-            )
+        with pytest.warns(
+            DeprecationWarning,
+            match="the function tests.test_utils.test_func\(\) is deprecated as of Passlib 1.6, and will be removed in Passlib 1.8.",
         ):
             self.assertEqual(test_func(1, 2), (1, 2))
 

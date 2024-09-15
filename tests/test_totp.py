@@ -7,6 +7,8 @@ import logging
 import sys
 import time as _time
 
+import pytest
+
 from passlib import exc
 from tests.utils import TestCase, time_call
 
@@ -579,13 +581,9 @@ class TotpTest(TestCase):
         self.assertRaises(ValueError, TOTP, new=True, size=9)
 
         # for existing key, minimum size is only warned about
-        with self.assertWarningList(
-            [
-                dict(
-                    category=exc.PasslibSecurityWarning,
-                    message_re=".*for security purposes, secret key must be.*",
-                )
-            ]
+        with pytest.warns(
+            exc.PasslibSecurityWarning,
+            match=".*for security purposes, secret key must be.*",
         ):
             _ = TOTP("0A" * 9, "hex")
 
@@ -1388,13 +1386,8 @@ class TotpTest(TestCase):
         # --------------------------------------------------------------------------------
 
         # should issue warning, but otherwise ignore extra param
-        with self.assertWarningList(
-            [
-                dict(
-                    category=exc.PasslibRuntimeWarning,
-                    message_re="unexpected parameters encountered",
-                )
-            ]
+        with pytest.warns(
+            exc.PasslibRuntimeWarning, match="unexpected parameters encountered"
         ):
             otp = from_uri(
                 "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"

@@ -3,6 +3,8 @@ import logging
 import sys
 import re
 
+import pytest
+
 from passlib import apps as _apps, exc
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
@@ -880,16 +882,14 @@ class DjangoExtensionTest(_ExtensionTest):
         # mess with User.set_password, make sure it's detected
         orig = models.User.set_password
         models.User.set_password = dummy
-        with self.assertWarningList("another library has patched.*User.set_password"):
+        with pytest.warns(match="another library has patched.*User.set_password"):
             adapter._manager.check_all()
         models.User.set_password = orig
 
         # mess with models.check_password, make sure it's detected
         orig = models.check_password
         models.check_password = dummy
-        with self.assertWarningList(
-            "another library has patched.*models:check_password"
-        ):
+        with pytest.warns(match="another library has patched.*models:check_password"):
             adapter._manager.check_all()
         models.check_password = orig
 

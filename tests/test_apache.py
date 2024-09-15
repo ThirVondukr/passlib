@@ -3,6 +3,8 @@ import unittest
 import os
 import subprocess
 
+import pytest
+
 from passlib import apache
 from tests.utils import TestCase, get_file, set_file
 from passlib.utils.handlers import to_unicode_for_identify
@@ -108,9 +110,8 @@ class HtdigestFileTest(TestCase):
 
         # check missing file
         os.remove(path)
-        self.assertRaises(IOError, apache.HtdigestFile, path)
-
-        # NOTE: default_realm option checked via other tests.
+        with pytest.raises(IOError):
+            apache.HtdigestFile(path)
 
     def test_01_delete(self):
         """test delete()"""

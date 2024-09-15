@@ -416,10 +416,14 @@ class _CommonScryptTest(TestCase):
 
         # get available backends
         orig = scrypt_mod.backend
-        available = set(
-            name for name in scrypt_mod.backend_values if scrypt_mod._has_backend(name)
-        )
-        scrypt_mod._set_backend(orig)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Using builtin scrypt backend.*")
+            available = set(
+                name
+                for name in scrypt_mod.backend_values
+                if scrypt_mod._has_backend(name)
+            )
+            scrypt_mod._set_backend(orig)
         available.discard(self.backend)
         if not available:
             raise self.skipTest("no other backends found")
@@ -462,8 +466,9 @@ class _CommonScryptTest(TestCase):
         scrypt_mod._scrypt = None
         self.assertRaises(TypeError, scrypt_mod.scrypt, "s", "s", 2, 2, 2, 16)
 
-        # reload backend
-        scrypt_mod._set_backend(self.backend)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Using builtin scrypt backend.*")
+            scrypt_mod._set_backend(self.backend)
         self.assertEqual(scrypt_mod.backend, self.backend)
         scrypt_mod.scrypt("s", "s", 2, 2, 2, 16)
 
@@ -591,12 +596,13 @@ class BuiltinScryptTest(_CommonScryptTest):
     backend = "builtin"
 
     def setUp(self):
-        super().setUp()
-        warnings.filterwarnings(
-            "ignore",
-            "(?i)using builtin scrypt backend",
-            category=exc.PasslibSecurityWarning,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "(?i)using builtin scrypt backend",
+                category=exc.PasslibSecurityWarning,
+            )
+            super().setUp()
 
     def test_missing_backend(self):
         """backend management -- missing backend"""

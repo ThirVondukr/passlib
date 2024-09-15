@@ -5,6 +5,8 @@ import time
 import warnings
 from configparser import NoSectionError
 
+import pytest
+
 import passlib.utils.handlers as uh
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
@@ -21,6 +23,7 @@ from tests.utils import (
     time_call,
     handler_derived_from,
 )
+from tests.utils_ import WARN_SETTINGS_ARG
 
 # local
 here = os.path.abspath(os.path.dirname(__file__))
@@ -1091,12 +1094,12 @@ sha512_crypt__min_rounds = 45000
         #       and then discard the rest of these under 2.0.
 
         # hash specific settings
-        with self.assertWarningList(["passing settings to.*is deprecated"]):
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
             self.assertEqual(
                 cc.hash("password", scheme="phpass", salt="." * 8),
                 "$H$5........De04R5Egz0aq8Tf.1eVhY/",
             )
-        with self.assertWarningList(["passing settings to.*is deprecated"]):
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
             self.assertEqual(
                 cc.hash("password", scheme="phpass", salt="." * 8, ident="P"),
                 "$P$5........De04R5Egz0aq8Tf.1eVhY/",
@@ -1105,13 +1108,13 @@ sha512_crypt__min_rounds = 45000
         # NOTE: more thorough job of rounds limits done below.
 
         # min rounds
-        with self.assertWarningList(["passing settings to.*is deprecated"]):
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
             self.assertEqual(
                 cc.hash("password", rounds=1999, salt="nacl"),
                 "$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609",
             )
 
-        with self.assertWarningList(["passing settings to.*is deprecated"]):
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
             self.assertEqual(
                 cc.hash("password", rounds=2001, salt="nacl"),
                 "$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31",
@@ -1381,7 +1384,7 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(cc1.verify_and_update("stub", des_hash), (True, None))
 
         # des_crypt should throw error due to unknown context keyword
-        with self.assertWarningList(["passing settings to.*is deprecated"]):
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
             self.assertRaises(TypeError, cc1.hash, "stub", user="root")
         self.assertRaises(TypeError, cc1.verify, "stub", des_hash, user="root")
         self.assertRaises(
@@ -1407,7 +1410,7 @@ sha512_crypt__min_rounds = 45000
         )
 
         # verify error with unknown kwd
-        with self.assertWarningList(["passing settings to.*is deprecated"]):
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
             self.assertRaises(TypeError, cc2.hash, "stub", badkwd="root")
         self.assertRaises(TypeError, cc2.verify, "stub", des_hash, badkwd="root")
         self.assertRaises(
@@ -1477,20 +1480,20 @@ sha512_crypt__min_rounds = 45000
         # --------------------------------------------------
 
         # set below handler minimum
-        with self.assertWarningList([PasslibHashWarning] * 2):
+        with pytest.warns(PasslibHashWarning) as warns:
             c2 = cc.copy(
                 sha256_crypt__min_rounds=500,
                 sha256_crypt__max_rounds=None,
                 sha256_crypt__default_rounds=500,
             )
+        assert len(warns) == 2
         self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$" + STUB)
 
         # below policy minimum
         # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
-        with self.assertWarningList([]):
-            self.assertEqual(
-                cc.genconfig(rounds=1999, salt="nacl"), "$5$rounds=1999$nacl$" + STUB
-            )
+        self.assertEqual(
+            cc.genconfig(rounds=1999, salt="nacl"), "$5$rounds=1999$nacl$" + STUB
+        )
 
         # equal to policy minimum
         self.assertEqual(
@@ -1507,21 +1510,21 @@ sha512_crypt__min_rounds = 45000
         # --------------------------------------------------
 
         # set above handler max
-        with self.assertWarningList([PasslibHashWarning] * 2):
+        with pytest.warns(PasslibHashWarning) as warns:
             c2 = cc.copy(
                 sha256_crypt__max_rounds=int(1e9) + 500,
                 sha256_crypt__min_rounds=None,
                 sha256_crypt__default_rounds=int(1e9) + 500,
             )
+        assert len(warns) == 2
 
         self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=999999999$nacl$" + STUB)
 
         # above policy max
         # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .using()
-        with self.assertWarningList([]):
-            self.assertEqual(
-                cc.genconfig(rounds=3001, salt="nacl"), "$5$rounds=3001$nacl$" + STUB
-            )
+        self.assertEqual(
+            cc.genconfig(rounds=3001, salt="nacl"), "$5$rounds=3001$nacl$" + STUB
+        )
 
         # equal policy max
         self.assertEqual(

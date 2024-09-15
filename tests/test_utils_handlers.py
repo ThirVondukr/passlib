@@ -5,11 +5,13 @@ import hashlib
 from logging import getLogger
 import warnings
 
+import pytest
 
 from passlib.hash import ldap_md5, sha256_crypt
 from passlib.exc import MissingBackendError
 import passlib.utils.handlers as uh
 from tests.utils import HandlerCase, TestCase
+from tests.utils_ import no_warnings
 
 # module
 log = getLogger(__name__)
@@ -202,45 +204,39 @@ class SkeletonTest(TestCase):
         self.assertIn(norm_salt(use_defaults=True), salts3)
 
         # check explicit salts
-        with warnings.catch_warnings(record=True) as wlog:
+        with no_warnings():
             # check too-small salts
             self.assertRaises(ValueError, norm_salt, salt="")
             self.assertRaises(ValueError, norm_salt, salt="a")
-            self.consumeWarningList(wlog)
 
             # check correct salts
             self.assertEqual(norm_salt(salt="ab"), "ab")
             self.assertEqual(norm_salt(salt="aba"), "aba")
             self.assertEqual(norm_salt(salt="abba"), "abba")
-            self.consumeWarningList(wlog)
 
             # check too-large salts
             self.assertRaises(ValueError, norm_salt, salt="aaaabb")
-            self.consumeWarningList(wlog)
 
         # check generated salts
-        with warnings.catch_warnings(record=True) as wlog:
+        with no_warnings():
             # check too-small salt size
             self.assertRaises(ValueError, gen_salt, 0)
             self.assertRaises(ValueError, gen_salt, 1)
-            self.consumeWarningList(wlog)
 
             # check correct salt size
             self.assertIn(gen_salt(2), salts2)
             self.assertIn(gen_salt(3), salts3)
             self.assertIn(gen_salt(4), salts4)
-            self.consumeWarningList(wlog)
 
             # check too-large salt size
             self.assertRaises(ValueError, gen_salt, 5)
-            self.consumeWarningList(wlog)
 
+        with pytest.warns(match="salt_size.*above max_salt_size"):
             self.assertIn(gen_salt(5, relaxed=True), salts4)
-            self.consumeWarningList(wlog, ["salt_size.*above max_salt_size"])
 
         # test with max_salt_size=None
         del d1.max_salt_size
-        with self.assertWarningList([]):
+        with no_warnings():
             self.assertEqual(len(gen_salt(None)), 3)
             self.assertEqual(len(gen_salt(5)), 5)
 
@@ -270,20 +266,17 @@ class SkeletonTest(TestCase):
         self.assertRaises(TypeError, norm_rounds, rounds=1.5)
 
         # check explicit rounds
-        with warnings.catch_warnings(record=True) as wlog:
+        with no_warnings():
             # too small
             self.assertRaises(ValueError, norm_rounds, rounds=0)
-            self.consumeWarningList(wlog)
 
             # just right
             self.assertEqual(norm_rounds(rounds=1), 1)
             self.assertEqual(norm_rounds(rounds=2), 2)
             self.assertEqual(norm_rounds(rounds=3), 3)
-            self.consumeWarningList(wlog)
 
             # too large
             self.assertRaises(ValueError, norm_rounds, rounds=4)
-            self.consumeWarningList(wlog)
 
         # check no default rounds
         d1.default_rounds = None
@@ -729,7 +722,7 @@ class PrefixWrapperTest(TestCase):
         self.assertRaises(ValueError, uh.PrefixWrapper, "h6", "des_crypt", ident=True)
 
         # orig_prefix + HasManyIdent - warning
-        with self.assertWarningList("orig_prefix.*may not work correctly"):
+        with pytest.warns(match="orig_prefix.*may not work correctly"):
             h = uh.PrefixWrapper("h7", "phpass", orig_prefix="$", prefix="?")
         self.assertEqual(h.ident_values, None)  # TODO: should output (u"?P$", u"?H$"))
         self.assertEqual(h.ident, None)

@@ -1,3 +1,5 @@
+import pytest
+
 from passlib import hash, exc
 from .utils import UserHandlerMixin, HandlerCase, repeat_string
 from .test_handlers import UPASS_TABLE
@@ -437,6 +439,6 @@ class cisco_type7_test(HandlerCase):
         self.assertRaises(TypeError, handler.using, salt="abc")
         self.assertRaises(ValueError, handler.using, salt=-10)
         self.assertRaises(ValueError, handler.using, salt=100)
-        with self.assertWarningList("salt/offset must be.*"):
+        with pytest.warns(match="salt/offset must be.*"):
             subcls = handler.using(salt=100, relaxed=True)
         self.assertEqual(subcls(use_defaults=True).salt, 52)

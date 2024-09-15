@@ -3,6 +3,7 @@ import warnings
 from base64 import b64encode
 
 import bcrypt
+import pytest
 
 from passlib import hash
 from passlib.handlers.bcrypt import (
@@ -15,6 +16,7 @@ from passlib.handlers.bcrypt import (
 from passlib.utils import repeat_string, to_bytes
 from tests.test_handlers import UPASS_TABLE
 from tests.utils import HandlerCase, TEST_MODE
+from tests.utils_ import no_warnings
 
 
 class _bcrypt_test(HandlerCase):
@@ -323,7 +325,7 @@ class _bcrypt_test(HandlerCase):
         #
         # test genconfig() corrects invalid salts & issues warning.
         #
-        with self.assertWarningList(["salt too large", corr_desc]):
+        with pytest.warns(match=corr_desc), pytest.warns(match="salt too large"):
             hash = bcrypt.genconfig(salt="." * 21 + "A.", rounds=5, relaxed=True)
         self.assertEqual(hash, "$2b$05$" + "." * (22 + 31))
 
@@ -333,21 +335,21 @@ class _bcrypt_test(HandlerCase):
         samples = self.known_incorrect_padding
         for pwd, bad, good in samples:
             # make sure genhash() corrects bad configs, leaves good unchanged
-            with self.assertWarningList([corr_desc]):
+            with pytest.warns(match=corr_desc):
                 self.assertEqual(bcrypt.genhash(pwd, bad), good)
-            with self.assertWarningList([]):
+            with no_warnings():
                 self.assertEqual(bcrypt.genhash(pwd, good), good)
 
             # make sure verify() works correctly with good & bad hashes
-            with self.assertWarningList([corr_desc]):
+            with pytest.warns(match=corr_desc):
                 self.assertTrue(bcrypt.verify(pwd, bad))
-            with self.assertWarningList([]):
+            with no_warnings():
                 self.assertTrue(bcrypt.verify(pwd, good))
 
             # make sure normhash() corrects bad hashes, leaves good unchanged
-            with self.assertWarningList([corr_desc]):
+            with pytest.warns(match=corr_desc):
                 self.assertEqual(bcrypt.normhash(bad), good)
-            with self.assertWarningList([]):
+            with no_warnings():
                 self.assertEqual(bcrypt.normhash(good), good)
 
         # make sure normhash() leaves non-bcrypt hashes alone

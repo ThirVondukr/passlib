@@ -144,3 +144,6 @@ version_files = [
 
 [tool.mypy]
 python_version = "3.9"
+
+[tool.pytest.ini_options]
+addopts = "-W error::Warning"

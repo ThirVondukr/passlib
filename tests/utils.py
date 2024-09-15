@@ -17,6 +17,9 @@ import tempfile
 import threading
 import time
 import unittest
+
+import pytest
+
 from passlib.exc import PasslibHashWarning, PasslibConfigWarning
 import warnings
 from warnings import warn
@@ -40,6 +43,7 @@ from passlib.utils import (
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 from passlib.utils.handlers import PrefixWrapper
+from tests.utils_ import no_warnings
 
 log = logging.getLogger(__name__)
 # local
@@ -391,9 +395,8 @@ class TestCase(unittest.TestCase):
 
     def _formatMessage(self, msg, std):
         if self.longMessage and msg and msg.rstrip().endswith(":"):
-            return "%s %s" % (msg.rstrip(), std)
-        else:
-            return msg or std
+            return f"{msg.rstrip()} {std}"
+        return msg or std
 
     # ---------------------------------------------------------------
     # override assertRaises() to support '__msg__' keyword,
@@ -410,137 +413,6 @@ class TestCase(unittest.TestCase):
             return err
         std = "function returned %r, expected it to raise %r" % (result, _exc_type)
         raise self.failureException(self._formatMessage(msg, std))
-
-    # ---------------------------------------------------------------
-    # forbid a bunch of deprecated aliases so I stop using them
-    # ---------------------------------------------------------------
-    def assertEquals(self, *a, **k):
-        raise AssertionError("this alias is deprecated by stdlib unittest")
-
-    assertNotEquals = assertRegexMatches = assertEquals
-
-    def assertWarning(
-        self,
-        warning,
-        message_re=None,
-        message=None,
-        category=None,
-        filename_re=None,
-        filename=None,
-        lineno=None,
-        msg=None,
-    ):
-        """check if warning matches specified parameters.
-        'warning' is the instance of Warning to match against;
-        can also be instance of WarningMessage (as returned by catch_warnings).
-        """
-        # check input type
-        if hasattr(warning, "category"):
-            # resolve WarningMessage -> Warning, but preserve original
-            wmsg = warning
-            warning = warning.message
-        else:
-            # no original WarningMessage, passed raw Warning
-            wmsg = None
-
-        # tests that can use a warning instance or WarningMessage object
-        if message:
-            self.assertEqual(str(warning), message, msg)
-        if message_re:
-            self.assertRegex(str(warning), message_re, msg)
-        if category:
-            self.assertIsInstance(warning, category, msg)
-
-        # tests that require a WarningMessage object
-        if filename or filename_re:
-            if not wmsg:
-                raise TypeError(
-                    "matching on filename requires a " "WarningMessage instance"
-                )
-            real = wmsg.filename
-            if real.endswith(".pyc") or real.endswith(".pyo"):
-                # FIXME: should use a stdlib call to resolve this back
-                #        to module's original filename.
-                real = real[:-1]
-            if filename:
-                self.assertEqual(real, filename, msg)
-            if filename_re:
-                self.assertRegex(real, filename_re, msg)
-        if lineno:
-            if not wmsg:
-                raise TypeError(
-                    "matching on lineno requires a " "WarningMessage instance"
-                )
-            self.assertEqual(wmsg.lineno, lineno, msg)
-
-    class _AssertWarningList(warnings.catch_warnings):
-        """context manager for assertWarningList()"""
-
-        def __init__(self, case, **kwds):
-            self.case = case
-            self.kwds = kwds
-            super().__init__(record=True)
-
-        def __enter__(self):
-            self.log = super().__enter__()
-
-        def __exit__(self, *exc_info):
-            super().__exit__(*exc_info)
-            if exc_info[0] is None:
-                self.case.assertWarningList(self.log, **self.kwds)
-
-    def assertWarningList(self, wlist=None, desc=None, msg=None):
-        """check that warning list (e.g. from catch_warnings) matches pattern"""
-        if desc is None:
-            assert wlist is not None
-            return self._AssertWarningList(self, desc=wlist, msg=msg)
-        # TODO: make this display better diff of *which* warnings did not match
-        assert desc is not None
-        if not isinstance(desc, (list, tuple)):
-            desc = [desc]
-        for idx, entry in enumerate(desc):
-            if isinstance(entry, str):
-                entry = dict(message_re=entry)
-            elif isinstance(entry, type) and issubclass(entry, Warning):
-                entry = dict(category=entry)
-            elif not isinstance(entry, dict):
-                raise TypeError("entry must be str, warning, or dict")
-            try:
-                data = wlist[idx]
-            except IndexError:
-                break
-            self.assertWarning(data, msg=msg, **entry)
-        else:
-            if len(wlist) == len(desc):
-                return
-        std = "expected %d warnings, found %d: wlist=%s desc=%r" % (
-            len(desc),
-            len(wlist),
-            self._formatWarningList(wlist),
-            desc,
-        )
-        raise self.failureException(self._formatMessage(msg, std))
-
-    def consumeWarningList(self, wlist, desc=None, *args, **kwds):
-        """[deprecated] assertWarningList() variant that clears list afterwards"""
-        if desc is None:
-            desc = []
-        self.assertWarningList(wlist, desc, *args, **kwds)
-        del wlist[:]
-
-    def _formatWarning(self, entry):
-        tail = ""
-        if hasattr(entry, "message"):
-            # WarningMessage instance.
-            tail = " filename=%r lineno=%r" % (entry.filename, entry.lineno)
-            if entry.line:
-                tail += " line=%r" % (entry.line,)
-            entry = entry.message
-        cls = type(entry)
-        return "<%s.%s message=%r%s>" % (cls.__module__, cls.__name__, str(entry), tail)
-
-    def _formatWarningList(self, wlist):
-        return "[%s]" % ", ".join(self._formatWarning(entry) for entry in wlist)
 
     def require_stringprep(self):
         """helper to skip test if stringprep is missing"""
@@ -953,11 +825,13 @@ class HandlerCase(TestCase):
         secret = self.populate_context(secret, context)
         if use_encrypt:
             # use legacy 1.6 api
-            warnings = []
+            warnings_context = contextlib.nullcontext()
             if settings:
                 context.update(**settings)
-                warnings.append("passing settings to.*is deprecated")
-            with self.assertWarningList(warnings):
+                warnings_context = pytest.warns(
+                    match="passing settings to.*is deprecated"
+                )
+            with warnings_context:
                 return (handler or self.handler).encrypt(secret, **context)
         else:
             # use 1.7 api
@@ -1568,14 +1442,14 @@ class HandlerCase(TestCase):
 
         # should prevent setting below handler limit
         self.assertRaises(ValueError, handler.using, default_salt_size=-1)
-        with self.assertWarningList([PasslibHashWarning]):
+        with pytest.warns(PasslibHashWarning):
             temp = handler.using(default_salt_size=-1, relaxed=True)
         self.assertEqual(temp.default_salt_size, mn)
 
         # should prevent setting above handler limit
         if mx:
             self.assertRaises(ValueError, handler.using, default_salt_size=mx + 1)
-            with self.assertWarningList([PasslibHashWarning]):
+            with pytest.warns(PasslibHashWarning):
                 temp = handler.using(default_salt_size=mx + 1, relaxed=True)
             self.assertEqual(temp.default_salt_size, mx)
 
@@ -1715,7 +1589,7 @@ class HandlerCase(TestCase):
             adj = 1
 
         # create a subclass with small/medium/large as new default desired values
-        with self.assertWarningList([]):
+        with no_warnings():
             subcls = handler.using(
                 min_desired_rounds=small,
                 max_desired_rounds=large,
@@ -1765,7 +1639,7 @@ class HandlerCase(TestCase):
             self.assertRaises(
                 ValueError, handler.using, min_desired_rounds=orig_min_rounds - adj
             )
-            with self.assertWarningList([PasslibHashWarning]):
+            with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     min_desired_rounds=orig_min_rounds - adj, relaxed=True
                 )
@@ -1776,14 +1650,14 @@ class HandlerCase(TestCase):
             self.assertRaises(
                 ValueError, handler.using, min_desired_rounds=orig_max_rounds + adj
             )
-            with self.assertWarningList([PasslibHashWarning]):
+            with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     min_desired_rounds=orig_max_rounds + adj, relaxed=True
                 )
             self.assertEqual(temp.min_desired_rounds, orig_max_rounds)
 
         # .using() should allow values below previous desired minimum, w/o warning
-        with self.assertWarningList([]):
+        with no_warnings():
             temp = subcls.using(min_desired_rounds=small - adj)
         self.assertEqual(temp.min_desired_rounds, small - adj)
 
@@ -1792,7 +1666,7 @@ class HandlerCase(TestCase):
         self.assertEqual(temp.min_desired_rounds, small + 2 * adj)
 
         # .using() should allow values above previous desired maximum, w/o warning
-        with self.assertWarningList([]):
+        with no_warnings():
             temp = subcls.using(min_desired_rounds=large + adj)
         self.assertEqual(temp.min_desired_rounds, large + adj)
 
@@ -1800,7 +1674,7 @@ class HandlerCase(TestCase):
         # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .using()
         self.assertEqual(get_effective_rounds(subcls, small + adj), small + adj)
         self.assertEqual(get_effective_rounds(subcls, small), small)
-        with self.assertWarningList([]):
+        with no_warnings():
             self.assertEqual(get_effective_rounds(subcls, small - adj), small - adj)
 
         # 'min_rounds' should be treated as alias for 'min_desired_rounds'
@@ -1828,7 +1702,7 @@ class HandlerCase(TestCase):
             self.assertRaises(
                 ValueError, handler.using, max_desired_rounds=orig_min_rounds - adj
             )
-            with self.assertWarningList([PasslibHashWarning]):
+            with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     max_desired_rounds=orig_min_rounds - adj, relaxed=True
                 )
@@ -1839,14 +1713,14 @@ class HandlerCase(TestCase):
             self.assertRaises(
                 ValueError, handler.using, max_desired_rounds=orig_max_rounds + adj
             )
-            with self.assertWarningList([PasslibHashWarning]):
+            with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     max_desired_rounds=orig_max_rounds + adj, relaxed=True
                 )
             self.assertEqual(temp.max_desired_rounds, orig_max_rounds)
 
         # .using() should clip values below previous minimum, w/ warning
-        with self.assertWarningList([PasslibConfigWarning]):
+        with pytest.warns(PasslibConfigWarning):
             temp = subcls.using(max_desired_rounds=small - adj)
         self.assertEqual(temp.max_desired_rounds, small)
 
@@ -1863,7 +1737,7 @@ class HandlerCase(TestCase):
         self.assertEqual(temp.min_desired_rounds, large - 2 * adj)
 
         # .using() should allow values above previous desired maximum, w/o warning
-        with self.assertWarningList([]):
+        with no_warnings():
             temp = subcls.using(max_desired_rounds=large + adj)
         self.assertEqual(temp.max_desired_rounds, large + adj)
 
@@ -1871,7 +1745,7 @@ class HandlerCase(TestCase):
         # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .using()
         self.assertEqual(get_effective_rounds(subcls, large - adj), large - adj)
         self.assertEqual(get_effective_rounds(subcls, large), large)
-        with self.assertWarningList([]):
+        with no_warnings():
             self.assertEqual(get_effective_rounds(subcls, large + adj), large + adj)
 
         # 'max_rounds' should be treated as alias for 'max_desired_rounds'
