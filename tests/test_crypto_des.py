@@ -59,7 +59,7 @@ class DesTest(TestCase):
             key2 = shrink_des_key(key1)
             key3 = expand_des_key(key2)
             # NOTE: this assumes expand_des_key() sets parity bits to 0
-            self.assertEqual(key3, key1 & _KDATA_MASK)
+            assert key3 == key1 & _KDATA_MASK
 
         # type checks
         self.assertRaises(TypeError, expand_des_key, 1.0)
@@ -84,7 +84,7 @@ class DesTest(TestCase):
             key1 = getrandbytes(rng, 7)
             key2 = expand_des_key(key1)
             key3 = shrink_des_key(key2)
-            self.assertEqual(key3, key1)
+            assert key3 == key1
 
         # type checks
         self.assertRaises(TypeError, shrink_des_key, 1.0)
@@ -122,25 +122,25 @@ class DesTest(TestCase):
 
             # test 64-bit key
             result = des_encrypt_block(key, plaintext)
-            self.assertEqual(result, correct, "key=%r plaintext=%r:" % (key, plaintext))
+            assert result == correct, "key=%r plaintext=%r:" % (key, plaintext)
 
             # test 56-bit version
             key2 = shrink_des_key(key)
             result = des_encrypt_block(key2, plaintext)
-            self.assertEqual(
-                result,
-                correct,
-                "key=%r shrink(key)=%r plaintext=%r:" % (key, key2, plaintext),
+            assert result == correct, "key=%r shrink(key)=%r plaintext=%r:" % (
+                key,
+                key2,
+                plaintext,
             )
 
             # test with random parity bits
             for _ in range(20):
                 key3 = _pack64(self._random_parity(_unpack64(key)))
                 result = des_encrypt_block(key3, plaintext)
-                self.assertEqual(
-                    result,
-                    correct,
-                    "key=%r rndparity(key)=%r plaintext=%r:" % (key, key3, plaintext),
+                assert result == correct, "key=%r rndparity(key)=%r plaintext=%r:" % (
+                    key,
+                    key3,
+                    plaintext,
                 )
 
         # check invalid keys
@@ -167,16 +167,16 @@ class DesTest(TestCase):
         for key, plaintext, correct in self.des_test_vectors:
             # test 64-bit key
             result = des_encrypt_int_block(key, plaintext)
-            self.assertEqual(result, correct, "key=%r plaintext=%r:" % (key, plaintext))
+            assert result == correct, "key=%r plaintext=%r:" % (key, plaintext)
 
             # test with random parity bits
             for _ in range(20):
                 key3 = self._random_parity(key)
                 result = des_encrypt_int_block(key3, plaintext)
-                self.assertEqual(
-                    result,
-                    correct,
-                    "key=%r rndparity(key)=%r plaintext=%r:" % (key, key3, plaintext),
+                assert result == correct, "key=%r rndparity(key)=%r plaintext=%r:" % (
+                    key,
+                    key3,
+                    plaintext,
                 )
 
         # check invalid keys

@@ -1744,7 +1744,8 @@ class HasRounds(GenericHandler):
             vary_rounds = int(default_rounds * vary_rounds)
 
         # calculate bounds based on default_rounds +/- vary_rounds
-        assert vary_rounds >= 0 and isinstance(vary_rounds, int)
+        assert vary_rounds >= 0
+        assert isinstance(vary_rounds, int)
         lower = linear_to_native(default_rounds - vary_rounds, False)
         upper = linear_to_native(default_rounds + vary_rounds, True)
         return cls._clip_to_desired_rounds(lower), cls._clip_to_desired_rounds(upper)

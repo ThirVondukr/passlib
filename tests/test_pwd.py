@@ -20,15 +20,15 @@ class UtilsTest(TestCase):
         """_self_info_rate()"""
         from passlib.pwd import _self_info_rate
 
-        self.assertEqual(_self_info_rate(""), 0)
+        assert _self_info_rate("") == 0
 
-        self.assertEqual(_self_info_rate("a" * 8), 0)
+        assert _self_info_rate("a" * 8) == 0
 
-        self.assertEqual(_self_info_rate("ab"), 1)
-        self.assertEqual(_self_info_rate("ab" * 8), 1)
+        assert _self_info_rate("ab") == 1
+        assert _self_info_rate("ab" * 8) == 1
 
-        self.assertEqual(_self_info_rate("abcd"), 2)
-        self.assertEqual(_self_info_rate("abcd" * 8), 2)
+        assert _self_info_rate("abcd") == 2
+        assert _self_info_rate("abcd" * 8) == 2
         self.assertAlmostEqual(_self_info_rate("abcdaaaa"), 1.5488, places=4)
 
     # def test_total_self_info(self):
@@ -66,19 +66,19 @@ class WordGeneratorTest(TestCase):
 
     def assertResultContents(self, results, count, chars, unique=True):
         """check result list matches expected count & charset"""
-        self.assertEqual(len(results), count)
+        assert len(results) == count
         if unique:
             if unique is True:
                 unique = count
-            self.assertEqual(len(set(results)), unique)
-        self.assertEqual(set("".join(results)), set(chars))
+            assert len(set(results)) == unique
+        assert set("".join(results)) == set(chars)
 
     def test_general(self):
         """general behavior"""
 
         # basic usage
         result = genword()
-        self.assertEqual(len(result), 9)
+        assert len(result) == 9
 
         # malformed keyword should have useful error.
         self.assertRaisesRegex(
@@ -126,20 +126,20 @@ class PhraseGeneratorTest(TestCase):
 
     def assertResultContents(self, results, count, words, unique=True, sep=" "):
         """check result list matches expected count & charset"""
-        self.assertEqual(len(results), count)
+        assert len(results) == count
         if unique:
             if unique is True:
                 unique = count
-            self.assertEqual(len(set(results)), unique)
+            assert len(set(results)) == unique
         out = set(itertools.chain.from_iterable(elem.split(sep) for elem in results))
-        self.assertEqual(out, set(words))
+        assert out == set(words)
 
     def test_general(self):
         """general behavior"""
 
         # basic usage
         result = genphrase()
-        self.assertEqual(len(result.split(" ")), 4)  # 48 / log(7776, 2) ~= 3.7 -> 4
+        assert len(result.split(" ")) == 4  # 48 / log(7776, 2) ~= 3.7 -> 4
 
         # malformed keyword should have useful error.
         self.assertRaisesRegex(
@@ -151,19 +151,19 @@ class PhraseGeneratorTest(TestCase):
 
         # custom entropy
         result = genphrase(entropy=70)
-        self.assertEqual(len(result.split(" ")), 6)  # 70 / log(7776, 2) ~= 5.4 -> 6
+        assert len(result.split(" ")) == 6  # 70 / log(7776, 2) ~= 5.4 -> 6
 
         # custom length
         result = genphrase(length=3)
-        self.assertEqual(len(result.split(" ")), 3)
+        assert len(result.split(" ")) == 3
 
         # custom length < entropy
         result = genphrase(length=3, entropy=48)
-        self.assertEqual(len(result.split(" ")), 4)
+        assert len(result.split(" ")) == 4
 
         # custom length > entropy
         result = genphrase(length=4, entropy=12)
-        self.assertEqual(len(result.split(" ")), 4)
+        assert len(result.split(" ")) == 4
 
     def test_returns(self):
         """'returns' keyword"""

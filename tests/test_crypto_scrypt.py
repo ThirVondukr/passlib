@@ -81,7 +81,7 @@ class ScryptEngineTest(TestCase):
 
         # NOTE: p value should be ignored, so testing w/ random inputs.
         engine = ScryptEngine(n=16, r=1, p=rng.randint(1, 1023))
-        self.assertEqual(engine.smix(input), output)
+        assert engine.smix(input) == output
 
     def test_bmix(self):
         """bmix()"""
@@ -101,7 +101,7 @@ class ScryptEngineTest(TestCase):
             )
             target = [rng.randint(0, 1 << 32) for _ in range((2 * r) * 16)]
             engine.bmix(input, target)
-            self.assertEqual(target, list(output))
+            assert target == list(output)
 
             # ScryptEngine special-cases bmix() for r=1.
             # this removes the special case patching, so we also test original bmix function.
@@ -109,7 +109,7 @@ class ScryptEngineTest(TestCase):
                 del engine.bmix
                 target = [rng.randint(0, 1 << 32) for _ in range((2 * r) * 16)]
                 engine.bmix(input, target)
-                self.assertEqual(target, list(output))
+                assert target == list(output)
 
         # -----------------------------------------------------------------------
         # test vector from (expired) scrypt rfc draft
@@ -284,7 +284,7 @@ class ScryptEngineTest(TestCase):
             e4 24 cc 10 2c 91 74 5c 24 ad 67 3d c7 61 8f 81
             """)
         )
-        self.assertEqual(salsa20(input), output)
+        assert salsa20(input) == output
 
         # -----------------------------------------------------------------------
         # custom test vector,
@@ -297,7 +297,7 @@ class ScryptEngineTest(TestCase):
             9d4a2a0fd2142523d758c60b36411b682d53860514b871d27659042a5afa475d
             """)
         )
-        self.assertEqual(salsa20(input), output)
+        assert salsa20(input) == output
 
 
 class _CommonScryptTest(TestCase):
@@ -399,7 +399,7 @@ class _CommonScryptTest(TestCase):
             logging.debug(
                 "scrypt reference vector: %r %r n=%r r=%r p=%r", secret, salt, n, r, p
             )
-            self.assertEqual(scrypt_mod.scrypt(secret, salt, n, r, p, keylen), result)
+            assert scrypt_mod.scrypt(secret, salt, n, r, p, keylen) == result
 
     _already_tested_others = None
 
@@ -447,16 +447,14 @@ class _CommonScryptTest(TestCase):
             backends = set()
             for name in available:
                 scrypt_mod._set_backend(name)
-                self.assertNotIn(scrypt_mod._scrypt, backends)
+                assert scrypt_mod._scrypt not in backends
                 backends.add(scrypt_mod._scrypt)
                 result = hexstr(scrypt_mod.scrypt(secret, salt, n, r, p, ks))
-                self.assertEqual(len(result), 2 * ks)
+                assert len(result) == 2 * ks
                 if previous is not None:
-                    self.assertEqual(
-                        result,
-                        previous,
-                        msg="%r output differs from others %r: %r"
-                        % (name, available, [secret, salt, n, r, p, ks]),
+                    assert result == previous, (
+                        "%r output differs from others %r: %r"
+                        % (name, available, [secret, salt, n, r, p, ks])
                     )
 
     def test_backend(self):
@@ -469,12 +467,12 @@ class _CommonScryptTest(TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "Using builtin scrypt backend.*")
             scrypt_mod._set_backend(self.backend)
-        self.assertEqual(scrypt_mod.backend, self.backend)
+        assert scrypt_mod.backend == self.backend
         scrypt_mod.scrypt("s", "s", 2, 2, 2, 16)
 
         # throw error for unknown backend
         self.assertRaises(ValueError, scrypt_mod._set_backend, "xxx")
-        self.assertEqual(scrypt_mod.backend, self.backend)
+        assert scrypt_mod.backend == self.backend
 
     def test_secret_param(self):
         """'secret' parameter"""
@@ -484,18 +482,18 @@ class _CommonScryptTest(TestCase):
 
         # unicode
         TEXT = "abc\u00defg"
-        self.assertEqual(run_scrypt(TEXT), "05717106997bfe0da42cf4779a2f8bd8")
+        assert run_scrypt(TEXT) == "05717106997bfe0da42cf4779a2f8bd8"
 
         # utf8 bytes
         TEXT_UTF8 = b"abc\xc3\x9efg"
-        self.assertEqual(run_scrypt(TEXT_UTF8), "05717106997bfe0da42cf4779a2f8bd8")
+        assert run_scrypt(TEXT_UTF8) == "05717106997bfe0da42cf4779a2f8bd8"
 
         # latin1 bytes
         TEXT_LATIN1 = b"abc\xdefg"
-        self.assertEqual(run_scrypt(TEXT_LATIN1), "770825d10eeaaeaf98e8a3c40f9f441d")
+        assert run_scrypt(TEXT_LATIN1) == "770825d10eeaaeaf98e8a3c40f9f441d"
 
         # accept empty string
-        self.assertEqual(run_scrypt(""), "ca1399e5fae5d3b9578dcd2b1faff6e2")
+        assert run_scrypt("") == "ca1399e5fae5d3b9578dcd2b1faff6e2"
 
         # reject other types
         self.assertRaises(TypeError, run_scrypt, None)
@@ -509,15 +507,15 @@ class _CommonScryptTest(TestCase):
 
         # unicode
         TEXT = "abc\u00defg"
-        self.assertEqual(run_scrypt(TEXT), "a748ec0f4613929e9e5f03d1ab741d88")
+        assert run_scrypt(TEXT) == "a748ec0f4613929e9e5f03d1ab741d88"
 
         # utf8 bytes
         TEXT_UTF8 = b"abc\xc3\x9efg"
-        self.assertEqual(run_scrypt(TEXT_UTF8), "a748ec0f4613929e9e5f03d1ab741d88")
+        assert run_scrypt(TEXT_UTF8) == "a748ec0f4613929e9e5f03d1ab741d88"
 
         # latin1 bytes
         TEXT_LATIN1 = b"abc\xdefg"
-        self.assertEqual(run_scrypt(TEXT_LATIN1), "91d056fb76fb6e9a7d1cdfffc0a16cd1")
+        assert run_scrypt(TEXT_LATIN1) == "91d056fb76fb6e9a7d1cdfffc0a16cd1"
 
         # reject other types
         self.assertRaises(TypeError, run_scrypt, None)
@@ -533,10 +531,10 @@ class _CommonScryptTest(TestCase):
         self.assertRaises(ValueError, run_scrypt, -1)
         self.assertRaises(ValueError, run_scrypt, 0)
         self.assertRaises(ValueError, run_scrypt, 1)
-        self.assertEqual(run_scrypt(2), "dacf2bca255e2870e6636fa8c8957a66")
+        assert run_scrypt(2) == "dacf2bca255e2870e6636fa8c8957a66"
         self.assertRaises(ValueError, run_scrypt, 3)
         self.assertRaises(ValueError, run_scrypt, 15)
-        self.assertEqual(run_scrypt(16), "0272b8fc72bc54b1159340ed99425233")
+        assert run_scrypt(16) == "0272b8fc72bc54b1159340ed99425233"
 
     def test_r_param(self):
         """'r' (block size) parameter"""
@@ -547,9 +545,9 @@ class _CommonScryptTest(TestCase):
         # must be > 1
         self.assertRaises(ValueError, run_scrypt, -1)
         self.assertRaises(ValueError, run_scrypt, 0)
-        self.assertEqual(run_scrypt(1), "3d630447d9f065363b8a79b0b3670251")
-        self.assertEqual(run_scrypt(2), "dacf2bca255e2870e6636fa8c8957a66")
-        self.assertEqual(run_scrypt(5), "114f05e985a903c27237b5578e763736")
+        assert run_scrypt(1) == "3d630447d9f065363b8a79b0b3670251"
+        assert run_scrypt(2) == "dacf2bca255e2870e6636fa8c8957a66"
+        assert run_scrypt(5) == "114f05e985a903c27237b5578e763736"
 
         # reject r*p >= 2**30
         self.assertRaises(ValueError, run_scrypt, (1 << 30), p=1)
@@ -564,9 +562,9 @@ class _CommonScryptTest(TestCase):
         # must be > 1
         self.assertRaises(ValueError, run_scrypt, -1)
         self.assertRaises(ValueError, run_scrypt, 0)
-        self.assertEqual(run_scrypt(1), "f2960ea8b7d48231fcec1b89b784a6fa")
-        self.assertEqual(run_scrypt(2), "dacf2bca255e2870e6636fa8c8957a66")
-        self.assertEqual(run_scrypt(5), "848a0eeb2b3543e7f543844d6ca79782")
+        assert run_scrypt(1) == "f2960ea8b7d48231fcec1b89b784a6fa"
+        assert run_scrypt(2) == "dacf2bca255e2870e6636fa8c8957a66"
+        assert run_scrypt(5) == "848a0eeb2b3543e7f543844d6ca79782"
 
         # reject r*p >= 2**30
         self.assertRaises(ValueError, run_scrypt, (1 << 30), r=1)
@@ -582,11 +580,11 @@ class _CommonScryptTest(TestCase):
         # must be > 0
         self.assertRaises(ValueError, run_scrypt, -1)
         self.assertRaises(ValueError, run_scrypt, 0)
-        self.assertEqual(run_scrypt(1), "da")
+        assert run_scrypt(1) == "da"
 
         # pick random value
         ksize = rng.randint(1, 1 << 10)
-        self.assertEqual(len(run_scrypt(ksize)), 2 * ksize)  # 2 hex chars per output
+        assert len(run_scrypt(ksize)) == 2 * ksize  # 2 hex chars per output
 
         # one more than upper bound
         self.assertRaises(ValueError, run_scrypt, ((2**32) - 1) * 32 + 1)
@@ -615,4 +613,4 @@ class StdlibScryptTest(_CommonScryptTest):
     def test_default_backend(self):
         """backend management -- default backend"""
         scrypt_mod._set_backend("default")
-        self.assertEqual(scrypt_mod.backend, "stdlib")
+        assert scrypt_mod.backend == "stdlib"

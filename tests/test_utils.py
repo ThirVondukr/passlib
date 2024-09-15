@@ -1,5 +1,6 @@
 """tests for passlib.util"""
 
+import re
 from functools import partial
 import warnings
 
@@ -22,7 +23,7 @@ class MiscTest(TestCase):
         from passlib.utils import compat
 
         # "<module 'passlib.utils.compat' from 'passlib/utils/compat.pyc'>"
-        self.assertRegex(repr(compat), r"^<module 'passlib.utils.compat' from '.*?'>$")
+        assert re.search("^<module 'passlib.utils.compat' from '.*?'>$", repr(compat))
 
         # test synthentic dir()
         dir(compat)
@@ -40,10 +41,10 @@ class MiscTest(TestCase):
 
             xprop = classproperty(xprop_func)
 
-        self.assertEqual(test.xprop, 1)
+        assert test.xprop == 1
 
         prop = test.__dict__["xprop"]
-        self.assertIs(prop.__func__, xprop_func)
+        assert prop.__func__ is xprop_func
 
     def test_deprecated_function(self):
         from passlib.utils.decor import deprecated_function
@@ -54,13 +55,13 @@ class MiscTest(TestCase):
             """test docstring"""
             return args
 
-        self.assertTrue(".. deprecated::" in test_func.__doc__)
+        assert ".. deprecated::" in test_func.__doc__
 
         with pytest.warns(
             DeprecationWarning,
-            match="the function tests.test_utils.test_func\(\) is deprecated as of Passlib 1.6, and will be removed in Passlib 1.8.",
+            match=r"the function tests.test_utils.test_func\(\) is deprecated as of Passlib 1.6, and will be removed in Passlib 1.8.",
         ):
-            self.assertEqual(test_func(1, 2), (1, 2))
+            assert test_func(1, 2) == (1, 2)
 
     def test_memoized_property(self):
         from passlib.utils.decor import memoized_property
@@ -75,22 +76,22 @@ class MiscTest(TestCase):
                 return value
 
         d = dummy()
-        self.assertEqual(d.value, 0)
-        self.assertEqual(d.value, 0)
-        self.assertEqual(d.counter, 1)
+        assert d.value == 0
+        assert d.value == 0
+        assert d.counter == 1
 
     def test_getrandbytes(self):
         """getrandbytes()"""
         from passlib.utils import getrandbytes
 
         wrapper = partial(getrandbytes, self.getRandom())
-        self.assertEqual(len(wrapper(0)), 0)
+        assert len(wrapper(0)) == 0
         a = wrapper(10)
         b = wrapper(10)
-        self.assertIsInstance(a, bytes)
-        self.assertEqual(len(a), 10)
-        self.assertEqual(len(b), 10)
-        self.assertNotEqual(a, b)
+        assert isinstance(a, bytes)
+        assert len(a) == 10
+        assert len(b) == 10
+        assert a != b
 
     @run_with_fixed_seeds(count=1024)
     def test_getrandstr(self, seed):
@@ -100,7 +101,7 @@ class MiscTest(TestCase):
         wrapper = partial(getrandstr, self.getRandom(seed=seed))
 
         # count 0
-        self.assertEqual(wrapper("abc", 0), "")
+        assert wrapper("abc", 0) == ""
 
         # count <0
         self.assertRaises(ValueError, wrapper, "abc", -1)
@@ -109,7 +110,7 @@ class MiscTest(TestCase):
         self.assertRaises(ValueError, wrapper, "", 0)
 
         # letters 1
-        self.assertEqual(wrapper("a", 5), "aaaaa")
+        assert wrapper("a", 5) == "aaaaa"
 
         # NOTE: the following parts are non-deterministic,
         #       with a small chance of failure (outside chance it may pick
@@ -121,26 +122,26 @@ class MiscTest(TestCase):
         # letters
         x = wrapper("abc", 32)
         y = wrapper("abc", 32)
-        self.assertIsInstance(x, str)
-        self.assertNotEqual(x, y)
-        self.assertEqual(sorted(set(x)), ["a", "b", "c"])
+        assert isinstance(x, str)
+        assert x != y
+        assert sorted(set(x)) == ["a", "b", "c"]
 
         # bytes
         x = wrapper(b"abc", 32)
         y = wrapper(b"abc", 32)
-        self.assertIsInstance(x, bytes)
-        self.assertNotEqual(x, y)
+        assert isinstance(x, bytes)
+        assert x != y
         # NOTE: decoding this due to py3 bytes
-        self.assertEqual(sorted(set(x.decode("ascii"))), ["a", "b", "c"])
+        assert sorted(set(x.decode("ascii"))) == ["a", "b", "c"]
 
     def test_generate_password(self):
         """generate_password()"""
         from passlib.utils import generate_password
 
         warnings.filterwarnings(
-            "ignore", "The function.*generate_password\(\) is deprecated"
+            "ignore", r"The function.*generate_password\(\) is deprecated"
         )
-        self.assertEqual(len(generate_password(15)), 15)
+        assert len(generate_password(15)) == 15
 
     def test_is_crypt_context(self):
         """test is_crypt_context()"""
@@ -148,8 +149,8 @@ class MiscTest(TestCase):
         from passlib.context import CryptContext
 
         cc = CryptContext(["des_crypt"])
-        self.assertTrue(is_crypt_context(cc))
-        self.assertFalse(not is_crypt_context(cc))
+        assert is_crypt_context(cc)
+        assert not not is_crypt_context(cc)
 
     def test_genseed(self):
         """test genseed()"""
@@ -162,7 +163,7 @@ class MiscTest(TestCase):
         rng = random.Random(genseed())
         b = rng.randint(0, 10**10)
 
-        self.assertNotEqual(a, b)
+        assert a != b
 
         rng.seed(genseed(rng))
 
@@ -174,11 +175,9 @@ class MiscTest(TestCase):
         # test everything is disabled
         supported = get_supported_os_crypt_schemes()
         if not has_crypt:
-            self.assertEqual(supported, ())
-            self.assertEqual(safe_crypt("test", "aa"), None)
-            self.assertFalse(
-                test_crypt("test", "aaqPiZY5xR5l.")
-            )  # des_crypt() hash of "test"
+            assert supported == ()
+            assert safe_crypt("test", "aa") is None
+            assert not test_crypt("test", "aaqPiZY5xR5l.")  # des_crypt() hash of "test"
             raise self.skipTest("crypt.crypt() not available")
 
         # expect there to be something supported, if crypt() is present
@@ -213,26 +212,26 @@ class MiscTest(TestCase):
         s1 = "test"
         h1 = get_hash(s1)
         result = safe_crypt(s1, h1)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, h1)
-        self.assertEqual(safe_crypt(to_bytes(s1), to_bytes(h1)), h1)
+        assert isinstance(result, str)
+        assert result == h1
+        assert safe_crypt(to_bytes(s1), to_bytes(h1)) == h1
 
         # make sure crypt doesn't just blindly return h1 for whatever we pass in
         h1x = h1[:-2] + "xx"
-        self.assertEqual(safe_crypt(s1, h1x), h1)
+        assert safe_crypt(s1, h1x) == h1
 
         # test utf-8 / unicode password
         s2 = "test\u1234"
         h2 = get_hash(s2)
-        self.assertEqual(safe_crypt(s2, h2), h2)
-        self.assertEqual(safe_crypt(to_bytes(s2), to_bytes(h2)), h2)
+        assert safe_crypt(s2, h2) == h2
+        assert safe_crypt(to_bytes(s2), to_bytes(h2)) == h2
 
         # test rejects null chars in password
         self.assertRaises(ValueError, safe_crypt, "\x00", h1)
 
         # check test_crypt()
-        self.assertTrue(test_crypt("test", h1))
-        self.assertFalse(test_crypt("test", h1x))
+        assert test_crypt("test", h1)
+        assert not test_crypt("test", h1x)
 
     def test_consteq(self):
         """test consteq()"""
@@ -260,11 +259,11 @@ class MiscTest(TestCase):
             "abc",
             "\xff\xa2\x12\x00" * 10,
         ]:
-            self.assertTrue(consteq(value, value), "value %r:" % (value,))
-            self.assertTrue(consteq(value, value), "value %r:" % (value,))
+            assert consteq(value, value), "value %r:" % (value,)
+            assert consteq(value, value), "value %r:" % (value,)
 
             value = value.encode("latin-1")
-            self.assertTrue(consteq(value, value), "value %r:" % (value,))
+            assert consteq(value, value), "value %r:" % (value,)
 
         # check non-equal inputs compare correctly
         for left, right in [
@@ -280,15 +279,15 @@ class MiscTest(TestCase):
             ("abc", "defabc"),
             ("qwertyuiopasdfghjklzxcvbnm", "abc"),
         ]:
-            self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
-            self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
-            self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
-            self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
+            assert not consteq(left, right), "values %r %r:" % (left, right)
+            assert not consteq(right, left), "values %r %r:" % (right, left)
+            assert not consteq(left, right), "values %r %r:" % (left, right)
+            assert not consteq(right, left), "values %r %r:" % (right, left)
 
             left = left.encode("latin-1")
             right = right.encode("latin-1")
-            self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
-            self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
+            assert not consteq(left, right), "values %r %r:" % (left, right)
+            assert not consteq(right, left), "values %r %r:" % (right, left)
 
         # TODO: add some tests to ensure we take THETA(strlen) time.
         # this might be hard to do reproducably.
@@ -332,18 +331,18 @@ class MiscTest(TestCase):
         self.assertRaises(TypeError, sp, b"")
 
         # empty strings
-        self.assertEqual(sp(""), "")
-        self.assertEqual(sp("\u00ad"), "")
+        assert sp("") == ""
+        assert sp("\xad") == ""
 
         # verify B.1 chars are stripped,
-        self.assertEqual(sp("$\u00ad$\u200d$"), "$$$")
+        assert sp("$\xad$\u200d$") == "$$$"
 
         # verify C.1.2 chars are replaced with space
-        self.assertEqual(sp("$ $\u00a0$\u3000$"), "$ $ $ $")
+        assert sp("$ $\xa0$\u3000$") == "$ $ $ $"
 
         # verify normalization to KC
-        self.assertEqual(sp("a\u0300"), "\u00e0")
-        self.assertEqual(sp("\u00e0"), "\u00e0")
+        assert sp("à") == "à"
+        assert sp("à") == "à"
 
         # verify various forbidden characters
         # control chars
@@ -373,42 +372,42 @@ class MiscTest(TestCase):
         # verify bidi behavior
         # if starts with R/AL -- must end with R/AL
         self.assertRaises(ValueError, sp, "\u0627\u0031")
-        self.assertEqual(sp("\u0627"), "\u0627")
-        self.assertEqual(sp("\u0627\u0628"), "\u0627\u0628")
-        self.assertEqual(sp("\u0627\u0031\u0628"), "\u0627\u0031\u0628")
+        assert sp("ا") == "ا"
+        assert sp("اب") == "اب"
+        assert sp("ا1ب") == "ا1ب"
         # if starts with R/AL --  cannot contain L
         self.assertRaises(ValueError, sp, "\u0627\u0041\u0628")
         # if doesn't start with R/AL -- can contain R/AL, but L & EN allowed
         self.assertRaises(ValueError, sp, "x\u0627z")
-        self.assertEqual(sp("x\u0041z"), "x\u0041z")
+        assert sp("xAz") == "xAz"
 
         # ------------------------------------------------------
         # examples pulled from external sources, to be thorough
         # ------------------------------------------------------
 
         # rfc 4031 section 3 examples
-        self.assertEqual(sp("I\u00adX"), "IX")  # strip SHY
-        self.assertEqual(sp("user"), "user")  # unchanged
-        self.assertEqual(sp("USER"), "USER")  # case preserved
-        self.assertEqual(sp("\u00aa"), "a")  # normalize to KC form
-        self.assertEqual(sp("\u2168"), "IX")  # normalize to KC form
+        assert sp("I\xadX") == "IX"  # strip SHY
+        assert sp("user") == "user"  # unchanged
+        assert sp("USER") == "USER"  # case preserved
+        assert sp("ª") == "a"  # normalize to KC form
+        assert sp("Ⅸ") == "IX"  # normalize to KC form
         self.assertRaises(ValueError, sp, "\u0007")  # forbid control chars
         self.assertRaises(ValueError, sp, "\u0627\u0031")  # invalid bidi
 
         # rfc 3454 section 6 examples
         # starts with RAL char, must end with RAL char
         self.assertRaises(ValueError, sp, "\u0627\u0031")
-        self.assertEqual(sp("\u0627\u0031\u0628"), "\u0627\u0031\u0628")
+        assert sp("ا1ب") == "ا1ب"
 
     def test_splitcomma(self):
         from passlib.utils import splitcomma
 
-        self.assertEqual(splitcomma(""), [])
-        self.assertEqual(splitcomma(","), [])
-        self.assertEqual(splitcomma("a"), ["a"])
-        self.assertEqual(splitcomma(" a , "), ["a"])
-        self.assertEqual(splitcomma(" a , b"), ["a", "b"])
-        self.assertEqual(splitcomma(" a, b, "), ["a", "b"])
+        assert splitcomma("") == []
+        assert splitcomma(",") == []
+        assert splitcomma("a") == ["a"]
+        assert splitcomma(" a , ") == ["a"]
+        assert splitcomma(" a , b") == ["a", "b"]
+        assert splitcomma(" a, b, ") == ["a", "b"]
 
     def test_utf8_truncate(self):
         """
@@ -446,14 +445,14 @@ class MiscTest(TestCase):
                 result.decode("utf-8")
 
                 # result should never be larger than source
-                self.assertLessEqual(len(result), end, msg=prefix)
+                assert len(result) <= end, prefix
 
                 # result should always be in range(idx, idx+4)
-                self.assertGreaterEqual(len(result), min(idx, end), msg=prefix)
-                self.assertLess(len(result), min(idx + 4, end + 1), msg=prefix)
+                assert len(result) >= min(idx, end), prefix
+                assert len(result) < min(idx + 4, end + 1), prefix
 
                 # should be strict prefix of source
-                self.assertEqual(result, source[: len(result)], msg=prefix)
+                assert result == source[: len(result)], prefix
 
         #
         # malformed utf8 --
@@ -470,7 +469,7 @@ class MiscTest(TestCase):
             for idx in range(end + 16):
                 prefix = "source=%r index=%r: " % (source, idx)
                 result = utf8_truncate(source, idx)
-                self.assertEqual(result, source[:idx], msg=prefix)
+                assert result == source[:idx], prefix
 
         #
         # malformed utf8 --
@@ -484,7 +483,7 @@ class MiscTest(TestCase):
             for idx in range(end + 16):
                 prefix = "source=%r index=%r: " % (source, idx)
                 result = utf8_truncate(source, idx)
-                self.assertEqual(result, source[: idx + 3], msg=prefix)
+                assert result == source[: idx + 3], prefix
 
         #
         # string w/ some invalid utf8 --
@@ -495,46 +494,44 @@ class MiscTest(TestCase):
         #
         source = b"MN\xff\xa0\xa1\xa2\xaaOP\xab"
 
-        self.assertEqual(utf8_truncate(source, 0), b"")  # index="M", stops there
+        assert utf8_truncate(source, 0) == b""  # index="M", stops there
 
-        self.assertEqual(utf8_truncate(source, 1), b"M")  # index="N", stops there
+        assert utf8_truncate(source, 1) == b"M"  # index="N", stops there
 
-        self.assertEqual(utf8_truncate(source, 2), b"MN")  # index="\xff", stops there
+        assert utf8_truncate(source, 2) == b"MN"  # index="\xff", stops there
 
-        self.assertEqual(
-            utf8_truncate(source, 3), b"MN\xff\xa0\xa1\xa2"
+        assert (
+            utf8_truncate(source, 3) == b"MN\xff\xa0\xa1\xa2"
         )  # index="\xa0", runs out after index+3="\xa2"
 
-        self.assertEqual(
-            utf8_truncate(source, 4), b"MN\xff\xa0\xa1\xa2\xaa"
+        assert (
+            utf8_truncate(source, 4) == b"MN\xff\xa0\xa1\xa2\xaa"
         )  # index="\xa1", runs out after index+3="\xaa"
 
-        self.assertEqual(
-            utf8_truncate(source, 5), b"MN\xff\xa0\xa1\xa2\xaa"
+        assert (
+            utf8_truncate(source, 5) == b"MN\xff\xa0\xa1\xa2\xaa"
         )  # index="\xa2", stops before "O"
 
-        self.assertEqual(
-            utf8_truncate(source, 6), b"MN\xff\xa0\xa1\xa2\xaa"
+        assert (
+            utf8_truncate(source, 6) == b"MN\xff\xa0\xa1\xa2\xaa"
         )  # index="\xaa", stops before "O"
 
-        self.assertEqual(
-            utf8_truncate(source, 7), b"MN\xff\xa0\xa1\xa2\xaa"
+        assert (
+            utf8_truncate(source, 7) == b"MN\xff\xa0\xa1\xa2\xaa"
         )  # index="O", stops there
 
-        self.assertEqual(
-            utf8_truncate(source, 8), b"MN\xff\xa0\xa1\xa2\xaaO"
+        assert (
+            utf8_truncate(source, 8) == b"MN\xff\xa0\xa1\xa2\xaaO"
         )  # index="P", stops there
 
-        self.assertEqual(
-            utf8_truncate(source, 9), b"MN\xff\xa0\xa1\xa2\xaaOP\xab"
+        assert (
+            utf8_truncate(source, 9) == b"MN\xff\xa0\xa1\xa2\xaaOP\xab"
         )  # index="\xab", runs out at end
 
-        self.assertEqual(
-            utf8_truncate(source, 10), b"MN\xff\xa0\xa1\xa2\xaaOP\xab"
-        )  # index=end
+        assert utf8_truncate(source, 10) == b"MN\xff\xa0\xa1\xa2\xaaOP\xab"  # index=end
 
-        self.assertEqual(
-            utf8_truncate(source, 11), b"MN\xff\xa0\xa1\xa2\xaaOP\xab"
+        assert (
+            utf8_truncate(source, 11) == b"MN\xff\xa0\xa1\xa2\xaaOP\xab"
         )  # index=end+1
 
 
@@ -545,34 +542,34 @@ class CodecTest(TestCase):
         """test b() helper, bytes and native str type"""
         import builtins
 
-        self.assertIs(bytes, builtins.bytes)
+        assert bytes is builtins.bytes
 
-        self.assertIsInstance(b"", bytes)
-        self.assertIsInstance(b"\x00\xff", bytes)
-        self.assertEqual(b"\x00\xff".decode("latin-1"), "\x00\xff")
+        assert isinstance(b"", bytes)
+        assert isinstance(b"\x00\xff", bytes)
+        assert b"\x00\xff".decode("latin-1") == "\x00ÿ"
 
     def test_to_bytes(self):
         """test to_bytes()"""
         from passlib.utils import to_bytes
 
         # check unicode inputs
-        self.assertEqual(to_bytes("abc"), b"abc")
-        self.assertEqual(to_bytes("\x00\xff"), b"\x00\xc3\xbf")
+        assert to_bytes("abc") == b"abc"
+        assert to_bytes("\x00ÿ") == b"\x00\xc3\xbf"
 
         # check unicode w/ encodings
-        self.assertEqual(to_bytes("\x00\xff", "latin-1"), b"\x00\xff")
+        assert to_bytes("\x00ÿ", "latin-1") == b"\x00\xff"
         self.assertRaises(ValueError, to_bytes, "\x00\xff", "ascii")
 
         # check bytes inputs
-        self.assertEqual(to_bytes(b"abc"), b"abc")
-        self.assertEqual(to_bytes(b"\x00\xff"), b"\x00\xff")
-        self.assertEqual(to_bytes(b"\x00\xc3\xbf"), b"\x00\xc3\xbf")
+        assert to_bytes(b"abc") == b"abc"
+        assert to_bytes(b"\x00\xff") == b"\x00\xff"
+        assert to_bytes(b"\x00\xc3\xbf") == b"\x00\xc3\xbf"
 
         # check byte inputs ignores enocding
-        self.assertEqual(to_bytes(b"\x00\xc3\xbf", "latin-1"), b"\x00\xc3\xbf")
+        assert to_bytes(b"\x00\xc3\xbf", "latin-1") == b"\x00\xc3\xbf"
 
         # check bytes transcoding
-        self.assertEqual(to_bytes(b"\x00\xc3\xbf", "latin-1", "", "utf-8"), b"\x00\xff")
+        assert to_bytes(b"\x00\xc3\xbf", "latin-1", "", "utf-8") == b"\x00\xff"
 
         # check other
         self.assertRaises(AssertionError, to_bytes, "abc", None)
@@ -583,16 +580,16 @@ class CodecTest(TestCase):
         from passlib.utils import to_unicode
 
         # check unicode inputs
-        self.assertEqual(to_unicode("abc"), "abc")
-        self.assertEqual(to_unicode("\x00\xff"), "\x00\xff")
+        assert to_unicode("abc") == "abc"
+        assert to_unicode("\x00ÿ") == "\x00ÿ"
 
         # check unicode input ignores encoding
-        self.assertEqual(to_unicode("\x00\xff", "ascii"), "\x00\xff")
+        assert to_unicode("\x00ÿ", "ascii") == "\x00ÿ"
 
         # check bytes input
-        self.assertEqual(to_unicode(b"abc"), "abc")
-        self.assertEqual(to_unicode(b"\x00\xc3\xbf"), "\x00\xff")
-        self.assertEqual(to_unicode(b"\x00\xff", "latin-1"), "\x00\xff")
+        assert to_unicode(b"abc") == "abc"
+        assert to_unicode(b"\x00\xc3\xbf") == "\x00ÿ"
+        assert to_unicode(b"\x00\xff", "latin-1") == "\x00ÿ"
         self.assertRaises(ValueError, to_unicode, b"\x00\xff")
 
         # check other
@@ -604,45 +601,45 @@ class CodecTest(TestCase):
         from passlib.utils import to_native_str
 
         # test plain ascii
-        self.assertEqual(to_native_str("abc", "ascii"), "abc")
-        self.assertEqual(to_native_str(b"abc", "ascii"), "abc")
+        assert to_native_str("abc", "ascii") == "abc"
+        assert to_native_str(b"abc", "ascii") == "abc"
 
         # test invalid ascii
-        self.assertEqual(to_native_str("\xe0", "ascii"), "\xe0")
+        assert to_native_str("à", "ascii") == "à"
         self.assertRaises(UnicodeDecodeError, to_native_str, b"\xc3\xa0", "ascii")
 
         # test latin-1
-        self.assertEqual(to_native_str("\xe0", "latin-1"), "\xe0")
-        self.assertEqual(to_native_str(b"\xe0", "latin-1"), "\xe0")
+        assert to_native_str("à", "latin-1") == "à"
+        assert to_native_str(b"\xe0", "latin-1") == "à"
 
         # test utf-8
-        self.assertEqual(to_native_str("\xe0", "utf-8"), "\xe0")
-        self.assertEqual(to_native_str(b"\xc3\xa0", "utf-8"), "\xe0")
+        assert to_native_str("à", "utf-8") == "à"
+        assert to_native_str(b"\xc3\xa0", "utf-8") == "à"
 
         # other types rejected
         self.assertRaises(TypeError, to_native_str, None, "ascii")
 
     def test_is_ascii_safe(self):
-        self.assertTrue(is_ascii_safe(b"\x00abc\x7f"))
-        self.assertTrue(is_ascii_safe("\x00abc\x7f"))
-        self.assertFalse(is_ascii_safe(b"\x00abc\x80"))
-        self.assertFalse(is_ascii_safe("\x00abc\x80"))
+        assert is_ascii_safe(b"\x00abc\x7f")
+        assert is_ascii_safe("\x00abc\x7f")
+        assert not is_ascii_safe(b"\x00abc\x80")
+        assert not is_ascii_safe("\x00abc\x80")
 
     def test_is_same_codec(self):
         """test is_same_codec()"""
         from passlib.utils import is_same_codec
 
-        self.assertTrue(is_same_codec(None, None))
-        self.assertFalse(is_same_codec(None, "ascii"))
+        assert is_same_codec(None, None)
+        assert not is_same_codec(None, "ascii")
 
-        self.assertTrue(is_same_codec("ascii", "ascii"))
-        self.assertTrue(is_same_codec("ascii", "ASCII"))
+        assert is_same_codec("ascii", "ascii")
+        assert is_same_codec("ascii", "ASCII")
 
-        self.assertTrue(is_same_codec("utf-8", "utf-8"))
-        self.assertTrue(is_same_codec("utf-8", "utf8"))
-        self.assertTrue(is_same_codec("utf-8", "UTF_8"))
+        assert is_same_codec("utf-8", "utf-8")
+        assert is_same_codec("utf-8", "utf8")
+        assert is_same_codec("utf-8", "UTF_8")
 
-        self.assertFalse(is_same_codec("ascii", "utf-8"))
+        assert not is_same_codec("ascii", "utf-8")
 
 
 class Base64EngineTest(TestCase):
@@ -667,8 +664,8 @@ class Base64EngineTest(TestCase):
         from passlib.utils.binary import ab64_decode
 
         # accept bytes or unicode
-        self.assertEqual(ab64_decode(b"abc"), hb("69b7"))
-        self.assertEqual(ab64_decode("abc"), hb("69b7"))
+        assert ab64_decode(b"abc") == hb("69b7")
+        assert ab64_decode("abc") == hb("69b7")
 
         # reject non-ascii unicode
         self.assertRaises(ValueError, ab64_decode, "ab\xff")
@@ -679,48 +676,44 @@ class Base64EngineTest(TestCase):
         self.assertRaises(TypeError, ab64_decode, "ab!")
 
         # insert correct padding, handle dirty padding bits
-        self.assertEqual(ab64_decode(b"abcd"), hb("69b71d"))  # 0 mod 4
+        assert ab64_decode(b"abcd") == hb("69b71d")  # 0 mod 4
         self.assertRaises(ValueError, ab64_decode, b"abcde")  # 1 mod 4
-        self.assertEqual(
-            ab64_decode(b"abcdef"), hb("69b71d79")
-        )  # 2 mod 4, dirty padding bits
-        self.assertEqual(
-            ab64_decode(b"abcdeQ"), hb("69b71d79")
-        )  # 2 mod 4, clean padding bits
-        self.assertEqual(
-            ab64_decode(b"abcdefg"), hb("69b71d79f8")
+        assert ab64_decode(b"abcdef") == hb("69b71d79")  # 2 mod 4, dirty padding bits
+        assert ab64_decode(b"abcdeQ") == hb("69b71d79")  # 2 mod 4, clean padding bits
+        assert ab64_decode(b"abcdefg") == hb(
+            "69b71d79f8"
         )  # 3 mod 4, clean padding bits
 
         # support "./" or "+/" altchars
         # (lets us transition to "+/" representation, merge w/ b64s_decode)
-        self.assertEqual(ab64_decode(b"ab+/"), hb("69bfbf"))
-        self.assertEqual(ab64_decode(b"ab./"), hb("69bfbf"))
+        assert ab64_decode(b"ab+/") == hb("69bfbf")
+        assert ab64_decode(b"ab./") == hb("69bfbf")
 
     def test_ab64_encode(self):
         """ab64_encode()"""
         from passlib.utils.binary import ab64_encode
 
         # accept bytes
-        self.assertEqual(ab64_encode(hb("69b7")), b"abc")
+        assert ab64_encode(hb("69b7")) == b"abc"
 
         # reject unicode
         self.assertRaises(TypeError, ab64_encode, hb("69b7").decode("latin-1"))
 
         # insert correct padding before decoding
-        self.assertEqual(ab64_encode(hb("69b71d")), b"abcd")  # 0 mod 4
-        self.assertEqual(ab64_encode(hb("69b71d79")), b"abcdeQ")  # 2 mod 4
-        self.assertEqual(ab64_encode(hb("69b71d79f8")), b"abcdefg")  # 3 mod 4
+        assert ab64_encode(hb("69b71d")) == b"abcd"  # 0 mod 4
+        assert ab64_encode(hb("69b71d79")) == b"abcdeQ"  # 2 mod 4
+        assert ab64_encode(hb("69b71d79f8")) == b"abcdefg"  # 3 mod 4
 
         # output "./" altchars
-        self.assertEqual(ab64_encode(hb("69bfbf")), b"ab./")
+        assert ab64_encode(hb("69bfbf")) == b"ab./"
 
     def test_b64s_decode(self):
         """b64s_decode()"""
         from passlib.utils.binary import b64s_decode
 
         # accept bytes or unicode
-        self.assertEqual(b64s_decode(b"abc"), hb("69b7"))
-        self.assertEqual(b64s_decode("abc"), hb("69b7"))
+        assert b64s_decode(b"abc") == hb("69b7")
+        assert b64s_decode("abc") == hb("69b7")
 
         # reject non-ascii unicode
         self.assertRaises(ValueError, b64s_decode, "ab\xff")
@@ -731,16 +724,12 @@ class Base64EngineTest(TestCase):
         self.assertRaises(TypeError, b64s_decode, "ab!")
 
         # insert correct padding, handle dirty padding bits
-        self.assertEqual(b64s_decode(b"abcd"), hb("69b71d"))  # 0 mod 4
+        assert b64s_decode(b"abcd") == hb("69b71d")  # 0 mod 4
         self.assertRaises(ValueError, b64s_decode, b"abcde")  # 1 mod 4
-        self.assertEqual(
-            b64s_decode(b"abcdef"), hb("69b71d79")
-        )  # 2 mod 4, dirty padding bits
-        self.assertEqual(
-            b64s_decode(b"abcdeQ"), hb("69b71d79")
-        )  # 2 mod 4, clean padding bits
-        self.assertEqual(
-            b64s_decode(b"abcdefg"), hb("69b71d79f8")
+        assert b64s_decode(b"abcdef") == hb("69b71d79")  # 2 mod 4, dirty padding bits
+        assert b64s_decode(b"abcdeQ") == hb("69b71d79")  # 2 mod 4, clean padding bits
+        assert b64s_decode(b"abcdefg") == hb(
+            "69b71d79f8"
         )  # 3 mod 4, clean padding bits
 
     def test_b64s_encode(self):
@@ -748,18 +737,18 @@ class Base64EngineTest(TestCase):
         from passlib.utils.binary import b64s_encode
 
         # accept bytes
-        self.assertEqual(b64s_encode(hb("69b7")), b"abc")
+        assert b64s_encode(hb("69b7")) == b"abc"
 
         # reject unicode
         self.assertRaises(TypeError, b64s_encode, hb("69b7").decode("latin-1"))
 
         # insert correct padding before decoding
-        self.assertEqual(b64s_encode(hb("69b71d")), b"abcd")  # 0 mod 4
-        self.assertEqual(b64s_encode(hb("69b71d79")), b"abcdeQ")  # 2 mod 4
-        self.assertEqual(b64s_encode(hb("69b71d79f8")), b"abcdefg")  # 3 mod 4
+        assert b64s_encode(hb("69b71d")) == b"abcd"  # 0 mod 4
+        assert b64s_encode(hb("69b71d79")) == b"abcdeQ"  # 2 mod 4
+        assert b64s_encode(hb("69b71d79f8")) == b"abcdefg"  # 3 mod 4
 
         # output "+/" altchars
-        self.assertEqual(b64s_encode(hb("69bfbf")), b"ab+/")
+        assert b64s_encode(hb("69bfbf")) == b"ab+/"
 
 
 class _Base64Test(TestCase):
@@ -788,7 +777,7 @@ class _Base64Test(TestCase):
         encode = engine.encode_bytes
         for raw, encoded in self.encoded_data:
             result = encode(raw)
-            self.assertEqual(result, encoded, "encode %r:" % (raw,))
+            assert result == encoded, "encode %r:" % (raw,)
 
     def test_encode_bytes_bad(self):
         """test encode_bytes() with bad input"""
@@ -803,7 +792,7 @@ class _Base64Test(TestCase):
         decode = engine.decode_bytes
         for raw, encoded in self.encoded_data:
             result = decode(encoded)
-            self.assertEqual(result, raw, "decode %r:" % (encoded,))
+            assert result == raw, "decode %r:" % (encoded,)
 
     def test_decode_bytes_padding(self):
         """test decode_bytes() ignores padding bits"""
@@ -814,22 +803,22 @@ class _Base64Test(TestCase):
         BNULL = b"\x00"
 
         # length == 2 mod 4: 4 bits of padding
-        self.assertEqual(decode(m(0, 0)), BNULL)
+        assert decode(m(0, 0)) == BNULL
         for i in range(0, 6):
             if engine.big:  # 4 lsb padding
                 correct = BNULL if i < 4 else bchr(1 << (i - 4))
             else:  # 4 msb padding
                 correct = bchr(1 << (i + 6)) if i < 2 else BNULL
-            self.assertEqual(decode(m(0, 1 << i)), correct, "%d/4 bits:" % i)
+            assert decode(m(0, 1 << i)) == correct, "%d/4 bits:" % i
 
         # length == 3 mod 4: 2 bits of padding
-        self.assertEqual(decode(m(0, 0, 0)), BNULL * 2)
+        assert decode(m(0, 0, 0)) == BNULL * 2
         for i in range(0, 6):
             if engine.big:  # 2 lsb are padding
                 correct = BNULL if i < 2 else bchr(1 << (i - 2))
             else:  # 2 msg are padding
                 correct = bchr(1 << (i + 4)) if i < 4 else BNULL
-            self.assertEqual(decode(m(0, 0, 1 << i)), BNULL + correct, "%d/2 bits:" % i)
+            assert decode(m(0, 0, 1 << i)) == BNULL + correct, "%d/2 bits:" % i
 
     def test_decode_bytes_bad(self):
         """test decode_bytes() with bad input"""
@@ -840,7 +829,7 @@ class _Base64Test(TestCase):
         self.assertRaises(ValueError, decode, engine.bytemap[:5])
 
         # wrong char
-        self.assertTrue(self.bad_byte not in engine.bytemap)
+        assert self.bad_byte not in engine.bytemap
         self.assertRaises(ValueError, decode, self.bad_byte * 4)
 
         # wrong type
@@ -868,11 +857,11 @@ class _Base64Test(TestCase):
 
             # encode them, check invariants
             encoded = engine.encode_bytes(raw)
-            self.assertEqual(len(encoded), enc_size)
+            assert len(encoded) == enc_size
 
             # make sure decode returns original
             result = engine.decode_bytes(encoded)
-            self.assertEqual(result, raw)
+            assert result == raw
 
             #
             # test encoded -> decode() -> encode() -> encoded
@@ -886,14 +875,14 @@ class _Base64Test(TestCase):
 
             # decode them, check invariants
             raw = engine.decode_bytes(encoded)
-            self.assertEqual(len(raw), raw_size, "encoded %d:" % size)
+            assert len(raw) == raw_size, "encoded %d:" % size
 
             # make sure encode returns original (barring padding bits)
             result = engine.encode_bytes(raw)
             if size % 4:
-                self.assertEqual(result[:-1], encoded[:-1])
+                assert result[:-1] == encoded[:-1]
             else:
-                self.assertEqual(result, encoded)
+                assert result == encoded
 
     def test_repair_unused(self):
         """test repair_unused()"""
@@ -919,14 +908,14 @@ class _Base64Test(TestCase):
             if cdata == rdata:
                 # should leave unchanged
                 ok, result = check_repair_unused(cdata)
-                self.assertFalse(ok)
-                self.assertEqual(result, rdata)
+                assert not ok
+                assert result == rdata
             else:
                 # should repair bits
-                self.assertNotEqual(size % 4, 0)
+                assert size % 4 != 0
                 ok, result = check_repair_unused(cdata)
-                self.assertTrue(ok)
-                self.assertEqual(result, rdata)
+                assert ok
+                assert result == rdata
             i += 1
 
     # NOTE: these tests assume normal encode/decode has been tested elsewhere.
@@ -948,7 +937,7 @@ class _Base64Test(TestCase):
         for result, input, offsets in self.transposed + self.transposed_dups:
             tmp = engine.encode_transposed_bytes(input, offsets)
             out = engine.decode_bytes(tmp)
-            self.assertEqual(out, result)
+            assert out == result
 
         self.assertRaises(TypeError, engine.encode_transposed_bytes, "a", [])
 
@@ -958,7 +947,7 @@ class _Base64Test(TestCase):
         for input, result, offsets in self.transposed:
             tmp = engine.encode_bytes(input)
             out = engine.decode_transposed_bytes(tmp, offsets)
-            self.assertEqual(out, result)
+            assert out == result
 
     def test_decode_transposed_bytes_bad(self):
         """test decode_transposed_bytes() fails if map is a one-way"""
@@ -980,14 +969,14 @@ class _Base64Test(TestCase):
         # test encode func
         for value, encoded in encoded_pairs:
             result = encode(value)
-            self.assertIsInstance(result, bytes)
-            self.assertEqual(result, encoded)
+            assert isinstance(result, bytes)
+            assert result == encoded
         self.assertRaises(ValueError, encode, -1)
         self.assertRaises(ValueError, encode, upper)
 
         # test decode func
         for value, encoded in encoded_pairs:
-            self.assertEqual(decode(encoded), value, "encoded %r:" % (encoded,))
+            assert decode(encoded) == value, "encoded %r:" % (encoded,)
         m = self.m
         self.assertRaises(ValueError, decode, m(0) * (chars + 1))
         self.assertRaises(ValueError, decode, m(0) * (chars - 1))
@@ -1002,19 +991,19 @@ class _Base64Test(TestCase):
             # generate random value, encode, and then decode
             value = rng.randint(0, upper - 1)
             encoded = encode(value)
-            self.assertEqual(len(encoded), chars)
-            self.assertEqual(decode(encoded), value)
+            assert len(encoded) == chars
+            assert decode(encoded) == value
 
             # generate some random encoded data, decode, then encode.
             encoded = getrandstr(rng, engine.bytemap, chars)
             value = decode(encoded)
-            self.assertGreaterEqual(value, 0, "decode %r out of bounds:" % encoded)
-            self.assertLess(value, upper, "decode %r out of bounds:" % encoded)
+            assert value >= 0, "decode %r out of bounds:" % encoded
+            assert value < upper, "decode %r out of bounds:" % encoded
             result = encode(value)
             if pad:
-                self.assertEqual(result[:-2], encoded[:-2])
+                assert result[:-2] == encoded[:-2]
             else:
-                self.assertEqual(result, encoded)
+                assert result == encoded
 
     def test_int6(self):
         m = self.m
@@ -1076,8 +1065,8 @@ class _Base64Test(TestCase):
         for data, value, bits in self.encoded_ints:
             encode = getattr(engine, "encode_int%d" % bits)
             decode = getattr(engine, "decode_int%d" % bits)
-            self.assertEqual(encode(value), data)
-            self.assertEqual(decode(data), value)
+            assert encode(value) == data
+            assert decode(data) == value
 
 
 class H64_Test(_Base64Test):

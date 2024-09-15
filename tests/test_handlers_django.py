@@ -81,13 +81,11 @@ class _DjangoHelper(TestCase):
 
         assert self.known_correct_hashes
         for secret, hash_ in self.iter_known_hashes():
-            self.assertTrue(
-                check_password(secret, hash_),
-                "secret=%r hash=%r failed to verify" % (secret, hash_),
+            assert check_password(secret, hash_), (
+                "secret=%r hash=%r failed to verify" % (secret, hash_)
             )
-            self.assertFalse(
-                check_password("x" + secret, hash_),
-                "mangled secret=%r hash=%r incorrect verified" % (secret, hash_),
+            assert not check_password("x" + secret, hash_), (
+                "mangled secret=%r hash=%r incorrect verified" % (secret, hash_)
             )
 
     def test_91_django_generation(self):
@@ -108,9 +106,9 @@ class _DjangoHelper(TestCase):
             if isinstance(secret, bytes):
                 secret = secret.decode("utf-8")
             hash = make_password(secret, hasher=name)
-            self.assertTrue(self.do_identify(hash))
-            self.assertTrue(self.do_verify(secret, hash))
-            self.assertFalse(self.do_verify(other, hash))
+            assert self.do_identify(hash)
+            assert self.do_verify(secret, hash)
+            assert not self.do_verify(other, hash)
 
 
 class django_disabled_test(HandlerCase):

@@ -621,7 +621,8 @@ class _Argon2Common(
         """
         # check argon2 version
         max_version = mixin_cls.max_version
-        assert isinstance(max_version, int) and max_version >= 0x10
+        assert isinstance(max_version, int)
+        assert max_version >= 0x10
         if max_version < 0x13:
             warn(
                 "%r doesn't support argon2 v1.3, and should be upgraded" % name,

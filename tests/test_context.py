@@ -6,7 +6,7 @@ import warnings
 from configparser import NoSectionError
 
 import pytest
-
+import re
 import passlib.utils.handlers as uh
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
@@ -173,51 +173,51 @@ sha512_crypt__min_rounds = 45000
 
         # test blank constructor works correctly
         ctx = CryptContext()
-        self.assertEqual(ctx.to_dict(), {})
+        assert ctx.to_dict() == {}
 
         # test sample 1 with scheme=names
         ctx = CryptContext(**self.sample_1_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 1 with scheme=handlers
         ctx = CryptContext(**self.sample_1_resolved_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 2: options w/o schemes
         ctx = CryptContext(**self.sample_2_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_2_dict)
+        assert ctx.to_dict() == self.sample_2_dict
 
         # test sample 3: default only
         ctx = CryptContext(**self.sample_3_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_3_dict)
+        assert ctx.to_dict() == self.sample_3_dict
 
         # test unicode scheme names (issue 54)
         ctx = CryptContext(schemes=["sha256_crypt"])
-        self.assertEqual(ctx.schemes(), ("sha256_crypt",))
+        assert ctx.schemes() == ("sha256_crypt",)
 
     def test_02_from_string(self):
         """test from_string() constructor"""
         # test sample 1 unicode
         ctx = CryptContext.from_string(self.sample_1_unicode)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 1 with unnormalized inputs
         ctx = CryptContext.from_string(self.sample_1_unnormalized)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 1 utf-8
         ctx = CryptContext.from_string(self.sample_1_unicode.encode("utf-8"))
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 1 w/ '\r\n' linesep
         ctx = CryptContext.from_string(self.sample_1b_unicode)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 1 using UTF-16 and alt section
         ctx = CryptContext.from_string(
             self.sample_1c_bytes, section="mypolicy", encoding="utf-16"
         )
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test wrong type
         self.assertRaises(TypeError, CryptContext.from_string, None)
@@ -238,17 +238,17 @@ sha512_crypt__min_rounds = 45000
 
         # test sample 1
         ctx = CryptContext.from_path(self.sample_1_path)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 1 w/ '\r\n' linesep
         ctx = CryptContext.from_path(self.sample_1b_path)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test sample 1 encoding using UTF-16 and alt section
         ctx = CryptContext.from_path(
             self.sample_1c_path, section="mypolicy", encoding="utf-16"
         )
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test missing file
         self.assertRaises(
@@ -271,34 +271,34 @@ sha512_crypt__min_rounds = 45000
 
         # overlay sample 2 onto copy
         cc2 = cc1.copy(**self.sample_2_dict)
-        self.assertEqual(cc1.to_dict(), self.sample_1_dict)
-        self.assertEqual(cc2.to_dict(), self.sample_12_dict)
+        assert cc1.to_dict() == self.sample_1_dict
+        assert cc2.to_dict() == self.sample_12_dict
 
         # check that repeating overlay makes no change
         cc2b = cc2.copy(**self.sample_2_dict)
-        self.assertEqual(cc1.to_dict(), self.sample_1_dict)
-        self.assertEqual(cc2b.to_dict(), self.sample_12_dict)
+        assert cc1.to_dict() == self.sample_1_dict
+        assert cc2b.to_dict() == self.sample_12_dict
 
         # overlay sample 3 on copy
         cc3 = cc2.copy(**self.sample_3_dict)
-        self.assertEqual(cc3.to_dict(), self.sample_123_dict)
+        assert cc3.to_dict() == self.sample_123_dict
 
         # test empty copy creates separate copy
         cc4 = cc1.copy()
-        self.assertIsNot(cc4, cc1)
-        self.assertEqual(cc1.to_dict(), self.sample_1_dict)
-        self.assertEqual(cc4.to_dict(), self.sample_1_dict)
+        assert cc4 is not cc1
+        assert cc1.to_dict() == self.sample_1_dict
+        assert cc4.to_dict() == self.sample_1_dict
 
         # ... and that modifying copy doesn't affect original
         cc4.update(**self.sample_2_dict)
-        self.assertEqual(cc1.to_dict(), self.sample_1_dict)
-        self.assertEqual(cc4.to_dict(), self.sample_12_dict)
+        assert cc1.to_dict() == self.sample_1_dict
+        assert cc4.to_dict() == self.sample_12_dict
 
     def test_09_repr(self):
         """test repr()"""
         cc1 = CryptContext(**self.sample_1_dict)
         # NOTE: "0x-1234" format used by Pyston 0.5.1 (support deprecated 2019-11)
-        self.assertRegex(repr(cc1), "^<CryptContext at 0x-?[0-9a-f]+>$")
+        assert re.search("^<CryptContext at 0x-?[0-9a-f]+>$", repr(cc1))
 
     def test_10_load(self):
         """test load() / load_path() method"""
@@ -312,15 +312,15 @@ sha512_crypt__min_rounds = 45000
 
         # detect dict
         ctx.load(self.sample_1_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # detect unicode string
         ctx.load(self.sample_1_unicode)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # detect bytes string
         ctx.load(self.sample_1_unicode.encode("utf-8"))
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # anything else - TypeError
         self.assertRaises(TypeError, ctx.load, None)
@@ -335,13 +335,13 @@ sha512_crypt__min_rounds = 45000
         # test load empty
         ctx = CryptContext(**self.sample_1_dict)
         ctx.load({}, update=True)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # multiple loads should clear the state
         ctx = CryptContext()
         ctx.load(self.sample_1_dict)
         ctx.load(self.sample_2_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_2_dict)
+        assert ctx.to_dict() == self.sample_2_dict
 
     def test_11_load_rollback(self):
         """test load() errors restore old state"""
@@ -356,17 +356,17 @@ sha512_crypt__min_rounds = 45000
         # do an update operation that should fail during parsing
         # XXX: not sure what the right error type is here.
         self.assertRaises(TypeError, cc.update, too__many__key__parts=True)
-        self.assertEqual(cc.to_string(), result)
+        assert cc.to_string() == result
 
         # do an update operation that should fail during extraction
         # FIXME: this isn't failing even in broken case, need to figure out
         # way to ensure some keys come after this one.
         self.assertRaises(KeyError, cc.update, fake_context_option=True)
-        self.assertEqual(cc.to_string(), result)
+        assert cc.to_string() == result
 
         # do an update operation that should fail during compilation
         self.assertRaises(ValueError, cc.update, sha256_crypt__min_rounds=10000)
-        self.assertEqual(cc.to_string(), result)
+        assert cc.to_string() == result
 
     def test_12_update(self):
         """test update() method"""
@@ -374,26 +374,26 @@ sha512_crypt__min_rounds = 45000
         # empty overlay
         ctx = CryptContext(**self.sample_1_dict)
         ctx.update()
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+        assert ctx.to_dict() == self.sample_1_dict
 
         # test basic overlay
         ctx = CryptContext(**self.sample_1_dict)
         ctx.update(**self.sample_2_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_12_dict)
+        assert ctx.to_dict() == self.sample_12_dict
 
         # ... and again
         ctx.update(**self.sample_3_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_123_dict)
+        assert ctx.to_dict() == self.sample_123_dict
 
         # overlay w/ dict arg
         ctx = CryptContext(**self.sample_1_dict)
         ctx.update(self.sample_2_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_12_dict)
+        assert ctx.to_dict() == self.sample_12_dict
 
         # overlay w/ string
         ctx = CryptContext(**self.sample_1_dict)
         ctx.update(self.sample_2_unicode)
-        self.assertEqual(ctx.to_dict(), self.sample_12_dict)
+        assert ctx.to_dict() == self.sample_12_dict
 
         # too many args
         self.assertRaises(TypeError, ctx.update, {}, {})
@@ -435,7 +435,7 @@ sha512_crypt__min_rounds = 45000
         ctx = CryptContext(
             **{"schemes": "md5_crypt,des_crypt", "admin.context__default": "des_crypt"}
         )
-        self.assertEqual(ctx.default_scheme("admin"), "des_crypt")
+        assert ctx.default_scheme("admin") == "des_crypt"
 
         #
         # context option -specific tests
@@ -443,16 +443,16 @@ sha512_crypt__min_rounds = 45000
 
         # test context option key parsing
         result = dict(default="md5_crypt")
-        self.assertEqual(parse(default="md5_crypt"), result)
-        self.assertEqual(parse(context__default="md5_crypt"), result)
-        self.assertEqual(parse(default__context__default="md5_crypt"), result)
-        self.assertEqual(parse(**{"context.default": "md5_crypt"}), result)
-        self.assertEqual(parse(**{"default.context.default": "md5_crypt"}), result)
+        assert parse(default="md5_crypt") == result
+        assert parse(context__default="md5_crypt") == result
+        assert parse(default__context__default="md5_crypt") == result
+        assert parse(**{"context.default": "md5_crypt"}) == result
+        assert parse(**{"default.context.default": "md5_crypt"}) == result
 
         # test context option key parsing w/ category
         result = dict(admin__context__default="md5_crypt")
-        self.assertEqual(parse(admin__context__default="md5_crypt"), result)
-        self.assertEqual(parse(**{"admin.context.default": "md5_crypt"}), result)
+        assert parse(admin__context__default="md5_crypt") == result
+        assert parse(**{"admin.context.default": "md5_crypt"}) == result
 
         #
         # hash option -specific tests
@@ -460,15 +460,15 @@ sha512_crypt__min_rounds = 45000
 
         # test hash option key parsing
         result = dict(all__vary_rounds=0.1)
-        self.assertEqual(parse(all__vary_rounds=0.1), result)
-        self.assertEqual(parse(default__all__vary_rounds=0.1), result)
-        self.assertEqual(parse(**{"all.vary_rounds": 0.1}), result)
-        self.assertEqual(parse(**{"default.all.vary_rounds": 0.1}), result)
+        assert parse(all__vary_rounds=0.1) == result
+        assert parse(default__all__vary_rounds=0.1) == result
+        assert parse(**{"all.vary_rounds": 0.1}) == result
+        assert parse(**{"default.all.vary_rounds": 0.1}) == result
 
         # test hash option key parsing w/ category
         result = dict(admin__all__vary_rounds=0.1)
-        self.assertEqual(parse(admin__all__vary_rounds=0.1), result)
-        self.assertEqual(parse(**{"admin.all.vary_rounds": 0.1}), result)
+        assert parse(admin__all__vary_rounds=0.1) == result
+        assert parse(**{"admin.all.vary_rounds": 0.1}) == result
 
         # settings not allowed if not in hash.setting_kwds
         ctx = CryptContext(["phpass", "md5_crypt"], phpass__ident="P")
@@ -485,19 +485,19 @@ sha512_crypt__min_rounds = 45000
 
         # schemes can be empty
         cc = CryptContext(schemes=None)
-        self.assertEqual(cc.schemes(), ())
+        assert cc.schemes() == ()
 
         # schemes can be list of names
         cc = CryptContext(schemes=["des_crypt", "md5_crypt"])
-        self.assertEqual(cc.schemes(), ("des_crypt", "md5_crypt"))
+        assert cc.schemes() == ("des_crypt", "md5_crypt")
 
         # schemes can be comma-sep string
         cc = CryptContext(schemes=" des_crypt, md5_crypt, ")
-        self.assertEqual(cc.schemes(), ("des_crypt", "md5_crypt"))
+        assert cc.schemes() == ("des_crypt", "md5_crypt")
 
         # schemes can be list of handlers
         cc = CryptContext(schemes=[hash.des_crypt, hash.md5_crypt])
-        self.assertEqual(cc.schemes(), ("des_crypt", "md5_crypt"))
+        assert cc.schemes() == ("des_crypt", "md5_crypt")
 
         # scheme must be name or handler
         self.assertRaises(TypeError, CryptContext, schemes=[uh.StaticHandler])
@@ -528,11 +528,11 @@ sha512_crypt__min_rounds = 45000
         # no schemes - all deprecated values allowed
         cc = CryptContext(deprecated=["md5_crypt"])
         cc.update(schemes=["md5_crypt", "des_crypt"])
-        self.assertEqual(getdep(cc), ["md5_crypt"])
+        assert getdep(cc) == ["md5_crypt"]
 
         # deprecated values allowed if subset of schemes
         cc = CryptContext(deprecated=["md5_crypt"], schemes=["md5_crypt", "des_crypt"])
-        self.assertEqual(getdep(cc), ["md5_crypt"])
+        assert getdep(cc) == ["md5_crypt"]
 
         # can be handler
         # XXX: allow handlers in deprecated list? not for now.
@@ -550,7 +550,7 @@ sha512_crypt__min_rounds = 45000
             deprecated="md5_crypt,des_crypt",
             schemes=["md5_crypt", "des_crypt", "sha256_crypt"],
         )
-        self.assertEqual(getdep(cc), ["md5_crypt", "des_crypt"])
+        assert getdep(cc) == ["md5_crypt", "des_crypt"]
 
         # values outside of schemes not allowed
         self.assertRaises(
@@ -623,9 +623,9 @@ sha512_crypt__min_rounds = 45000
             schemes=["md5_crypt", "des_crypt"],
             admin__context__deprecated=["des_crypt"],
         )
-        self.assertEqual(getdep(cc), ["md5_crypt"])
-        self.assertEqual(getdep(cc, "user"), ["md5_crypt"])
-        self.assertEqual(getdep(cc, "admin"), ["des_crypt"])
+        assert getdep(cc) == ["md5_crypt"]
+        assert getdep(cc, "user") == ["md5_crypt"]
+        assert getdep(cc, "admin") == ["des_crypt"]
 
         # blank per-category deprecated list, shadowing default list
         cc = CryptContext(
@@ -633,32 +633,30 @@ sha512_crypt__min_rounds = 45000
             schemes=["md5_crypt", "des_crypt"],
             admin__context__deprecated=[],
         )
-        self.assertEqual(getdep(cc), ["md5_crypt"])
-        self.assertEqual(getdep(cc, "user"), ["md5_crypt"])
-        self.assertEqual(getdep(cc, "admin"), [])
+        assert getdep(cc) == ["md5_crypt"]
+        assert getdep(cc, "user") == ["md5_crypt"]
+        assert getdep(cc, "admin") == []
 
     def test_23_default(self):
         """test 'default' context option parsing"""
 
         # anything allowed if no schemes
-        self.assertEqual(
-            CryptContext(default="md5_crypt").to_dict(), dict(default="md5_crypt")
-        )
+        assert CryptContext(default="md5_crypt").to_dict() == dict(default="md5_crypt")
 
         # default allowed if in scheme list
         ctx = CryptContext(default="md5_crypt", schemes=["des_crypt", "md5_crypt"])
-        self.assertEqual(ctx.default_scheme(), "md5_crypt")
+        assert ctx.default_scheme() == "md5_crypt"
 
         # default can be handler
         # XXX: sure we want to allow this ? maybe deprecate in future.
         ctx = CryptContext(default=hash.md5_crypt, schemes=["des_crypt", "md5_crypt"])
-        self.assertEqual(ctx.default_scheme(), "md5_crypt")
+        assert ctx.default_scheme() == "md5_crypt"
 
         # implicit default should be first non-deprecated scheme
         ctx = CryptContext(schemes=["des_crypt", "md5_crypt"])
-        self.assertEqual(ctx.default_scheme(), "des_crypt")
+        assert ctx.default_scheme() == "des_crypt"
         ctx.update(deprecated="des_crypt")
-        self.assertEqual(ctx.default_scheme(), "md5_crypt")
+        assert ctx.default_scheme() == "md5_crypt"
 
         # error if not in scheme list
         self.assertRaises(
@@ -674,9 +672,9 @@ sha512_crypt__min_rounds = 45000
             schemes=["des_crypt", "md5_crypt"],
             admin__context__default="md5_crypt",
         )
-        self.assertEqual(ctx.default_scheme(), "des_crypt")
-        self.assertEqual(ctx.default_scheme("user"), "des_crypt")
-        self.assertEqual(ctx.default_scheme("admin"), "md5_crypt")
+        assert ctx.default_scheme() == "des_crypt"
+        assert ctx.default_scheme("user") == "des_crypt"
+        assert ctx.default_scheme("admin") == "md5_crypt"
 
     def test_24_vary_rounds(self):
         """test 'vary_rounds' hash option parsing"""
@@ -685,18 +683,18 @@ sha512_crypt__min_rounds = 45000
             return CryptContext(all__vary_rounds=v).to_dict()["all__vary_rounds"]
 
         # floats should be preserved
-        self.assertEqual(parse(0.1), 0.1)
-        self.assertEqual(parse("0.1"), 0.1)
+        assert parse(0.1) == 0.1
+        assert parse("0.1") == 0.1
 
         # 'xx%' should be converted to float
-        self.assertEqual(parse("10%"), 0.1)
+        assert parse("10%") == 0.1
 
         # ints should be preserved
-        self.assertEqual(parse(1000), 1000)
-        self.assertEqual(parse("1000"), 1000)
+        assert parse(1000) == 1000
+        assert parse("1000") == 1000
 
     def assertHandlerDerivedFrom(self, handler, base, msg=None):
-        self.assertTrue(handler_derived_from(handler, base), msg=msg)
+        assert handler_derived_from(handler, base), msg
 
     def test_30_schemes(self):
         """test schemes() method"""
@@ -704,21 +702,21 @@ sha512_crypt__min_rounds = 45000
 
         # test empty
         ctx = CryptContext()
-        self.assertEqual(ctx.schemes(), ())
-        self.assertEqual(ctx.schemes(resolve=True), ())
+        assert ctx.schemes() == ()
+        assert ctx.schemes(resolve=True) == ()
 
         # test sample 1
         ctx = CryptContext(**self.sample_1_dict)
-        self.assertEqual(ctx.schemes(), tuple(self.sample_1_schemes))
-        self.assertEqual(
-            ctx.schemes(resolve=True, unconfigured=True), tuple(self.sample_1_handlers)
+        assert ctx.schemes() == tuple(self.sample_1_schemes)
+        assert ctx.schemes(resolve=True, unconfigured=True) == tuple(
+            self.sample_1_handlers
         )
         for result, correct in zip(ctx.schemes(resolve=True), self.sample_1_handlers):
-            self.assertTrue(handler_derived_from(result, correct))
+            assert handler_derived_from(result, correct)
 
         # test sample 2
         ctx = CryptContext(**self.sample_2_dict)
-        self.assertEqual(ctx.schemes(), ())
+        assert ctx.schemes() == ()
 
     def test_31_default_scheme(self):
         """test default_scheme() method"""
@@ -730,10 +728,8 @@ sha512_crypt__min_rounds = 45000
 
         # test sample 1
         ctx = CryptContext(**self.sample_1_dict)
-        self.assertEqual(ctx.default_scheme(), "md5_crypt")
-        self.assertEqual(
-            ctx.default_scheme(resolve=True, unconfigured=True), hash.md5_crypt
-        )
+        assert ctx.default_scheme() == "md5_crypt"
+        assert ctx.default_scheme(resolve=True, unconfigured=True) == hash.md5_crypt
         self.assertHandlerDerivedFrom(ctx.default_scheme(resolve=True), hash.md5_crypt)
 
         # test sample 2
@@ -742,7 +738,7 @@ sha512_crypt__min_rounds = 45000
 
         # test defaults to first in scheme
         ctx = CryptContext(schemes=self.sample_1_schemes)
-        self.assertEqual(ctx.default_scheme(), "des_crypt")
+        assert ctx.default_scheme() == "des_crypt"
 
         # categories tested under test_23
 
@@ -756,11 +752,11 @@ sha512_crypt__min_rounds = 45000
 
         # default for sample 1
         ctx = CryptContext(**self.sample_1_dict)
-        self.assertEqual(ctx.handler(unconfigured=True), hash.md5_crypt)
+        assert ctx.handler(unconfigured=True) == hash.md5_crypt
         self.assertHandlerDerivedFrom(ctx.handler(), hash.md5_crypt)
 
         # by name
-        self.assertEqual(ctx.handler("des_crypt", unconfigured=True), hash.des_crypt)
+        assert ctx.handler("des_crypt", unconfigured=True) == hash.des_crypt
         self.assertHandlerDerivedFrom(ctx.handler("des_crypt"), hash.des_crypt)
 
         # name not in schemes
@@ -770,17 +766,13 @@ sha512_crypt__min_rounds = 45000
         ctx = CryptContext(
             "sha256_crypt,md5_crypt", admin__context__default="md5_crypt"
         )
-        self.assertEqual(ctx.handler(unconfigured=True), hash.sha256_crypt)
+        assert ctx.handler(unconfigured=True) == hash.sha256_crypt
         self.assertHandlerDerivedFrom(ctx.handler(), hash.sha256_crypt)
 
-        self.assertEqual(
-            ctx.handler(category="staff", unconfigured=True), hash.sha256_crypt
-        )
+        assert ctx.handler(category="staff", unconfigured=True) == hash.sha256_crypt
         self.assertHandlerDerivedFrom(ctx.handler(category="staff"), hash.sha256_crypt)
 
-        self.assertEqual(
-            ctx.handler(category="admin", unconfigured=True), hash.md5_crypt
-        )
+        assert ctx.handler(category="admin", unconfigured=True) == hash.md5_crypt
         self.assertHandlerDerivedFrom(ctx.handler(category="staff"), hash.sha256_crypt)
 
     def test_33_options(self):
@@ -803,7 +795,7 @@ sha512_crypt__min_rounds = 45000
             admin__bsdi_crypt__vary_rounds=0.3,
             admin__sha512_crypt__max_rounds=40000,
         )
-        self.assertEqual(cc4._config.categories, ("admin",))
+        assert cc4._config.categories == ("admin",)
 
         #
         # sha512_crypt
@@ -840,13 +832,7 @@ sha512_crypt__min_rounds = 45000
         # des_crypt
         # NOTE: vary_rounds shouldn't be passed along...
         #
-        self.assertEqual(
-            options(cc4, "des_crypt"),
-            dict(
-                deprecated=True,
-                truncate_error=True,
-            ),
-        )
+        assert options(cc4, "des_crypt") == dict(deprecated=True, truncate_error=True)
 
         self.assertEqual(
             options(cc4, "des_crypt", "user"),
@@ -893,8 +879,8 @@ sha512_crypt__min_rounds = 45000
         """test to_dict() method"""
         # NOTE: this is tested all throughout this test case.
         ctx = CryptContext(**self.sample_1_dict)
-        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
-        self.assertEqual(ctx.to_dict(resolve=True), self.sample_1_resolved_dict)
+        assert ctx.to_dict() == self.sample_1_dict
+        assert ctx.to_dict(resolve=True) == self.sample_1_resolved_dict
 
     def test_35_to_string(self):
         """test to_string() method"""
@@ -904,25 +890,25 @@ sha512_crypt__min_rounds = 45000
         dump = ctx.to_string()
 
         # check ctx->string returns canonical format.
-        self.assertEqual(dump, self.sample_1_unicode)
+        assert dump == self.sample_1_unicode
 
         # check ctx->string->ctx->dict returns original
         ctx2 = CryptContext.from_string(dump)
-        self.assertEqual(ctx2.to_dict(), self.sample_1_dict)
+        assert ctx2.to_dict() == self.sample_1_dict
 
         # test section kwd is honored
         other = ctx.to_string(section="password-security")
-        self.assertEqual(other, dump.replace("[passlib]", "[password-security]"))
+        assert other == dump.replace("[passlib]", "[password-security]")
 
         # test unmanaged handler warning
         from tests.test_utils_handlers import UnsaltedHash
 
         ctx3 = CryptContext([UnsaltedHash, "md5_crypt"])
         dump = ctx3.to_string()
-        self.assertRegex(
+        assert re.search(
+            "# NOTE: the 'unsalted_test_hash' handler\\(s\\)"
+            " are not registered with Passlib",
             dump,
-            r"# NOTE: the 'unsalted_test_hash' handler\(s\)"
-            r" are not registered with Passlib",
         )
 
     nonstring_vectors = [
@@ -940,22 +926,22 @@ sha512_crypt__min_rounds = 45000
         # run through handlers
         for crypt in handlers:
             h = cc.hash("test", scheme=crypt.name)
-            self.assertEqual(cc.identify(h), crypt.name)
-            self.assertEqual(cc.identify(h, resolve=True, unconfigured=True), crypt)
+            assert cc.identify(h) == crypt.name
+            assert cc.identify(h, resolve=True, unconfigured=True) == crypt
             self.assertHandlerDerivedFrom(cc.identify(h, resolve=True), crypt)
-            self.assertTrue(cc.verify("test", h))
-            self.assertFalse(cc.verify("notest", h))
+            assert cc.verify("test", h)
+            assert not cc.verify("notest", h)
 
         # test default
         h = cc.hash("test")
-        self.assertEqual(cc.identify(h), "md5_crypt")
+        assert cc.identify(h) == "md5_crypt"
 
         # test genhash
         h = cc.genhash("secret", cc.genconfig())
-        self.assertEqual(cc.identify(h), "md5_crypt")
+        assert cc.identify(h) == "md5_crypt"
 
         h = cc.genhash("secret", cc.genconfig(), scheme="md5_crypt")
-        self.assertEqual(cc.identify(h), "md5_crypt")
+        assert cc.identify(h) == "md5_crypt"
 
         self.assertRaises(
             ValueError, cc.genhash, "secret", cc.genconfig(), scheme="des_crypt"
@@ -971,18 +957,14 @@ sha512_crypt__min_rounds = 45000
         )
 
         # uses default scheme
-        self.assertTrue(cc.genconfig().startswith("$1$"))
+        assert cc.genconfig().startswith("$1$")
 
         # override scheme
-        self.assertTrue(cc.genconfig(scheme="phpass").startswith("$H$5"))
+        assert cc.genconfig(scheme="phpass").startswith("$H$5")
 
         # category override
-        self.assertTrue(
-            cc.genconfig(scheme="phpass", category="admin").startswith("$P$5")
-        )
-        self.assertTrue(
-            cc.genconfig(scheme="phpass", category="staff").startswith("$H$5")
-        )
+        assert cc.genconfig(scheme="phpass", category="admin").startswith("$P$5")
+        assert cc.genconfig(scheme="phpass", category="staff").startswith("$H$5")
 
         # override scheme & custom settings
         self.assertEqual(
@@ -1057,9 +1039,9 @@ sha512_crypt__min_rounds = 45000
         # respects rounds
         cc = CryptContext(**self.sample_4_dict)
         hash = cc.hash("password")
-        self.assertTrue(hash.startswith("$5$rounds=3000$"))
-        self.assertTrue(cc.verify("password", hash))
-        self.assertFalse(cc.verify("passwordx", hash))
+        assert hash.startswith("$5$rounds=3000$")
+        assert cc.verify("password", hash)
+        assert not cc.verify("passwordx", hash)
 
         # make default > max throws error if attempted
         # XXX: move this to copy() test?
@@ -1095,29 +1077,29 @@ sha512_crypt__min_rounds = 45000
 
         # hash specific settings
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            self.assertEqual(
-                cc.hash("password", scheme="phpass", salt="." * 8),
-                "$H$5........De04R5Egz0aq8Tf.1eVhY/",
+            assert (
+                cc.hash("password", scheme="phpass", salt="." * 8)
+                == "$H$5........De04R5Egz0aq8Tf.1eVhY/"
             )
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            self.assertEqual(
-                cc.hash("password", scheme="phpass", salt="." * 8, ident="P"),
-                "$P$5........De04R5Egz0aq8Tf.1eVhY/",
+            assert (
+                cc.hash("password", scheme="phpass", salt="." * 8, ident="P")
+                == "$P$5........De04R5Egz0aq8Tf.1eVhY/"
             )
 
         # NOTE: more thorough job of rounds limits done below.
 
         # min rounds
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            self.assertEqual(
-                cc.hash("password", rounds=1999, salt="nacl"),
-                "$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609",
+            assert (
+                cc.hash("password", rounds=1999, salt="nacl")
+                == "$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609"
             )
 
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            self.assertEqual(
-                cc.hash("password", rounds=2001, salt="nacl"),
-                "$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31",
+            assert (
+                cc.hash("password", rounds=2001, salt="nacl")
+                == "$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31"
             )
         # NOTE: max rounds, etc tested in genconfig()
 
@@ -1133,7 +1115,7 @@ sha512_crypt__min_rounds = 45000
         cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
         # check unknown hash
-        self.assertEqual(cc.identify("$9$232323123$1287319827"), None)
+        assert cc.identify("$9$232323123$1287319827") is None
         self.assertRaises(
             ValueError, cc.identify, "$9$232323123$1287319827", required=True
         )
@@ -1149,7 +1131,7 @@ sha512_crypt__min_rounds = 45000
 
         # throws error without schemes
         cc = CryptContext()
-        self.assertIs(cc.identify("hash"), None)
+        assert cc.identify("hash") is None
         self.assertRaises(KeyError, cc.identify, "hash", required=True)
 
         # bad category values
@@ -1163,12 +1145,12 @@ sha512_crypt__min_rounds = 45000
         h = hash.md5_crypt.hash("test")
 
         # check base verify
-        self.assertTrue(cc.verify("test", h))
-        self.assertTrue(not cc.verify("notest", h))
+        assert cc.verify("test", h)
+        assert not cc.verify("notest", h)
 
         # check verify using right alg
-        self.assertTrue(cc.verify("test", h, scheme="md5_crypt"))
-        self.assertTrue(not cc.verify("notest", h, scheme="md5_crypt"))
+        assert cc.verify("test", h, scheme="md5_crypt")
+        assert not cc.verify("notest", h, scheme="md5_crypt")
 
         # check verify using wrong alg
         self.assertRaises(ValueError, cc.verify, "test", h, scheme="bsdi_crypt")
@@ -1187,7 +1169,7 @@ sha512_crypt__min_rounds = 45000
             self.assertRaises(TypeError, cc.verify, secret, h, **kwds)
 
         # always treat hash=None as False
-        self.assertFalse(cc.verify(secret, None))
+        assert not cc.verify(secret, None)
 
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
@@ -1213,31 +1195,23 @@ sha512_crypt__min_rounds = 45000
         cc = CryptContext(**self.sample_4_dict)
 
         # check deprecated scheme
-        self.assertTrue(cc.needs_update("9XXD4trGYeGJA"))
-        self.assertFalse(cc.needs_update("$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0"))
+        assert cc.needs_update("9XXD4trGYeGJA")
+        assert not cc.needs_update("$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0")
 
         # check min rounds
-        self.assertTrue(
-            cc.needs_update(
-                "$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/"
-            )
+        assert cc.needs_update(
+            "$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/"
         )
-        self.assertFalse(
-            cc.needs_update(
-                "$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8"
-            )
+        assert not cc.needs_update(
+            "$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8"
         )
 
         # check max rounds
-        self.assertFalse(
-            cc.needs_update(
-                "$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns."
-            )
+        assert not cc.needs_update(
+            "$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns."
         )
-        self.assertTrue(
-            cc.needs_update(
-                "$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA"
-            )
+        assert cc.needs_update(
+            "$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA"
         )
 
         # --------------------------------------------------------------
@@ -1264,18 +1238,18 @@ sha512_crypt__min_rounds = 45000
         # calling needs_update should query callback
         ctx = CryptContext([dummy])
         hash = refhash = dummy.hash("test")
-        self.assertFalse(ctx.needs_update(hash))
-        self.assertEqual(check_state, [(hash, None)])
+        assert not ctx.needs_update(hash)
+        assert check_state == [(hash, None)]
         del check_state[:]
 
         # now with a password
-        self.assertFalse(ctx.needs_update(hash, secret="bob"))
-        self.assertEqual(check_state, [(hash, "bob")])
+        assert not ctx.needs_update(hash, secret="bob")
+        assert check_state == [(hash, "bob")]
         del check_state[:]
 
         # now when it returns True
-        self.assertTrue(ctx.needs_update(hash, secret="nu"))
-        self.assertEqual(check_state, [(hash, "nu")])
+        assert ctx.needs_update(hash, secret="nu")
+        assert check_state == [(hash, "nu")]
         del check_state[:]
 
         # --------------------------------------------------------------
@@ -1309,23 +1283,23 @@ sha512_crypt__min_rounds = 45000
 
         # check bad password, deprecated hash
         ok, new_hash = cc.verify_and_update("wrongpass", h1)
-        self.assertFalse(ok)
-        self.assertIs(new_hash, None)
+        assert not ok
+        assert new_hash is None
 
         # check bad password, good hash
         ok, new_hash = cc.verify_and_update("wrongpass", h2)
-        self.assertFalse(ok)
-        self.assertIs(new_hash, None)
+        assert not ok
+        assert new_hash is None
 
         # check right password, deprecated hash
         ok, new_hash = cc.verify_and_update("password", h1)
-        self.assertTrue(ok)
-        self.assertTrue(cc.identify(new_hash), "sha256_crypt")
+        assert ok
+        assert cc.identify(new_hash), "sha256_crypt"
 
         # check right password, good hash
         ok, new_hash = cc.verify_and_update("password", h2)
-        self.assertTrue(ok)
-        self.assertIs(new_hash, None)
+        assert ok
+        assert new_hash is None
 
         # --------------------------------------------------------------
         # border cases
@@ -1338,7 +1312,7 @@ sha512_crypt__min_rounds = 45000
             self.assertRaises(TypeError, cc.verify_and_update, secret, hash, **kwds)
 
         # always treat hash=None as False
-        self.assertEqual(cc.verify_and_update(secret, None), (False, None))
+        assert cc.verify_and_update(secret, None) == (False, None)
 
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
@@ -1376,12 +1350,12 @@ sha512_crypt__min_rounds = 45000
         # case 1: contextual kwds not supported by any hash in CryptContext
         # ------------------------------------------------------------
         cc1 = CryptContext([des_crypt, md5_crypt])
-        self.assertEqual(cc1.context_kwds, set())
+        assert cc1.context_kwds == set()
 
         # des_scrypt should work w/o any contextual kwds
-        self.assertTrue(des_crypt.identify(cc1.hash("stub")), "des_crypt")
-        self.assertTrue(cc1.verify("stub", des_hash))
-        self.assertEqual(cc1.verify_and_update("stub", des_hash), (True, None))
+        assert des_crypt.identify(cc1.hash("stub")), "des_crypt"
+        assert cc1.verify("stub", des_hash)
+        assert cc1.verify_and_update("stub", des_hash) == (True, None)
 
         # des_crypt should throw error due to unknown context keyword
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
@@ -1395,19 +1369,17 @@ sha512_crypt__min_rounds = 45000
         # case 2: at least one contextual kwd supported by non-default hash
         # ------------------------------------------------------------
         cc2 = CryptContext([des_crypt, postgres_md5])
-        self.assertEqual(cc2.context_kwds, set(["user"]))
+        assert cc2.context_kwds == set(["user"])
 
         # verify des_crypt works w/o "user" kwd
-        self.assertTrue(des_crypt.identify(cc2.hash("stub")), "des_crypt")
-        self.assertTrue(cc2.verify("stub", des_hash))
-        self.assertEqual(cc2.verify_and_update("stub", des_hash), (True, None))
+        assert des_crypt.identify(cc2.hash("stub")), "des_crypt"
+        assert cc2.verify("stub", des_hash)
+        assert cc2.verify_and_update("stub", des_hash) == (True, None)
 
         # verify des_crypt ignores "user" kwd
-        self.assertTrue(des_crypt.identify(cc2.hash("stub", user="root")), "des_crypt")
-        self.assertTrue(cc2.verify("stub", des_hash, user="root"))
-        self.assertEqual(
-            cc2.verify_and_update("stub", des_hash, user="root"), (True, None)
-        )
+        assert des_crypt.identify(cc2.hash("stub", user="root")), "des_crypt"
+        assert cc2.verify("stub", des_hash, user="root")
+        assert cc2.verify_and_update("stub", des_hash, user="root") == (True, None)
 
         # verify error with unknown kwd
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
@@ -1421,7 +1393,7 @@ sha512_crypt__min_rounds = 45000
         # case 3: at least one contextual kwd supported by default hash
         # ------------------------------------------------------------
         cc3 = CryptContext([postgres_md5, des_crypt], deprecated="auto")
-        self.assertEqual(cc3.context_kwds, set(["user"]))
+        assert cc3.context_kwds == set(["user"])
 
         # postgres_md5 should have error w/o context kwd
         self.assertRaises(TypeError, cc3.hash, "stub")
@@ -1429,20 +1401,20 @@ sha512_crypt__min_rounds = 45000
         self.assertRaises(TypeError, cc3.verify_and_update, "stub", pg_root_hash)
 
         # postgres_md5 should work w/ context kwd
-        self.assertEqual(cc3.hash("stub", user="root"), pg_root_hash)
-        self.assertTrue(cc3.verify("stub", pg_root_hash, user="root"))
-        self.assertEqual(
-            cc3.verify_and_update("stub", pg_root_hash, user="root"), (True, None)
-        )
+        assert cc3.hash("stub", user="root") == pg_root_hash
+        assert cc3.verify("stub", pg_root_hash, user="root")
+        assert cc3.verify_and_update("stub", pg_root_hash, user="root") == (True, None)
 
         # verify_and_update() should fail against wrong user
-        self.assertEqual(
-            cc3.verify_and_update("stub", pg_root_hash, user="admin"), (False, None)
+        assert cc3.verify_and_update("stub", pg_root_hash, user="admin") == (
+            False,
+            None,
         )
 
         # verify_and_update() should pass all context kwds through when rehashing
-        self.assertEqual(
-            cc3.verify_and_update("stub", des_hash, user="root"), (True, pg_root_hash)
+        assert cc3.verify_and_update("stub", des_hash, user="root") == (
+            True,
+            pg_root_hash,
         )
 
     # TODO: now that rounds generation has moved out of _CryptRecord to HasRounds,
@@ -1471,9 +1443,9 @@ sha512_crypt__min_rounds = 45000
         # it should take care of the rest
         # --------------------------------------------------
         custom_handler = cc._get_record("sha256_crypt", None)
-        self.assertEqual(custom_handler.min_desired_rounds, 2000)
-        self.assertEqual(custom_handler.max_desired_rounds, 3000)
-        self.assertEqual(custom_handler.default_rounds, 2500)
+        assert custom_handler.min_desired_rounds == 2000
+        assert custom_handler.max_desired_rounds == 3000
+        assert custom_handler.default_rounds == 2500
 
         # --------------------------------------------------
         # min_rounds
@@ -1487,23 +1459,17 @@ sha512_crypt__min_rounds = 45000
                 sha256_crypt__default_rounds=500,
             )
         assert len(warns) == 2
-        self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$" + STUB)
+        assert c2.genconfig(salt="nacl") == "$5$rounds=1000$nacl$" + STUB
 
         # below policy minimum
         # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
-        self.assertEqual(
-            cc.genconfig(rounds=1999, salt="nacl"), "$5$rounds=1999$nacl$" + STUB
-        )
+        assert cc.genconfig(rounds=1999, salt="nacl") == "$5$rounds=1999$nacl$" + STUB
 
         # equal to policy minimum
-        self.assertEqual(
-            cc.genconfig(rounds=2000, salt="nacl"), "$5$rounds=2000$nacl$" + STUB
-        )
+        assert cc.genconfig(rounds=2000, salt="nacl") == "$5$rounds=2000$nacl$" + STUB
 
         # above policy minimum
-        self.assertEqual(
-            cc.genconfig(rounds=2001, salt="nacl"), "$5$rounds=2001$nacl$" + STUB
-        )
+        assert cc.genconfig(rounds=2001, salt="nacl") == "$5$rounds=2001$nacl$" + STUB
 
         # --------------------------------------------------
         # max rounds
@@ -1518,41 +1484,35 @@ sha512_crypt__min_rounds = 45000
             )
         assert len(warns) == 2
 
-        self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=999999999$nacl$" + STUB)
+        assert c2.genconfig(salt="nacl") == "$5$rounds=999999999$nacl$" + STUB
 
         # above policy max
         # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .using()
-        self.assertEqual(
-            cc.genconfig(rounds=3001, salt="nacl"), "$5$rounds=3001$nacl$" + STUB
-        )
+        assert cc.genconfig(rounds=3001, salt="nacl") == "$5$rounds=3001$nacl$" + STUB
 
         # equal policy max
-        self.assertEqual(
-            cc.genconfig(rounds=3000, salt="nacl"), "$5$rounds=3000$nacl$" + STUB
-        )
+        assert cc.genconfig(rounds=3000, salt="nacl") == "$5$rounds=3000$nacl$" + STUB
 
         # below policy max
-        self.assertEqual(
-            cc.genconfig(rounds=2999, salt="nacl"), "$5$rounds=2999$nacl$" + STUB
-        )
+        assert cc.genconfig(rounds=2999, salt="nacl") == "$5$rounds=2999$nacl$" + STUB
 
         # --------------------------------------------------
         # default_rounds
         # --------------------------------------------------
 
         # explicit default rounds
-        self.assertEqual(cc.genconfig(salt="nacl"), "$5$rounds=2500$nacl$" + STUB)
+        assert cc.genconfig(salt="nacl") == "$5$rounds=2500$nacl$" + STUB
 
         # fallback default rounds - use handler's
         df = hash.sha256_crypt.default_rounds
         c2 = cc.copy(
             sha256_crypt__default_rounds=None, sha256_crypt__max_rounds=df << 1
         )
-        self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=%d$nacl$%s" % (df, STUB))
+        assert c2.genconfig(salt="nacl") == "$5$rounds=%d$nacl$%s" % (df, STUB)
 
         # fallback default rounds - use handler's, but clipped to max rounds
         c2 = cc.copy(sha256_crypt__default_rounds=None, sha256_crypt__max_rounds=3000)
-        self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=3000$nacl$" + STUB)
+        assert c2.genconfig(salt="nacl") == "$5$rounds=3000$nacl$" + STUB
 
         # TODO: test default falls back to mx / mn if handler has no default.
 
@@ -1613,27 +1573,27 @@ sha512_crypt__min_rounds = 45000
 
         # test static
         c2 = cc.copy(all__vary_rounds=0)
-        self.assertEqual(c2._get_record("sha256_crypt", None).vary_rounds, 0)
+        assert c2._get_record("sha256_crypt", None).vary_rounds == 0
         self.assert_rounds_range(c2, "sha256_crypt", 2000, 2000)
 
         c2 = cc.copy(all__vary_rounds="0%")
-        self.assertEqual(c2._get_record("sha256_crypt", None).vary_rounds, 0)
+        assert c2._get_record("sha256_crypt", None).vary_rounds == 0
         self.assert_rounds_range(c2, "sha256_crypt", 2000, 2000)
 
         # test absolute
         c2 = cc.copy(all__vary_rounds=1)
-        self.assertEqual(c2._get_record("sha256_crypt", None).vary_rounds, 1)
+        assert c2._get_record("sha256_crypt", None).vary_rounds == 1
         self.assert_rounds_range(c2, "sha256_crypt", 1999, 2001)
         c2 = cc.copy(all__vary_rounds=100)
-        self.assertEqual(c2._get_record("sha256_crypt", None).vary_rounds, 100)
+        assert c2._get_record("sha256_crypt", None).vary_rounds == 100
         self.assert_rounds_range(c2, "sha256_crypt", 1995, 2005)
 
         # test relative
         c2 = cc.copy(all__vary_rounds="0.1%")
-        self.assertEqual(c2._get_record("sha256_crypt", None).vary_rounds, 0.001)
+        assert c2._get_record("sha256_crypt", None).vary_rounds == 0.001
         self.assert_rounds_range(c2, "sha256_crypt", 1998, 2002)
         c2 = cc.copy(all__vary_rounds="100%")
-        self.assertEqual(c2._get_record("sha256_crypt", None).vary_rounds, 1.0)
+        assert c2._get_record("sha256_crypt", None).vary_rounds == 1.0
         self.assert_rounds_range(c2, "sha256_crypt", 1995, 2005)
 
     def test_52_log2_vary_rounds(self):
@@ -1652,36 +1612,36 @@ sha512_crypt__min_rounds = 45000
 
         # test static
         c2 = cc.copy(all__vary_rounds=0)
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 0)
+        assert c2._get_record("bcrypt", None).vary_rounds == 0
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         c2 = cc.copy(all__vary_rounds="0%")
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 0)
+        assert c2._get_record("bcrypt", None).vary_rounds == 0
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         # test absolute
         c2 = cc.copy(all__vary_rounds=1)
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 1)
+        assert c2._get_record("bcrypt", None).vary_rounds == 1
         self.assert_rounds_range(c2, "bcrypt", 19, 21)
         c2 = cc.copy(all__vary_rounds=100)
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 100)
+        assert c2._get_record("bcrypt", None).vary_rounds == 100
         self.assert_rounds_range(c2, "bcrypt", 15, 25)
 
         # test relative - should shift over at 50% mark
         c2 = cc.copy(all__vary_rounds="1%")
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 0.01)
+        assert c2._get_record("bcrypt", None).vary_rounds == 0.01
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         c2 = cc.copy(all__vary_rounds="49%")
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 0.49)
+        assert c2._get_record("bcrypt", None).vary_rounds == 0.49
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         c2 = cc.copy(all__vary_rounds="50%")
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 0.5)
+        assert c2._get_record("bcrypt", None).vary_rounds == 0.5
         self.assert_rounds_range(c2, "bcrypt", 19, 20)
 
         c2 = cc.copy(all__vary_rounds="100%")
-        self.assertEqual(c2._get_record("bcrypt", None).vary_rounds, 1.0)
+        assert c2._get_record("bcrypt", None).vary_rounds == 1.0
         self.assert_rounds_range(c2, "bcrypt", 15, 21)
 
     def assert_rounds_range(self, context, scheme, lower, upper):
@@ -1695,8 +1655,8 @@ sha512_crypt__min_rounds = 45000
             h = context.genconfig(scheme, salt=salt)
             r = handler.from_string(h).rounds
             seen.add(r)
-        self.assertEqual(min(seen), lower, "vary_rounds had wrong lower limit:")
-        self.assertEqual(max(seen), upper, "vary_rounds had wrong upper limit:")
+        assert min(seen) == lower, "vary_rounds had wrong lower limit:"
+        assert max(seen) == upper, "vary_rounds had wrong upper limit:"
 
     def test_dummy_verify(self):
         """
@@ -1725,23 +1685,23 @@ sha512_crypt__min_rounds = 45000
 
         # correctly reports default
         ctx = CryptContext("sha256_crypt,md5_crypt,des_crypt", deprecated="auto")
-        self.assertEqual(getstate(ctx, None), [False, True, True])
-        self.assertEqual(getstate(ctx, "admin"), [False, True, True])
+        assert getstate(ctx, None) == [False, True, True]
+        assert getstate(ctx, "admin") == [False, True, True]
 
         # correctly reports changed default
         ctx.update(default="md5_crypt")
-        self.assertEqual(getstate(ctx, None), [True, False, True])
-        self.assertEqual(getstate(ctx, "admin"), [True, False, True])
+        assert getstate(ctx, None) == [True, False, True]
+        assert getstate(ctx, "admin") == [True, False, True]
 
         # category default is handled correctly
         ctx.update(admin__context__default="des_crypt")
-        self.assertEqual(getstate(ctx, None), [True, False, True])
-        self.assertEqual(getstate(ctx, "admin"), [True, True, False])
+        assert getstate(ctx, None) == [True, False, True]
+        assert getstate(ctx, "admin") == [True, True, False]
 
         # handles 1 scheme
         ctx = CryptContext(["sha256_crypt"], deprecated="auto")
-        self.assertEqual(getstate(ctx, None), [False])
-        self.assertEqual(getstate(ctx, "admin"), [False])
+        assert getstate(ctx, None) == [False]
+        assert getstate(ctx, "admin") == [False]
 
         # disallow auto & other deprecated schemes at same time.
         self.assertRaises(
@@ -1785,31 +1745,31 @@ sha512_crypt__min_rounds = 45000
 
         # test w/ disabled hash support
         h_dis = ctx2.disable()
-        self.assertEqual(h_dis, unix_disabled.default_marker)
+        assert h_dis == unix_disabled.default_marker
         h_dis_ref = ctx2.disable(h_ref)
-        self.assertEqual(h_dis_ref, unix_disabled.default_marker + h_ref)
+        assert h_dis_ref == unix_disabled.default_marker + h_ref
 
         h_dis_other = ctx2.disable(h_other)
-        self.assertEqual(h_dis_other, unix_disabled.default_marker + h_other)
+        assert h_dis_other == unix_disabled.default_marker + h_other
 
         # don't double-wrap existing disabled hash
-        self.assertEqual(ctx2.disable(h_dis_ref), h_dis_ref)
+        assert ctx2.disable(h_dis_ref) == h_dis_ref
 
         #
         # ctx.is_enabled()
         #
 
         # test w/o disabled hash support
-        self.assertTrue(ctx.is_enabled(h_ref))
+        assert ctx.is_enabled(h_ref)
         self.assertRaises(UnknownHashError, ctx.is_enabled, h_other)
         self.assertRaises(UnknownHashError, ctx.is_enabled, h_dis)
         self.assertRaises(UnknownHashError, ctx.is_enabled, h_dis_ref)
 
         # test w/ disabled hash support
-        self.assertTrue(ctx2.is_enabled(h_ref))
+        assert ctx2.is_enabled(h_ref)
         self.assertRaises(UnknownHashError, ctx.is_enabled, h_other)
-        self.assertFalse(ctx2.is_enabled(h_dis))
-        self.assertFalse(ctx2.is_enabled(h_dis_ref))
+        assert not ctx2.is_enabled(h_dis)
+        assert not ctx2.is_enabled(h_dis_ref)
 
         #
         # ctx.enable()
@@ -1818,7 +1778,7 @@ sha512_crypt__min_rounds = 45000
         # test w/o disabled hash support
         self.assertRaises(UnknownHashError, ctx.enable, "")
         self.assertRaises(TypeError, ctx.enable, None)
-        self.assertEqual(ctx.enable(h_ref), h_ref)
+        assert ctx.enable(h_ref) == h_ref
         self.assertRaises(UnknownHashError, ctx.enable, h_other)
         self.assertRaises(UnknownHashError, ctx.enable, h_dis)
         self.assertRaises(UnknownHashError, ctx.enable, h_dis_ref)
@@ -1826,12 +1786,12 @@ sha512_crypt__min_rounds = 45000
         # test w/ disabled hash support
         self.assertRaises(UnknownHashError, ctx.enable, "")
         self.assertRaises(TypeError, ctx2.enable, None)
-        self.assertEqual(ctx2.enable(h_ref), h_ref)
+        assert ctx2.enable(h_ref) == h_ref
         self.assertRaises(UnknownHashError, ctx2.enable, h_other)
         self.assertRaisesRegex(
             ValueError, "cannot restore original hash", ctx2.enable, h_dis
         )
-        self.assertEqual(ctx2.enable(h_dis_ref), h_ref)
+        assert ctx2.enable(h_dis_ref) == h_ref
 
 
 class DelayHash(uh.StaticHandler):
@@ -1864,33 +1824,33 @@ class LazyCryptContextTest(TestCase):
 
     def test_kwd_constructor(self):
         """test plain kwds"""
-        self.assertFalse(has_crypt_handler("dummy_2"))
+        assert not has_crypt_handler("dummy_2")
         register_crypt_handler_path("dummy_2", "tests.test_context")
 
         cc = LazyCryptContext(iter(["dummy_2", "des_crypt"]), deprecated=["des_crypt"])
 
-        self.assertFalse(has_crypt_handler("dummy_2", True))
+        assert not has_crypt_handler("dummy_2", True)
 
-        self.assertEqual(cc.schemes(), ("dummy_2", "des_crypt"))
-        self.assertTrue(cc.handler("des_crypt").deprecated)
+        assert cc.schemes() == ("dummy_2", "des_crypt")
+        assert cc.handler("des_crypt").deprecated
 
-        self.assertTrue(has_crypt_handler("dummy_2", True))
+        assert has_crypt_handler("dummy_2", True)
 
     def test_callable_constructor(self):
-        self.assertFalse(has_crypt_handler("dummy_2"))
+        assert not has_crypt_handler("dummy_2")
         register_crypt_handler_path("dummy_2", "tests.test_context")
 
         def onload(flag=False):
-            self.assertTrue(flag)
+            assert flag
             return dict(
                 schemes=iter(["dummy_2", "des_crypt"]), deprecated=["des_crypt"]
             )
 
         cc = LazyCryptContext(onload=onload, flag=True)
 
-        self.assertFalse(has_crypt_handler("dummy_2", True))
+        assert not has_crypt_handler("dummy_2", True)
 
-        self.assertEqual(cc.schemes(), ("dummy_2", "des_crypt"))
-        self.assertTrue(cc.handler("des_crypt").deprecated)
+        assert cc.schemes() == ("dummy_2", "des_crypt")
+        assert cc.handler("des_crypt").deprecated
 
-        self.assertTrue(has_crypt_handler("dummy_2", True))
+        assert has_crypt_handler("dummy_2", True)

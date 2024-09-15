@@ -152,14 +152,14 @@ class _PixAsaSharedTest(UserHandlerMixin, HandlerCase):
         # to prevent verify from matching (i.e. "spoiled").
         long_secret = short_secret + "X"
         long_hash = calc(long_secret)
-        self.assertNotEqual(long_hash, short_hash)
+        assert long_hash != short_hash
 
         # spoiled hash should depend on whole secret,
         # so that output isn't predictable
         alt_long_secret = short_secret + "Y"
         alt_long_hash = calc(alt_long_secret)
-        self.assertNotEqual(alt_long_hash, short_hash)
-        self.assertNotEqual(alt_long_hash, long_hash)
+        assert alt_long_hash != short_hash
+        assert alt_long_hash != long_hash
 
         # for hash(), should throw error if password too large
         calc(short_secret, for_hash=True)
@@ -420,8 +420,8 @@ class cisco_type7_test(HandlerCase):
         for secret, hashed in self.known_correct_hashes:
             usecret = to_unicode(secret)
             bsecret = to_bytes(secret)
-            self.assertEqual(handler.decode(hashed), usecret)
-            self.assertEqual(handler.decode(hashed, None), bsecret)
+            assert handler.decode(hashed) == usecret
+            assert handler.decode(hashed, None) == bsecret
 
         self.assertRaises(
             UnicodeDecodeError, handler.decode, "0958EDC8A9F495F6F8A5FD", "ascii"
@@ -441,4 +441,4 @@ class cisco_type7_test(HandlerCase):
         self.assertRaises(ValueError, handler.using, salt=100)
         with pytest.warns(match="salt/offset must be.*"):
             subcls = handler.using(salt=100, relaxed=True)
-        self.assertEqual(subcls(use_defaults=True).salt, 52)
+        assert subcls(use_defaults=True).salt == 52

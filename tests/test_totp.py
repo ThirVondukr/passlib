@@ -101,14 +101,14 @@ class AppWalletTest(TestCase):
 
         # no secrets
         wallet = AppWallet()
-        self.assertEqual(wallet._secrets, {})
-        self.assertFalse(wallet.has_secrets)
+        assert wallet._secrets == {}
+        assert not wallet.has_secrets
 
         # dict
         ref = {"1": b"aaa", "2": b"bbb"}
         wallet = AppWallet(ref)
-        self.assertEqual(wallet._secrets, ref)
-        self.assertTrue(wallet.has_secrets)
+        assert wallet._secrets == ref
+        assert wallet.has_secrets
 
         # # list
         # wallet = AppWallet(list(ref.items()))
@@ -120,15 +120,15 @@ class AppWalletTest(TestCase):
 
         # "tag:value" string
         wallet = AppWallet("\n 1: aaa\n# comment\n \n2: bbb   ")
-        self.assertEqual(wallet._secrets, ref)
+        assert wallet._secrets == ref
 
         # ensure ":" allowed in secret
         wallet = AppWallet("1: aaa: bbb \n# comment\n \n2: bbb   ")
-        self.assertEqual(wallet._secrets, {"1": b"aaa: bbb", "2": b"bbb"})
+        assert wallet._secrets == {"1": b"aaa: bbb", "2": b"bbb"}
 
         # json dict
         wallet = AppWallet('{"1":"aaa","2":"bbb"}')
-        self.assertEqual(wallet._secrets, ref)
+        assert wallet._secrets == ref
 
         # # json list
         # wallet = AppWallet('[["1","aaa"],["2","bbb"]]')
@@ -152,15 +152,15 @@ class AppWalletTest(TestCase):
         # test reference
         ref = {"1": b"aaa", "02": b"bbb", "C": b"ccc"}
         wallet = AppWallet(ref)
-        self.assertEqual(wallet._secrets, ref)
+        assert wallet._secrets == ref
 
         # accept unicode
         wallet = AppWallet({"1": b"aaa", "02": b"bbb", "C": b"ccc"})
-        self.assertEqual(wallet._secrets, ref)
+        assert wallet._secrets == ref
 
         # normalize int tags
         wallet = AppWallet({1: b"aaa", "02": b"bbb", "C": b"ccc"})
-        self.assertEqual(wallet._secrets, ref)
+        assert wallet._secrets == ref
 
         # forbid non-str/int tags
         self.assertRaises(TypeError, AppWallet, {(1,): "aaa"})
@@ -174,7 +174,7 @@ class AppWalletTest(TestCase):
 
         # coerce value to bytes
         wallet = AppWallet({"1": "aaa", "02": "bbb", "C": b"ccc"})
-        self.assertEqual(wallet._secrets, ref)
+        assert wallet._secrets == ref
 
         # forbid invalid value types
         self.assertRaises(TypeError, AppWallet, {"1": 123})
@@ -188,18 +188,18 @@ class AppWalletTest(TestCase):
 
         # should sort numerically
         wallet = AppWallet({"1": "one", "02": "two"})
-        self.assertEqual(wallet.default_tag, "02")
-        self.assertEqual(wallet.get_secret(wallet.default_tag), b"two")
+        assert wallet.default_tag == "02"
+        assert wallet.get_secret(wallet.default_tag) == b"two"
 
         # should sort alphabetically if non-digit present
         wallet = AppWallet({"1": "one", "02": "two", "A": "aaa"})
-        self.assertEqual(wallet.default_tag, "A")
-        self.assertEqual(wallet.get_secret(wallet.default_tag), b"aaa")
+        assert wallet.default_tag == "A"
+        assert wallet.get_secret(wallet.default_tag) == b"aaa"
 
         # should use honor custom tag
         wallet = AppWallet({"1": "one", "02": "two", "A": "aaa"}, default_tag="1")
-        self.assertEqual(wallet.default_tag, "1")
-        self.assertEqual(wallet.get_secret(wallet.default_tag), b"one")
+        assert wallet.default_tag == "1"
+        assert wallet.get_secret(wallet.default_tag) == b"one"
 
         # throw error on unknown value
         self.assertRaises(
@@ -208,7 +208,7 @@ class AppWalletTest(TestCase):
 
         # should be empty
         wallet = AppWallet()
-        self.assertEqual(wallet.default_tag, None)
+        assert wallet.default_tag is None
         self.assertRaises(KeyError, wallet.get_secret, None)
 
     # TODO: test 'cost' param
@@ -229,11 +229,11 @@ class AppWalletTest(TestCase):
         self.require_aes_support(canary=partial(wallet.decrypt_key, CIPHER1))
 
         # reference key
-        self.assertEqual(wallet.decrypt_key(CIPHER1)[0], KEY1_RAW)
+        assert wallet.decrypt_key(CIPHER1)[0] == KEY1_RAW
 
         # different salt used to encrypt same raw key
         CIPHER2 = dict(v=1, c=13, s="SPZJ54Y6IPUD2BYA4C6A", k="ZGDXXTVQOWYLC2AU", t="1")
-        self.assertEqual(wallet.decrypt_key(CIPHER2)[0], KEY1_RAW)
+        assert wallet.decrypt_key(CIPHER2)[0] == KEY1_RAW
 
         # different sized key, password, and cost
         CIPHER3 = dict(
@@ -243,12 +243,12 @@ class AppWalletTest(TestCase):
             k="D2DRS32YESGHHINWFFCELKN7Z6NAHM4M",
             t="2",
         )
-        self.assertEqual(wallet.decrypt_key(CIPHER3)[0], KEY2_RAW)
+        assert wallet.decrypt_key(CIPHER3)[0] == KEY2_RAW
 
         # wrong password should silently result in wrong key
         temp = CIPHER1.copy()
         temp.update(t="2")
-        self.assertEqual(wallet.decrypt_key(temp)[0], b"\xafD6.F7\xeb\x19\x05Q")
+        assert wallet.decrypt_key(temp)[0] == b"\xafD6.F7\xeb\x19\x05Q"
 
         # missing tag should throw error
         temp = CIPHER1.copy()
@@ -268,35 +268,35 @@ class AppWalletTest(TestCase):
 
         # ref should be accepted
         ref = dict(v=1, c=13, s="AAAA", k="AAAA", t="2")
-        self.assertFalse(wallet.decrypt_key(ref)[1])
+        assert not wallet.decrypt_key(ref)[1]
 
         # wrong cost
         temp = ref.copy()
         temp.update(c=8)
-        self.assertTrue(wallet.decrypt_key(temp)[1])
+        assert wallet.decrypt_key(temp)[1]
 
         # wrong tag
         temp = ref.copy()
         temp.update(t="1")
-        self.assertTrue(wallet.decrypt_key(temp)[1])
+        assert wallet.decrypt_key(temp)[1]
 
         # XXX: should this check salt_size?
 
     def assertSaneResult(self, result, wallet, key, tag="1", needs_recrypt=False):
         """check encrypt_key() result has expected format"""
 
-        self.assertEqual(set(result), set(["v", "t", "c", "s", "k"]))
+        assert set(result) == set(["v", "t", "c", "s", "k"])
 
-        self.assertEqual(result["v"], 1)
-        self.assertEqual(result["t"], tag)
-        self.assertEqual(result["c"], wallet.encrypt_cost)
+        assert result["v"] == 1
+        assert result["t"] == tag
+        assert result["c"] == wallet.encrypt_cost
 
-        self.assertEqual(len(result["s"]), to_b32_size(wallet.salt_size))
-        self.assertEqual(len(result["k"]), to_b32_size(len(key)))
+        assert len(result["s"]) == to_b32_size(wallet.salt_size)
+        assert len(result["k"]) == to_b32_size(len(key))
 
         result_key, result_needs_recrypt = wallet.decrypt_key(result)
-        self.assertEqual(result_key, key)
-        self.assertEqual(result_needs_recrypt, needs_recrypt)
+        assert result_key == key
+        assert result_needs_recrypt == needs_recrypt
 
     def test_encrypt_key(self):
         """.encrypt_key()"""
@@ -312,8 +312,8 @@ class AppWalletTest(TestCase):
         # creates new salt each time
         other = wallet.encrypt_key(KEY1_RAW)
         self.assertSaneResult(result, wallet, KEY1_RAW)
-        self.assertNotEqual(other["s"], result["s"])
-        self.assertNotEqual(other["k"], result["k"])
+        assert other["s"] != result["s"]
+        assert other["k"] != result["k"]
 
         # honors custom cost
         wallet2 = AppWallet({"1": PASS1}, encrypt_cost=6)
@@ -410,7 +410,7 @@ class TotpTest(TestCase):
         otp1 = self.randotp()
         otp2 = self.randotp()
 
-        self.assertNotEqual(otp1.key, otp2.key, "key not randomized:")
+        assert otp1.key != otp2.key, "key not randomized:"
 
         # NOTE: has (1/5)**10 odds of failure
         for _ in range(10):
@@ -560,19 +560,19 @@ class TotpTest(TestCase):
         # generates new key
         otp = TOTP(new=True)
         otp2 = TOTP(new=True)
-        self.assertNotEqual(otp.key, otp2.key)
+        assert otp.key != otp2.key
 
     def test_ctor_w_size(self):
         """constructor -- 'size'  parameter"""
 
         # should default to digest size, per RFC
-        self.assertEqual(len(TOTP(new=True, alg="sha1").key), 20)
-        self.assertEqual(len(TOTP(new=True, alg="sha256").key), 32)
-        self.assertEqual(len(TOTP(new=True, alg="sha512").key), 64)
+        assert len(TOTP(new=True, alg="sha1").key) == 20
+        assert len(TOTP(new=True, alg="sha256").key) == 32
+        assert len(TOTP(new=True, alg="sha512").key) == 64
 
         # explicit key size
-        self.assertEqual(len(TOTP(new=True, size=10).key), 10)
-        self.assertEqual(len(TOTP(new=True, size=16).key), 16)
+        assert len(TOTP(new=True, size=10).key) == 10
+        assert len(TOTP(new=True, size=16).key) == 16
 
         # for new=True, maximum size enforced (based on alg)
         self.assertRaises(ValueError, TOTP, new=True, size=21, alg="sha1")
@@ -591,32 +591,32 @@ class TotpTest(TestCase):
         """constructor -- 'key' and 'format' parameters"""
 
         # handle base32 encoding (the default)
-        self.assertEqual(TOTP(KEY1).key, KEY1_RAW)
+        assert TOTP(KEY1).key == KEY1_RAW
 
         # .. w/ lower case
-        self.assertEqual(TOTP(KEY1.lower()).key, KEY1_RAW)
+        assert TOTP(KEY1.lower()).key == KEY1_RAW
 
         # .. w/ spaces (e.g. user-entered data)
-        self.assertEqual(TOTP(" 4aog gdbb qsyh ntuz ").key, KEY1_RAW)
+        assert TOTP(" 4aog gdbb qsyh ntuz ").key == KEY1_RAW
 
         # .. w/ invalid char
         self.assertRaises(DecodeError, TOTP, "ao!ggdbbqsyhntuz")
 
         # handle hex encoding
-        self.assertEqual(TOTP("e01c630c2184b076ce99", "hex").key, KEY1_RAW)
+        assert TOTP("e01c630c2184b076ce99", "hex").key == KEY1_RAW
 
         # .. w/ invalid char
         self.assertRaises(DecodeError, TOTP, "X01c630c2184b076ce99", "hex")
 
         # handle raw bytes
-        self.assertEqual(TOTP(KEY1_RAW, "raw").key, KEY1_RAW)
+        assert TOTP(KEY1_RAW, "raw").key == KEY1_RAW
 
     def test_ctor_w_alg(self):
         """constructor -- 'alg' parameter"""
 
         # normalize hash names
-        self.assertEqual(TOTP(KEY1, alg="SHA-256").alg, "sha256")
-        self.assertEqual(TOTP(KEY1, alg="SHA256").alg, "sha256")
+        assert TOTP(KEY1, alg="SHA-256").alg == "sha256"
+        assert TOTP(KEY1, alg="SHA256").alg == "sha256"
 
         # invalid alg
         self.assertRaises(ValueError, TOTP, KEY1, alg="SHA-333")
@@ -624,18 +624,18 @@ class TotpTest(TestCase):
     def test_ctor_w_digits(self):
         """constructor -- 'digits' parameter"""
         self.assertRaises(ValueError, TOTP, KEY1, digits=5)
-        self.assertEqual(TOTP(KEY1, digits=6).digits, 6)  # min value
-        self.assertEqual(TOTP(KEY1, digits=10).digits, 10)  # max value
+        assert TOTP(KEY1, digits=6).digits == 6  # min value
+        assert TOTP(KEY1, digits=10).digits == 10  # max value
         self.assertRaises(ValueError, TOTP, KEY1, digits=11)
 
     def test_ctor_w_period(self):
         """constructor -- 'period' parameter"""
 
         # default
-        self.assertEqual(TOTP(KEY1).period, 30)
+        assert TOTP(KEY1).period == 30
 
         # explicit value
-        self.assertEqual(TOTP(KEY1, period=63).period, 63)
+        assert TOTP(KEY1, period=63).period == 63
 
         # reject wrong type
         self.assertRaises(TypeError, TOTP, KEY1, period=1.5)
@@ -647,14 +647,14 @@ class TotpTest(TestCase):
 
     def test_ctor_w_label(self):
         """constructor -- 'label' parameter"""
-        self.assertEqual(TOTP(KEY1).label, None)
-        self.assertEqual(TOTP(KEY1, label="foo@bar").label, "foo@bar")
+        assert TOTP(KEY1).label is None
+        assert TOTP(KEY1, label="foo@bar").label == "foo@bar"
         self.assertRaises(ValueError, TOTP, KEY1, label="foo:bar")
 
     def test_ctor_w_issuer(self):
         """constructor -- 'issuer' parameter"""
-        self.assertEqual(TOTP(KEY1).issuer, None)
-        self.assertEqual(TOTP(KEY1, issuer="foo.com").issuer, "foo.com")
+        assert TOTP(KEY1).issuer is None
+        assert TOTP(KEY1, issuer="foo.com").issuer == "foo.com"
         self.assertRaises(ValueError, TOTP, KEY1, issuer="foo.com:bar")
 
     # TODO: test using() w/ 'digits', 'alg', 'issue', 'wallet', **wallet_kwds
@@ -663,10 +663,10 @@ class TotpTest(TestCase):
         """using() -- 'period' parameter"""
 
         # default
-        self.assertEqual(TOTP(KEY1).period, 30)
+        assert TOTP(KEY1).period == 30
 
         # explicit value
-        self.assertEqual(TOTP.using(period=63)(KEY1).period, 63)
+        assert TOTP.using(period=63)(KEY1).period == 63
 
         # reject wrong type
         self.assertRaises(TypeError, TOTP.using, period=1.5)
@@ -683,7 +683,7 @@ class TotpTest(TestCase):
 
         # default -- time.time
         otp = self.randotp()
-        self.assertIs(otp.now, _time.time)
+        assert otp.now is _time.time
         self.assertAlmostEqual(otp.normalize_time(None), int(_time.time()))
 
         # custom function
@@ -695,8 +695,8 @@ class TotpTest(TestCase):
 
         otp = self.randotp(cls=TOTP.using(now=now))
         # NOTE: TOTP() constructor invokes this as part of test, using up counter values 124 & 125
-        self.assertEqual(otp.normalize_time(None), 126)
-        self.assertEqual(otp.normalize_time(None), 127)
+        assert otp.normalize_time(None) == 126
+        assert otp.normalize_time(None) == 127
 
         # require callable
         self.assertRaises(TypeError, TOTP.using, now=123)
@@ -714,14 +714,14 @@ class TotpTest(TestCase):
             otp = self.randotp(digits=7)
 
         # unicode & bytes
-        self.assertEqual(otp.normalize_token("1234567"), "1234567")
-        self.assertEqual(otp.normalize_token(b"1234567"), "1234567")
+        assert otp.normalize_token("1234567") == "1234567"
+        assert otp.normalize_token(b"1234567") == "1234567"
 
         # int
-        self.assertEqual(otp.normalize_token(1234567), "1234567")
+        assert otp.normalize_token(1234567) == "1234567"
 
         # int which needs 0 padding
-        self.assertEqual(otp.normalize_token(234567), "0234567")
+        assert otp.normalize_token(234567) == "0234567"
 
         # reject wrong types (float, None)
         self.assertRaises(TypeError, otp.normalize_token, 1234567.0)
@@ -747,18 +747,18 @@ class TotpTest(TestCase):
             time = self.randtime()
             tint = int(time)
 
-            self.assertEqual(otp.normalize_time(time), tint)
-            self.assertEqual(otp.normalize_time(tint + 0.5), tint)
+            assert otp.normalize_time(time) == tint
+            assert otp.normalize_time(tint + 0.5) == tint
 
-            self.assertEqual(otp.normalize_time(tint), tint)
+            assert otp.normalize_time(tint) == tint
 
             dt = datetime.datetime.utcfromtimestamp(time)
-            self.assertEqual(otp.normalize_time(dt), tint)
+            assert otp.normalize_time(dt) == tint
 
             orig = TotpFactory.now
             try:
                 TotpFactory.now = staticmethod(lambda: time)
-                self.assertEqual(otp.normalize_time(None), tint)
+                assert otp.normalize_time(None) == tint
             finally:
                 TotpFactory.now = orig
 
@@ -770,15 +770,15 @@ class TotpTest(TestCase):
 
         # test key attrs
         otp = TOTP(KEY1_RAW, "raw")
-        self.assertEqual(otp.key, KEY1_RAW)
-        self.assertEqual(otp.hex_key, "e01c630c2184b076ce99")
-        self.assertEqual(otp.base32_key, KEY1)
+        assert otp.key == KEY1_RAW
+        assert otp.hex_key == "e01c630c2184b076ce99"
+        assert otp.base32_key == KEY1
 
         # test pretty_key()
-        self.assertEqual(otp.pretty_key(), "4AOG-GDBB-QSYH-NTUZ")
-        self.assertEqual(otp.pretty_key(sep=" "), "4AOG GDBB QSYH NTUZ")
-        self.assertEqual(otp.pretty_key(sep=False), KEY1)
-        self.assertEqual(otp.pretty_key(format="hex"), "e01c-630c-2184-b076-ce99")
+        assert otp.pretty_key() == "4AOG-GDBB-QSYH-NTUZ"
+        assert otp.pretty_key(sep=" ") == "4AOG GDBB QSYH NTUZ"
+        assert otp.pretty_key(sep=False) == KEY1
+        assert otp.pretty_key(format="hex") == "e01c-630c-2184-b076-ce99"
 
         # quick fuzz test: make attr access works for random key & random size
         otp = TOTP(new=True, size=rng.randint(10, 20))
@@ -793,41 +793,41 @@ class TotpTest(TestCase):
         # test known set of values
         otp = TOTP("s3jdvb7qd2r7jpxx")
         result = otp.generate(1419622739)
-        self.assertIsInstance(result, TotpToken)
-        self.assertEqual(result.token, "897212")
-        self.assertEqual(result.counter, 47320757)
+        assert isinstance(result, TotpToken)
+        assert result.token == "897212"
+        assert result.counter == 47320757
         ##self.assertEqual(result.start_time, 1419622710)
-        self.assertEqual(result.expire_time, 1419622740)
-        self.assertEqual(result, ("897212", 1419622740))
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], "897212")
-        self.assertEqual(result[1], 1419622740)
+        assert result.expire_time == 1419622740
+        assert result == ("897212", 1419622740)
+        assert len(result) == 2
+        assert result[0] == "897212"
+        assert result[1] == 1419622740
         self.assertRaises(IndexError, result.__getitem__, -3)
         self.assertRaises(IndexError, result.__getitem__, 2)
-        self.assertTrue(result)
+        assert result
 
         # time dependant bits...
         otp.now = lambda: 1419622739.5
-        self.assertEqual(result.remaining, 0.5)
-        self.assertTrue(result.valid)
+        assert result.remaining == 0.5
+        assert result.valid
 
         otp.now = lambda: 1419622741
-        self.assertEqual(result.remaining, 0)
-        self.assertFalse(result.valid)
+        assert result.remaining == 0
+        assert not result.valid
 
         # same time -- shouldn't return same object, but should be equal
         result2 = otp.generate(1419622739)
-        self.assertIsNot(result2, result)
-        self.assertEqual(result2, result)
+        assert result2 is not result
+        assert result2 == result
 
         # diff time in period -- shouldn't return same object, but should be equal
         result3 = otp.generate(1419622711)
-        self.assertIsNot(result3, result)
-        self.assertEqual(result3, result)
+        assert result3 is not result
+        assert result3 == result
 
         # shouldn't be equal
         result4 = otp.generate(1419622999)
-        self.assertNotEqual(result4, result)
+        assert result4 != result
 
     def test_generate(self):
         """generate()"""
@@ -838,25 +838,25 @@ class TotpTest(TestCase):
         time = self.randtime()
         result = otp.generate(time)
         token = result.token
-        self.assertIsInstance(token, str)
+        assert isinstance(token, str)
         start_time = result.counter * 30
 
         # should generate same token for next 29s
-        self.assertEqual(otp.generate(start_time + 29).token, token)
+        assert otp.generate(start_time + 29).token == token
 
         # and new one at 30s
-        self.assertNotEqual(otp.generate(start_time + 30).token, token)
+        assert otp.generate(start_time + 30).token != token
 
         # verify round-trip conversion of datetime
         dt = datetime.datetime.utcfromtimestamp(time)
-        self.assertEqual(int(otp.normalize_time(dt)), int(time))
+        assert int(otp.normalize_time(dt)) == int(time)
 
         # handle datetime object
-        self.assertEqual(otp.generate(dt).token, token)
+        assert otp.generate(dt).token == token
 
         # omitting value should use current time
         otp2 = TOTP.using(now=lambda: time)(key=otp.base32_key)
-        self.assertEqual(otp2.generate().token, token)
+        assert otp2.generate().token == token
 
         # reject invalid time
         self.assertRaises(ValueError, otp.generate, -1)
@@ -866,45 +866,43 @@ class TotpTest(TestCase):
         for otp, time, token, expires, prefix in self.iter_test_vectors():
             # should output correct token for specified time
             result = otp.generate(time)
-            self.assertEqual(result.token, token, msg=prefix)
-            self.assertEqual(result.counter, time // otp.period, msg=prefix)
+            assert result.token == token, prefix
+            assert result.counter == time // otp.period, prefix
             if expires:
-                self.assertEqual(result.expire_time, expires)
+                assert result.expire_time == expires
 
     def assertTotpMatch(self, match, time, skipped=0, period=30, window=30, msg=""):
         from passlib.totp import TotpMatch
 
         # test type
-        self.assertIsInstance(match, TotpMatch)
+        assert isinstance(match, TotpMatch)
 
         # totp sanity check
-        self.assertIsInstance(match.totp, TOTP)
-        self.assertEqual(match.totp.period, period)
+        assert isinstance(match.totp, TOTP)
+        assert match.totp.period == period
 
         # test attrs
-        self.assertEqual(match.time, time, msg=msg + " matched time:")
+        assert match.time == time, msg + " matched time:"
         expected = time // period
         counter = expected + skipped
-        self.assertEqual(match.counter, counter, msg=msg + " matched counter:")
-        self.assertEqual(
-            match.expected_counter, expected, msg=msg + " expected counter:"
-        )
-        self.assertEqual(match.skipped, skipped, msg=msg + " skipped:")
-        self.assertEqual(match.cache_seconds, period + window)
+        assert match.counter == counter, msg + " matched counter:"
+        assert match.expected_counter == expected, msg + " expected counter:"
+        assert match.skipped == skipped, msg + " skipped:"
+        assert match.cache_seconds == period + window
         expire_time = (counter + 1) * period
-        self.assertEqual(match.expire_time, expire_time)
-        self.assertEqual(match.cache_time, expire_time + window)
+        assert match.expire_time == expire_time
+        assert match.cache_time == expire_time + window
 
         # test tuple
-        self.assertEqual(len(match), 2)
-        self.assertEqual(match, (counter, time))
+        assert len(match) == 2
+        assert match == (counter, time)
         self.assertRaises(IndexError, match.__getitem__, -3)
-        self.assertEqual(match[0], counter)
-        self.assertEqual(match[1], time)
+        assert match[0] == counter
+        assert match[1] == time
         self.assertRaises(IndexError, match.__getitem__, 2)
 
         # test bool
-        self.assertTrue(match)
+        assert match
 
     def test_totp_match_w_valid_token(self):
         """match() -- valid TotpMatch object"""
@@ -1099,14 +1097,14 @@ class TotpTest(TestCase):
             last_counter=counter,
             window=period,
         )
-        self.assertEqual(err.expire_time, expire_time)
+        assert err.expire_time == expire_time
 
         # last counter set to current period --
         # current period's token should be rejected
         err = assertRaises(
             exc.UsedTokenError, token, time, last_counter=counter, window=0
         )
-        self.assertEqual(err.expire_time, expire_time)
+        assert err.expire_time == expire_time
 
     def test_match_w_token_normalization(self):
         """match() -- token normalization"""
@@ -1116,10 +1114,10 @@ class TotpTest(TestCase):
         time = 1412889861
 
         # separators / spaces should be stripped (orig token '332136')
-        self.assertTrue(match("    3 32-136  ", time))
+        assert match("    3 32-136  ", time)
 
         # ascii bytes
-        self.assertTrue(match(b"332136", time))
+        assert match(b"332136", time)
 
         # too few digits
         self.assertRaises(exc.MalformedTokenError, match, "12345", time)
@@ -1138,8 +1136,8 @@ class TotpTest(TestCase):
 
             # token should match against time
             result = match(token, time)
-            self.assertTrue(result)
-            self.assertEqual(result.counter, time // otp.period, msg=msg)
+            assert result
+            assert result.counter == time // otp.period, msg
 
             # should NOT match against another time
             self.assertRaises(exc.InvalidTokenError, match, token, time + 100, window=0)
@@ -1188,39 +1186,39 @@ class TotpTest(TestCase):
             "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
             "issuer=Example"
         )
-        self.assertEqual(otp.key, KEY4_RAW)
+        assert otp.key == KEY4_RAW
 
         # uri (bytes)
         otp = from_source(
             b"otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
             b"issuer=Example"
         )
-        self.assertEqual(otp.key, KEY4_RAW)
+        assert otp.key == KEY4_RAW
 
         # dict
         otp = from_source(dict(v=1, type="totp", key=KEY4))
-        self.assertEqual(otp.key, KEY4_RAW)
+        assert otp.key == KEY4_RAW
 
         # json (unicode)
         otp = from_source('{"v": 1, "type": "totp", "key": "JBSWY3DPEHPK3PXP"}')
-        self.assertEqual(otp.key, KEY4_RAW)
+        assert otp.key == KEY4_RAW
 
         # json (bytes)
         otp = from_source(b'{"v": 1, "type": "totp", "key": "JBSWY3DPEHPK3PXP"}')
-        self.assertEqual(otp.key, KEY4_RAW)
+        assert otp.key == KEY4_RAW
 
         # TOTP object -- return unchanged
-        self.assertIs(from_source(otp), otp)
+        assert from_source(otp) is otp
 
         # TOTP object w/ different wallet -- return new one.
         wallet1 = AppWallet()
         otp1 = TOTP.using(wallet=wallet1).from_source(otp)
-        self.assertIsNot(otp1, otp)
-        self.assertEqual(otp1.to_dict(), otp.to_dict())
+        assert otp1 is not otp
+        assert otp1.to_dict() == otp.to_dict()
 
         # TOTP object w/ same wallet -- return original
         otp2 = TOTP.using(wallet=wallet1).from_source(otp1)
-        self.assertIs(otp2, otp1)
+        assert otp2 is otp1
 
         # random string
         self.assertRaises(ValueError, from_source, "foo")
@@ -1241,13 +1239,13 @@ class TotpTest(TestCase):
             "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
             "issuer=Example"
         )
-        self.assertIsInstance(otp, TOTP)
-        self.assertEqual(otp.key, KEY4_RAW)
-        self.assertEqual(otp.label, "alice@google.com")
-        self.assertEqual(otp.issuer, "Example")
-        self.assertEqual(otp.alg, "sha1")  # default
-        self.assertEqual(otp.period, 30)  # default
-        self.assertEqual(otp.digits, 6)  # default
+        assert isinstance(otp, TOTP)
+        assert otp.key == KEY4_RAW
+        assert otp.label == "alice@google.com"
+        assert otp.issuer == "Example"
+        assert otp.alg == "sha1"  # default
+        assert otp.period == 30  # default
+        assert otp.digits == 6  # default
 
         # --------------------------------------------------------------------------------
         # secret param
@@ -1258,7 +1256,7 @@ class TotpTest(TestCase):
             "otpauth://totp/Example:alice@google.com?secret=jbswy3dpehpk3pxp&"
             "issuer=Example"
         )
-        self.assertEqual(otp.key, KEY4_RAW)
+        assert otp.key == KEY4_RAW
 
         # missing secret
         self.assertRaises(
@@ -1281,8 +1279,8 @@ class TotpTest(TestCase):
             "otpauth://totp/Provider1:Alice%20Smith?secret=JBSWY3DPEHPK3PXP&"
             "issuer=Provider1"
         )
-        self.assertEqual(otp.label, "Alice Smith")
-        self.assertEqual(otp.issuer, "Provider1")
+        assert otp.label == "Alice Smith"
+        assert otp.issuer == "Provider1"
 
         # w/ encoded space and colon
         # (note url has leading space before 'alice') -- taken from KeyURI spec
@@ -1290,8 +1288,8 @@ class TotpTest(TestCase):
             "otpauth://totp/Big%20Corporation%3A%20alice@bigco.com?"
             "secret=JBSWY3DPEHPK3PXP"
         )
-        self.assertEqual(otp.label, "alice@bigco.com")
-        self.assertEqual(otp.issuer, "Big Corporation")
+        assert otp.label == "alice@bigco.com"
+        assert otp.issuer == "Big Corporation"
 
         # --------------------------------------------------------------------------------
         # issuer param / prefix
@@ -1301,8 +1299,8 @@ class TotpTest(TestCase):
         otp = from_uri(
             "otpauth://totp/alice@bigco.com?secret=JBSWY3DPEHPK3PXP&issuer=Big%20Corporation"
         )
-        self.assertEqual(otp.label, "alice@bigco.com")
-        self.assertEqual(otp.issuer, "Big Corporation")
+        assert otp.label == "alice@bigco.com"
+        assert otp.issuer == "Big Corporation"
 
         # new-vs-old issuer mismatch
         self.assertRaises(
@@ -1319,7 +1317,7 @@ class TotpTest(TestCase):
         otp = from_uri(
             "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&algorithm=SHA256"
         )
-        self.assertEqual(otp.alg, "sha256")
+        assert otp.alg == "sha256"
 
         # unknown alg
         self.assertRaises(
@@ -1337,7 +1335,7 @@ class TotpTest(TestCase):
         otp = from_uri(
             "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&digits=8"
         )
-        self.assertEqual(otp.digits, 8)
+        assert otp.digits == 8
 
         # digits out of range / invalid
         self.assertRaises(
@@ -1364,7 +1362,7 @@ class TotpTest(TestCase):
         otp = from_uri(
             "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&period=63"
         )
-        self.assertEqual(otp.period, 63)
+        assert otp.period == 63
 
         # reject period < 1
         self.assertRaises(
@@ -1393,8 +1391,8 @@ class TotpTest(TestCase):
                 "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
                 "foo=bar&period=63"
             )
-        self.assertEqual(otp.base32_key, KEY4)
-        self.assertEqual(otp.period, 63)
+        assert otp.base32_key == KEY4
+        assert otp.period == 63
 
     def test_to_uri(self):
         """to_uri()"""
@@ -1405,33 +1403,31 @@ class TotpTest(TestCase):
 
         # with label & issuer
         otp = TOTP(KEY4, alg="sha1", digits=6, period=30)
-        self.assertEqual(
-            otp.to_uri("alice@google.com", "Example Org"),
-            "otpauth://totp/Example%20Org:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
-            "issuer=Example%20Org",
+        assert (
+            otp.to_uri("alice@google.com", "Example Org")
+            == "otpauth://totp/Example%20Org:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
+            "issuer=Example%20Org"
         )
 
         # label is required
         self.assertRaises(ValueError, otp.to_uri, None, "Example Org")
 
         # with label only
-        self.assertEqual(
-            otp.to_uri("alice@google.com"),
-            "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP",
+        assert (
+            otp.to_uri("alice@google.com")
+            == "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP"
         )
 
         # with default label from constructor
         otp.label = "alice@google.com"
-        self.assertEqual(
-            otp.to_uri(), "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP"
-        )
+        assert otp.to_uri() == "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP"
 
         # with default label & default issuer from constructor
         otp.issuer = "Example Org"
-        self.assertEqual(
-            otp.to_uri(),
-            "otpauth://totp/Example%20Org:alice@google.com?secret=JBSWY3DPEHPK3PXP"
-            "&issuer=Example%20Org",
+        assert (
+            otp.to_uri()
+            == "otpauth://totp/Example%20Org:alice@google.com?secret=JBSWY3DPEHPK3PXP"
+            "&issuer=Example%20Org"
         )
 
         # reject invalid label
@@ -1445,26 +1441,28 @@ class TotpTest(TestCase):
         # -------------------------------------------------------------------------
         # algorithm parameter
         # -------------------------------------------------------------------------
-        self.assertEqual(
-            TOTP(KEY4, alg="sha256").to_uri("alice@google.com"),
-            "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP&"
-            "algorithm=SHA256",
+        assert (
+            TOTP(KEY4, alg="sha256").to_uri("alice@google.com")
+            == "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP&"
+            "algorithm=SHA256"
         )
 
         # -------------------------------------------------------------------------
         # digits parameter
         # -------------------------------------------------------------------------
-        self.assertEqual(
-            TOTP(KEY4, digits=8).to_uri("alice@google.com"),
-            "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP&" "digits=8",
+        assert (
+            TOTP(KEY4, digits=8).to_uri("alice@google.com")
+            == "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP&"
+            "digits=8"
         )
 
         # -------------------------------------------------------------------------
         # period parameter
         # -------------------------------------------------------------------------
-        self.assertEqual(
-            TOTP(KEY4, period=63).to_uri("alice@google.com"),
-            "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP&" "period=63",
+        assert (
+            TOTP(KEY4, period=63).to_uri("alice@google.com")
+            == "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP&"
+            "period=63"
         )
 
     def test_from_dict(self):
@@ -1479,13 +1477,13 @@ class TotpTest(TestCase):
         otp = from_dict(
             dict(v=1, type="totp", key=KEY4, label="alice@google.com", issuer="Example")
         )
-        self.assertIsInstance(otp, TOTP)
-        self.assertEqual(otp.key, KEY4_RAW)
-        self.assertEqual(otp.label, "alice@google.com")
-        self.assertEqual(otp.issuer, "Example")
-        self.assertEqual(otp.alg, "sha1")  # default
-        self.assertEqual(otp.period, 30)  # default
-        self.assertEqual(otp.digits, 6)  # default
+        assert isinstance(otp, TOTP)
+        assert otp.key == KEY4_RAW
+        assert otp.label == "alice@google.com"
+        assert otp.issuer == "Example"
+        assert otp.alg == "sha1"  # default
+        assert otp.period == 30  # default
+        assert otp.digits == 6  # default
 
         # --------------------------------------------------------------------------------
         # metadata
@@ -1515,7 +1513,7 @@ class TotpTest(TestCase):
                 issuer="Example",
             )
         )
-        self.assertEqual(otp.key, KEY4_RAW)
+        assert otp.key == KEY4_RAW
 
         # missing secret
         self.assertRaises(ValueError, from_dict, dict(v=1, type="totp"))
@@ -1532,8 +1530,8 @@ class TotpTest(TestCase):
         otp = from_dict(
             dict(v=1, type="totp", key=KEY4, label="Alice Smith", issuer="Provider1")
         )
-        self.assertEqual(otp.label, "Alice Smith")
-        self.assertEqual(otp.issuer, "Provider1")
+        assert otp.label == "Alice Smith"
+        assert otp.issuer == "Provider1"
 
         # --------------------------------------------------------------------------------
         # algorithm param
@@ -1541,7 +1539,7 @@ class TotpTest(TestCase):
 
         # custom alg
         otp = from_dict(dict(v=1, type="totp", key=KEY4, alg="sha256"))
-        self.assertEqual(otp.alg, "sha256")
+        assert otp.alg == "sha256"
 
         # unknown alg
         self.assertRaises(
@@ -1554,7 +1552,7 @@ class TotpTest(TestCase):
 
         # custom digits
         otp = from_dict(dict(v=1, type="totp", key=KEY4, digits=8))
-        self.assertEqual(otp.digits, 8)
+        assert otp.digits == 8
 
         # digits out of range / invalid
         self.assertRaises(
@@ -1570,7 +1568,7 @@ class TotpTest(TestCase):
 
         # custom period
         otp = from_dict(dict(v=1, type="totp", key=KEY4, period=63))
-        self.assertEqual(otp.period, 63)
+        assert otp.period == 63
 
         # reject period < 1
         self.assertRaises(
@@ -1596,7 +1594,7 @@ class TotpTest(TestCase):
 
         # without label or issuer
         otp = TOTP(KEY4, alg="sha1", digits=6, period=30)
-        self.assertEqual(otp.to_dict(), dict(v=1, type="totp", key=KEY4))
+        assert otp.to_dict() == dict(v=1, type="totp", key=KEY4)
 
         # with label & issuer from constructor
         otp = TOTP(
@@ -1607,58 +1605,48 @@ class TotpTest(TestCase):
             label="alice@google.com",
             issuer="Example Org",
         )
-        self.assertEqual(
-            otp.to_dict(),
-            dict(
-                v=1,
-                type="totp",
-                key=KEY4,
-                label="alice@google.com",
-                issuer="Example Org",
-            ),
+        assert otp.to_dict() == dict(
+            v=1, type="totp", key=KEY4, label="alice@google.com", issuer="Example Org"
         )
 
         # with label only
         otp = TOTP(KEY4, alg="sha1", digits=6, period=30, label="alice@google.com")
-        self.assertEqual(
-            otp.to_dict(), dict(v=1, type="totp", key=KEY4, label="alice@google.com")
+        assert otp.to_dict() == dict(
+            v=1, type="totp", key=KEY4, label="alice@google.com"
         )
 
         # with issuer only
         otp = TOTP(KEY4, alg="sha1", digits=6, period=30, issuer="Example Org")
-        self.assertEqual(
-            otp.to_dict(), dict(v=1, type="totp", key=KEY4, issuer="Example Org")
-        )
+        assert otp.to_dict() == dict(v=1, type="totp", key=KEY4, issuer="Example Org")
 
         # don't serialize default issuer
         TotpFactory = TOTP.using(issuer="Example Org")
         otp = TotpFactory(KEY4)
-        self.assertEqual(otp.to_dict(), dict(v=1, type="totp", key=KEY4))
+        assert otp.to_dict() == dict(v=1, type="totp", key=KEY4)
 
         # don't serialize default issuer *even if explicitly set*
         otp = TotpFactory(KEY4, issuer="Example Org")
-        self.assertEqual(otp.to_dict(), dict(v=1, type="totp", key=KEY4))
+        assert otp.to_dict() == dict(v=1, type="totp", key=KEY4)
 
         # -------------------------------------------------------------------------
         # algorithm parameter
         # -------------------------------------------------------------------------
-        self.assertEqual(
-            TOTP(KEY4, alg="sha256").to_dict(),
-            dict(v=1, type="totp", key=KEY4, alg="sha256"),
+        assert TOTP(KEY4, alg="sha256").to_dict() == dict(
+            v=1, type="totp", key=KEY4, alg="sha256"
         )
 
         # -------------------------------------------------------------------------
         # digits parameter
         # -------------------------------------------------------------------------
-        self.assertEqual(
-            TOTP(KEY4, digits=8).to_dict(), dict(v=1, type="totp", key=KEY4, digits=8)
+        assert TOTP(KEY4, digits=8).to_dict() == dict(
+            v=1, type="totp", key=KEY4, digits=8
         )
 
         # -------------------------------------------------------------------------
         # period parameter
         # -------------------------------------------------------------------------
-        self.assertEqual(
-            TOTP(KEY4, period=63).to_dict(), dict(v=1, type="totp", key=KEY4, period=63)
+        assert TOTP(KEY4, period=63).to_dict() == dict(
+            v=1, type="totp", key=KEY4, period=63
         )
 
     # TODO: to_dict()

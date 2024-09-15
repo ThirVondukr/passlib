@@ -257,20 +257,18 @@ class _ExtensionSupport(object):
         """
         # make sure we aren't currently patched
         mod = sys.modules.get("passlib.ext.django.models")
-        self.assertFalse(mod and mod.adapter.patched, "patch should not be enabled")
+        assert not (mod and mod.adapter.patched), "patch should not be enabled"
 
         # make sure no objects have been replaced, by checking __module__
         for obj, attr, source, patched in self._iter_patch_candidates():
             if patched:
-                self.assertTrue(
-                    source.startswith("django.contrib.auth."),
-                    "obj=%r attr=%r was not reverted: %r" % (obj, attr, source),
+                assert source.startswith("django.contrib.auth."), (
+                    "obj=%r attr=%r was not reverted: %r" % (obj, attr, source)
                 )
             else:
-                self.assertFalse(
-                    source.startswith("passlib."),
+                assert not source.startswith("passlib."), (
                     "obj=%r attr=%r should not have been patched: %r"
-                    % (obj, attr, source),
+                    % (obj, attr, source)
                 )
 
     def assert_patched(self, context=None):
@@ -279,28 +277,25 @@ class _ExtensionSupport(object):
         """
         # make sure we're currently patched
         mod = sys.modules.get("passlib.ext.django.models")
-        self.assertTrue(mod and mod.adapter.patched, "patch should have been enabled")
+        assert mod and mod.adapter.patched, "patch should have been enabled"
 
         # make sure only the expected objects have been patched
         for obj, attr, source, patched in self._iter_patch_candidates():
             if patched:
-                self.assertTrue(
-                    source == "passlib.ext.django.utils",
-                    "obj=%r attr=%r should have been patched: %r" % (obj, attr, source),
+                assert source == "passlib.ext.django.utils", (
+                    "obj=%r attr=%r should have been patched: %r" % (obj, attr, source)
                 )
             else:
-                self.assertFalse(
-                    source.startswith("passlib."),
+                assert not source.startswith("passlib."), (
                     "obj=%r attr=%r should not have been patched: %r"
-                    % (obj, attr, source),
+                    % (obj, attr, source)
                 )
 
         # check context matches
         if context is not None:
             context = CryptContext._norm_source(context)
-            self.assertEqual(
-                mod.password_context.to_dict(resolve=True),
-                context.to_dict(resolve=True),
+            assert mod.password_context.to_dict(resolve=True) == context.to_dict(
+                resolve=True
             )
 
     _config_keys = ["PASSLIB_CONFIG", "PASSLIB_CONTEXT", "PASSLIB_GET_CATEGORY"]
@@ -403,9 +398,9 @@ class DjangoBehaviorTest(_ExtensionTest):
         """
         check that user object is set to 'unusable password' constant
         """
-        self.assertTrue(user.password.startswith("!"))
-        self.assertFalse(user.has_usable_password())
-        self.assertEqual(user.pop_saved_passwords(), [])
+        assert user.password.startswith("!")
+        assert not user.has_usable_password()
+        assert user.pop_saved_passwords() == []
 
     def assert_valid_password(self, user, hash=UNSET, saved=None):
         """
@@ -457,14 +452,12 @@ class DjangoBehaviorTest(_ExtensionTest):
         from django.contrib.auth.hashers import check_password
         from passlib.ext.django.models import password_context
 
-        self.assertEqual(
-            password_context.to_dict(resolve=True), ctx.to_dict(resolve=True)
-        )
+        assert password_context.to_dict(resolve=True) == ctx.to_dict(resolve=True)
 
         # should have patched both places
         from django.contrib.auth.models import check_password as check_password2
 
-        self.assertEqual(check_password2, check_password)
+        assert check_password2 == check_password
 
     def test_default_algorithm(self):
         """
@@ -478,14 +471,14 @@ class DjangoBehaviorTest(_ExtensionTest):
         # User.set_password() should use default alg
         user = FakeUser()
         user.set_password(PASS1)
-        self.assertTrue(ctx.handler().verify(PASS1, user.password))
+        assert ctx.handler().verify(PASS1, user.password)
         self.assert_valid_password(user)
 
         # User.check_password() - n/a
 
         # make_password() should use default alg
         hash = make_password(PASS1)
-        self.assertTrue(ctx.handler().verify(PASS1, hash))
+        assert ctx.handler().verify(PASS1, hash)
 
         # check_password() - n/a
 
@@ -504,11 +497,11 @@ class DjangoBehaviorTest(_ExtensionTest):
         user = FakeUser()
         user.set_password("")
         hash = user.password
-        self.assertTrue(ctx.handler().verify("", hash))
+        assert ctx.handler().verify("", hash)
         self.assert_valid_password(user, hash)
 
         # User.check_password() should return True
-        self.assertTrue(user.check_password(""))
+        assert user.check_password("")
         self.assert_valid_password(user, hash)
 
         # XXX: test make_password() ?
@@ -518,7 +511,7 @@ class DjangoBehaviorTest(_ExtensionTest):
         # identify_hasher() -- na
 
         # check_password() should return True
-        self.assertTrue(check_password("", hash))
+        assert check_password("", hash)
 
     def test_unusable_flag(self):
         """
@@ -543,21 +536,21 @@ class DjangoBehaviorTest(_ExtensionTest):
         self.assert_unusable_password(user)
 
         # User.check_password() should always fail
-        self.assertFalse(user.check_password(None))
-        self.assertFalse(user.check_password("None"))
-        self.assertFalse(user.check_password(""))
-        self.assertFalse(user.check_password(PASS1))
-        self.assertFalse(user.check_password(WRONG1))
+        assert not user.check_password(None)
+        assert not user.check_password("None")
+        assert not user.check_password("")
+        assert not user.check_password(PASS1)
+        assert not user.check_password(WRONG1)
         self.assert_unusable_password(user)
 
         # make_password() should also set flag
-        self.assertTrue(make_password(None).startswith("!"))
+        assert make_password(None).startswith("!")
 
         # check_password() should return False (didn't handle disabled under 1.3)
-        self.assertFalse(check_password(PASS1, "!"))
+        assert not check_password(PASS1, "!")
 
         # identify_hasher() and is_password_usable() should reject it
-        self.assertFalse(is_password_usable(user.password))
+        assert not is_password_usable(user.password)
         self.assertRaises(ValueError, identify_hasher, user.password)
 
     def test_none_hash_value(self):
@@ -581,9 +574,9 @@ class DjangoBehaviorTest(_ExtensionTest):
             # django 2.1+
             self.assertRaises(TypeError, user.check_password, PASS1)
         else:
-            self.assertFalse(user.check_password(PASS1))
+            assert not user.check_password(PASS1)
 
-        self.assertEqual(user.has_usable_password(), quirks.empty_is_usable_password)
+        assert user.has_usable_password() == quirks.empty_is_usable_password
 
         # TODO: is_password_usable()
 
@@ -593,7 +586,7 @@ class DjangoBehaviorTest(_ExtensionTest):
         if quirks.none_causes_check_password_error and not patched:
             self.assertRaises(TypeError, check_password, PASS1, None)
         else:
-            self.assertFalse(check_password(PASS1, None))
+            assert not check_password(PASS1, None)
 
         # identify_hasher() - error
         self.assertRaises(TypeError, identify_hasher, None)
@@ -614,21 +607,21 @@ class DjangoBehaviorTest(_ExtensionTest):
         # As of django 1.5, blank hash returns False (django issue 18453)
         user = FakeUser()
         user.password = ""
-        self.assertFalse(user.check_password(PASS1))
+        assert not user.check_password(PASS1)
 
         # verify hash wasn't changed/upgraded during check_password() call
-        self.assertEqual(user.password, "")
-        self.assertEqual(user.pop_saved_passwords(), [])
+        assert user.password == ""
+        assert user.pop_saved_passwords() == []
 
         # User.has_usable_password()
-        self.assertEqual(user.has_usable_password(), quirks.empty_is_usable_password)
+        assert user.has_usable_password() == quirks.empty_is_usable_password
 
         # TODO: is_password_usable()
 
         # make_password() - n/a
 
         # check_password()
-        self.assertFalse(check_password(PASS1, ""))
+        assert not check_password(PASS1, "")
 
         # identify_hasher() - throws error
         self.assertRaises(ValueError, identify_hasher, "")
@@ -656,21 +649,21 @@ class DjangoBehaviorTest(_ExtensionTest):
         # As of django 1.5, invalid hash returns False (side effect of django issue 18453)
         user = FakeUser()
         user.password = hash
-        self.assertFalse(user.check_password(PASS1))
+        assert not user.check_password(PASS1)
 
         # verify hash wasn't changed/upgraded during check_password() call
-        self.assertEqual(user.password, hash)
-        self.assertEqual(user.pop_saved_passwords(), [])
+        assert user.password == hash
+        assert user.pop_saved_passwords() == []
 
         # User.has_usable_password()
-        self.assertEqual(user.has_usable_password(), quirks.invalid_is_usable_password)
+        assert user.has_usable_password() == quirks.invalid_is_usable_password
 
         # TODO: is_password_usable()
 
         # make_password() - n/a
 
         # check_password()
-        self.assertFalse(check_password(PASS1, hash))
+        assert not check_password(PASS1, hash)
 
         # identify_hasher() - throws error
         self.assertRaises(ValueError, identify_hasher, hash)
@@ -751,21 +744,21 @@ class DjangoBehaviorTest(_ExtensionTest):
         user.password = hash
 
         # check against invalid password
-        self.assertFalse(user.check_password(None))
+        assert not user.check_password(None)
         ##self.assertFalse(user.check_password(''))
-        self.assertFalse(user.check_password(other))
+        assert not user.check_password(other)
         self.assert_valid_password(user, hash)
 
         # check against valid password
-        self.assertTrue(user.check_password(secret))
+        assert user.check_password(secret)
 
         # check if it upgraded the hash
         # NOTE: needs_update kept separate in case we need to test rounds.
         needs_update = deprecated
         if needs_update:
-            self.assertNotEqual(user.password, hash)
-            self.assertFalse(handler.identify(user.password))
-            self.assertTrue(ctx.handler().verify(secret, user.password))
+            assert user.password != hash
+            assert not handler.identify(user.password)
+            assert ctx.handler().verify(secret, user.password)
             self.assert_valid_password(user, saved=user.password)
         else:
             self.assert_valid_password(user, hash=hash)
@@ -779,18 +772,18 @@ class DjangoBehaviorTest(_ExtensionTest):
         # -------------------------------------------------------
         alg = DjangoTranslator().passlib_to_django_name(scheme)
         hash2 = make_password(secret, hasher=alg)
-        self.assertTrue(handler.verify(secret, hash2))
+        assert handler.verify(secret, hash2)
 
         # -------------------------------------------------------
         # check_password()+setter against known hash
         # -------------------------------------------------------
         # should call setter only if it needs_update
-        self.assertTrue(check_password(secret, hash, setter=setter))
-        self.assertEqual(setter.popstate(), [secret] if needs_update else [])
+        assert check_password(secret, hash, setter=setter)
+        assert setter.popstate() == ([secret] if needs_update else [])
 
         # should not call setter
-        self.assertFalse(check_password(other, hash, setter=setter))
-        self.assertEqual(setter.popstate(), [])
+        assert not check_password(other, hash, setter=setter)
+        assert setter.popstate() == []
 
         ### check preferred kwd is ignored (feature we don't currently support fully)
         ##self.assertTrue(check_password(secret, hash, setter=setter, preferred='fooey'))
@@ -801,11 +794,11 @@ class DjangoBehaviorTest(_ExtensionTest):
         # -------------------------------------------------------
         # identify_hasher() recognizes known hash
         # -------------------------------------------------------
-        self.assertTrue(is_password_usable(hash))
+        assert is_password_usable(hash)
         name = DjangoTranslator().django_to_passlib_name(
             identify_hasher(hash).algorithm
         )
-        self.assertEqual(name, scheme)
+        assert name == scheme
 
 
 class ExtensionBehaviorTest(DjangoBehaviorTest):
@@ -904,42 +897,38 @@ class DjangoExtensionTest(_ExtensionTest):
             self.assertRaises(ValueError, passlib_to_django, "hex_md5")
         else:
             hasher = passlib_to_django("hex_md5")
-            self.assertIsInstance(hasher, hashers.UnsaltedMD5PasswordHasher)
+            assert isinstance(hasher, hashers.UnsaltedMD5PasswordHasher)
 
         # should return native django hasher
         # NOTE: present but not enabled by default in django as of 2.1
         #       (see _builtin_django_hashers)
         hasher = passlib_to_django("django_bcrypt")
-        self.assertIsInstance(hasher, hashers.BCryptPasswordHasher)
+        assert isinstance(hasher, hashers.BCryptPasswordHasher)
 
         # otherwise should return wrapper
         from passlib.hash import sha256_crypt
 
         hasher = passlib_to_django("sha256_crypt")
-        self.assertEqual(hasher.algorithm, "passlib_sha256_crypt")
+        assert hasher.algorithm == "passlib_sha256_crypt"
 
         # and wrapper should return correct hash
         encoded = hasher.encode("stub")
-        self.assertTrue(sha256_crypt.verify("stub", encoded))
-        self.assertTrue(hasher.verify("stub", encoded))
-        self.assertFalse(hasher.verify("xxxx", encoded))
+        assert sha256_crypt.verify("stub", encoded)
+        assert hasher.verify("stub", encoded)
+        assert not hasher.verify("xxxx", encoded)
 
         # test wrapper accepts options
         encoded = hasher.encode("stub", "abcd" * 4, rounds=1234)
-        self.assertEqual(
-            encoded,
-            "$5$rounds=1234$abcdabcdabcdabcd$"
-            "v2RWkZQzctPdejyRqmmTDQpZN6wTh7.RUy9zF2LftT6",
+        assert (
+            encoded == "$5$rounds=1234$abcdabcdabcdabcd$"
+            "v2RWkZQzctPdejyRqmmTDQpZN6wTh7.RUy9zF2LftT6"
         )
-        self.assertEqual(
-            hasher.safe_summary(encoded),
-            {
-                "algorithm": "sha256_crypt",
-                "salt": "abcdab**********",
-                "rounds": 1234,
-                "hash": "v2RWkZ*************************************",
-            },
-        )
+        assert hasher.safe_summary(encoded) == {
+            "algorithm": "sha256_crypt",
+            "salt": "abcdab**********",
+            "rounds": 1234,
+            "hash": "v2RWkZ*************************************",
+        }
 
         # made up name should throw error
         # XXX: should this throw ValueError instead, to match django?
@@ -1014,29 +1003,29 @@ class DjangoExtensionTest(_ExtensionTest):
 
         # test default get_category
         self.load_extension(PASSLIB_CONFIG=config)
-        self.assertEqual(run(), 1000)
-        self.assertEqual(run(is_staff=True), 2000)
-        self.assertEqual(run(is_superuser=True), 3000)
+        assert run() == 1000
+        assert run(is_staff=True) == 2000
+        assert run(is_superuser=True) == 3000
 
         # test patch uses explicit get_category function
         def get_category(user):
             return user.first_name or None
 
         self.load_extension(PASSLIB_CONTEXT=config, PASSLIB_GET_CATEGORY=get_category)
-        self.assertEqual(run(), 1000)
-        self.assertEqual(run(first_name="other"), 1000)
-        self.assertEqual(run(first_name="staff"), 2000)
-        self.assertEqual(run(first_name="superuser"), 3000)
+        assert run() == 1000
+        assert run(first_name="other") == 1000
+        assert run(first_name="staff") == 2000
+        assert run(first_name="superuser") == 3000
 
         # test patch can disable get_category entirely
         def get_category(user):
             return None
 
         self.load_extension(PASSLIB_CONTEXT=config, PASSLIB_GET_CATEGORY=get_category)
-        self.assertEqual(run(), 1000)
-        self.assertEqual(run(first_name="other"), 1000)
-        self.assertEqual(run(first_name="staff", is_staff=True), 1000)
-        self.assertEqual(run(first_name="superuser", is_superuser=True), 1000)
+        assert run() == 1000
+        assert run(first_name="other") == 1000
+        assert run(first_name="staff", is_staff=True) == 1000
+        assert run(first_name="superuser", is_superuser=True) == 1000
 
         # test bad value
         self.assertRaises(

@@ -55,8 +55,8 @@ class HashInfoTest(TestCase):
         warnings.filterwarnings("ignore", ".*unsupported hash")
 
         # test string types
-        self.assertEqual(norm_hash_name("MD4"), "md4")
-        self.assertEqual(norm_hash_name(b"MD4"), "md4")
+        assert norm_hash_name("MD4") == "md4"
+        assert norm_hash_name(b"MD4") == "md4"
         self.assertRaises(TypeError, norm_hash_name, None)
 
         # test selected results
@@ -65,9 +65,7 @@ class HashInfoTest(TestCase):
                 correct = row[idx]
                 for value in row:
                     result = norm_hash_name(value, format)
-                    self.assertEqual(
-                        result, correct, "name=%r, format=%r:" % (value, format)
-                    )
+                    assert result == correct, "name=%r, format=%r:" % (value, format)
 
     def test_lookup_hash_ctor(self):
         """lookup_hash() -- constructor"""
@@ -79,7 +77,7 @@ class HashInfoTest(TestCase):
         self.assertRaises(ValueError, lookup_hash, "sha4")
 
         # 1. should return hashlib builtin if found
-        self.assertEqual(lookup_hash("md5"), (hashlib.md5, 16, 64))
+        assert lookup_hash("md5") == (hashlib.md5, 16, 64)
 
         # 2. should return wrapper around hashlib.new() if found
         try:
@@ -90,10 +88,10 @@ class HashInfoTest(TestCase):
         if has_sha:
             record = lookup_hash("sha")
             const = record[0]
-            self.assertEqual(record, (const, 20, 64))
-            self.assertEqual(
-                hexlify(const(b"abc").digest()),
-                b"0164b8a914cd2a5e74c4f7ff082c4d97f1edf880",
+            assert record == (const, 20, 64)
+            assert (
+                hexlify(const(b"abc").digest())
+                == b"0164b8a914cd2a5e74c4f7ff082c4d97f1edf880"
             )
 
         else:
@@ -110,14 +108,12 @@ class HashInfoTest(TestCase):
         if not has_md4:
             from passlib.crypto._md4 import md4
 
-            self.assertIs(const, md4)
-        self.assertEqual(record, (const, 16, 64))
-        self.assertEqual(
-            hexlify(const(b"abc").digest()), b"a448017aaf21d8525fc10ae87aa6729d"
-        )
+            assert const is md4
+        assert record == (const, 16, 64)
+        assert hexlify(const(b"abc").digest()) == b"a448017aaf21d8525fc10ae87aa6729d"
 
         # should memoize records
-        self.assertIs(lookup_hash("md5"), lookup_hash("md5"))
+        assert lookup_hash("md5") is lookup_hash("md5")
 
     def test_lookup_hash_w_unknown_name(self):
         """lookup_hash() -- unknown hash name"""
@@ -128,15 +124,15 @@ class HashInfoTest(TestCase):
 
         # required=False should return stub record instead
         info = lookup_hash("xxx256", required=False)
-        self.assertFalse(info.supported)
+        assert not info.supported
         self.assertRaisesRegex(UnknownHashError, "unknown hash: 'xxx256'", info.const)
-        self.assertEqual(info.name, "xxx256")
-        self.assertEqual(info.digest_size, None)
-        self.assertEqual(info.block_size, None)
+        assert info.name == "xxx256"
+        assert info.digest_size is None
+        assert info.block_size is None
 
         # should cache stub records
         info2 = lookup_hash("xxx256", required=False)
-        self.assertIs(info2, info)
+        assert info2 is info
 
     def test_mock_fips_mode(self):
         """
@@ -156,12 +152,12 @@ class HashInfoTest(TestCase):
         self.assertRaisesRegex(UnknownHashError, pat, lookup_hash, "md5")
 
         info = lookup_hash("md5", required=False)
-        self.assertRegex(info.error_text, pat)
+        assert re.search(pat, info.error_text)
         self.assertRaisesRegex(UnknownHashError, pat, info.const)
 
         # should use hardcoded fallback info
-        self.assertEqual(info.digest_size, 16)
-        self.assertEqual(info.block_size, 64)
+        assert info.digest_size == 16
+        assert info.block_size == 64
 
     def test_lookup_hash_metadata(self):
         """lookup_hash() -- metadata"""
@@ -170,18 +166,18 @@ class HashInfoTest(TestCase):
 
         # quick test of metadata using known reference - sha256
         info = lookup_hash("sha256")
-        self.assertEqual(info.name, "sha256")
-        self.assertEqual(info.iana_name, "sha-256")
-        self.assertEqual(info.block_size, 64)
-        self.assertEqual(info.digest_size, 32)
-        self.assertIs(lookup_hash("SHA2-256"), info)
+        assert info.name == "sha256"
+        assert info.iana_name == "sha-256"
+        assert info.block_size == 64
+        assert info.digest_size == 32
+        assert lookup_hash("SHA2-256") is info
 
         # quick test of metadata using known reference - md5
         info = lookup_hash("md5")
-        self.assertEqual(info.name, "md5")
-        self.assertEqual(info.iana_name, "md5")
-        self.assertEqual(info.block_size, 64)
-        self.assertEqual(info.digest_size, 16)
+        assert info.name == "md5"
+        assert info.iana_name == "md5"
+        assert info.block_size == 64
+        assert info.digest_size == 16
 
     def test_lookup_hash_alt_types(self):
         """lookup_hash() -- alternate types"""
@@ -189,8 +185,8 @@ class HashInfoTest(TestCase):
         from passlib.crypto.digest import lookup_hash
 
         info = lookup_hash("sha256")
-        self.assertIs(lookup_hash(info), info)
-        self.assertIs(lookup_hash(info.const), info)
+        assert lookup_hash(info) is info
+        assert lookup_hash(info.const) is info
 
         self.assertRaises(TypeError, lookup_hash, 123)
 
@@ -254,7 +250,7 @@ class Pbkdf1_Test(TestCase):
 
         for secret, salt, rounds, keylen, digest, correct in self.pbkdf1_tests:
             result = pbkdf1(digest, secret, salt, rounds, keylen)
-            self.assertEqual(result, correct)
+            assert result == correct
 
     def test_border(self):
         """test border cases"""
@@ -592,14 +588,14 @@ class Pbkdf2Test(TestCase):
             correct, secret, salt, rounds, keylen = row[:5]
             digest = row[5] if len(row) == 6 else "sha1"
             result = pbkdf2_hmac(digest, secret, salt, rounds, keylen)
-            self.assertEqual(result, correct)
+            assert result == correct
 
     def test_backends(self):
         """verify expected backends are present"""
         from passlib.crypto.digest import PBKDF2_BACKENDS
 
         has_fastpbkdf2 = find_spec("fastpbkdf2") is not None
-        self.assertEqual("fastpbkdf2" in PBKDF2_BACKENDS, has_fastpbkdf2)
+        assert ("fastpbkdf2" in PBKDF2_BACKENDS) == has_fastpbkdf2
 
         # check for hashlib
         try:
@@ -608,7 +604,7 @@ class Pbkdf2Test(TestCase):
             has_hashlib_ssl = pbkdf2_hmac.__module__ != "hashlib"
         except ImportError:
             has_hashlib_ssl = False
-        self.assertEqual("hashlib-ssl" in PBKDF2_BACKENDS, has_hashlib_ssl)
+        assert ("hashlib-ssl" in PBKDF2_BACKENDS) == has_hashlib_ssl
 
         # check for appropriate builtin
         assert "builtin-from-bytes" not in PBKDF2_BACKENDS
@@ -653,5 +649,5 @@ class Pbkdf2Test(TestCase):
         ):
             return pbkdf2_hmac(digest, secret, salt, rounds, keylen)
 
-        self.assertEqual(len(helper(digest="sha1")), 20)
-        self.assertEqual(len(helper(digest="sha256")), 32)
+        assert len(helper(digest="sha1")) == 20
+        assert len(helper(digest="sha256")) == 32

@@ -48,40 +48,40 @@ class _Common_MD4_Test(TestCase):
     def test_attrs(self):
         """informational attributes"""
         h = self.get_md4_const()()
-        self.assertEqual(h.name, "md4")
-        self.assertEqual(h.digest_size, 16)
-        self.assertEqual(h.block_size, 64)
+        assert h.name == "md4"
+        assert h.digest_size == 16
+        assert h.block_size == 64
 
     def test_md4_update(self):
         """update() method"""
         md4 = self.get_md4_const()
         h = md4(b"")
-        self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
+        assert h.hexdigest() == "31d6cfe0d16ae931b73c59d7e0c089c0"
 
         h.update(b"a")
-        self.assertEqual(h.hexdigest(), "bde52cb31de33e46245e05fbdbd6fb24")
+        assert h.hexdigest() == "bde52cb31de33e46245e05fbdbd6fb24"
 
         h.update(b"bcdefghijklmnopqrstuvwxyz")
-        self.assertEqual(h.hexdigest(), "d79e1c308aa5bbcdeea8ed63df412da9")
+        assert h.hexdigest() == "d79e1c308aa5bbcdeea8ed63df412da9"
 
         # reject unicode, hash should return digest of b''
         h = md4()
         self.assertRaises(TypeError, h.update, "a")
-        self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
+        assert h.hexdigest() == "31d6cfe0d16ae931b73c59d7e0c089c0"
 
     def test_md4_hexdigest(self):
         """hexdigest() method"""
         md4 = self.get_md4_const()
         for input, hex in self.vectors:
             out = md4(input).hexdigest()
-            self.assertEqual(out, hex)
+            assert out == hex
 
     def test_md4_digest(self):
         """digest() method"""
         md4 = self.get_md4_const()
         for input, hex in self.vectors:
             out = bascii_to_str(hexlify(md4(input).digest()))
-            self.assertEqual(out, hex)
+            assert out == hex
 
     def test_md4_copy(self):
         """copy() method"""
@@ -90,10 +90,10 @@ class _Common_MD4_Test(TestCase):
 
         h2 = h.copy()
         h2.update(b"def")
-        self.assertEqual(h2.hexdigest(), "804e7f1c2586e50b49ac65db5b645131")
+        assert h2.hexdigest() == "804e7f1c2586e50b49ac65db5b645131"
 
         h.update(b"ghi")
-        self.assertEqual(h.hexdigest(), "c5225580bfe176f6deeee33dee98732c")
+        assert h.hexdigest() == "c5225580bfe176f6deeee33dee98732c"
 
 
 # ------------------------------------------------------------------------
@@ -124,7 +124,7 @@ class MD4_SSL_Test(_Common_MD4_Test):
         super().setUp()
 
         # make sure we're using right constructor.
-        self.assertEqual(self.get_md4_const().__module__, "hashlib")
+        assert self.get_md4_const().__module__ == "hashlib"
 
 
 class MD4_Builtin_Test(_Common_MD4_Test):
@@ -150,4 +150,4 @@ class MD4_Builtin_Test(_Common_MD4_Test):
             self.addCleanup(lookup_hash.clear_cache)
 
         # make sure we're using right constructor.
-        self.assertEqual(self.get_md4_const().__module__, "passlib.crypto._md4")
+        assert self.get_md4_const().__module__ == "passlib.crypto._md4"

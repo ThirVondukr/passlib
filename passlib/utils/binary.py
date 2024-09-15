@@ -116,15 +116,18 @@ def compile_byte_translation(
     if source is None:
         target = _TRANSLATE_SOURCE[:]
     else:
-        assert isinstance(source, bytes) and len(source) == 255
+        assert isinstance(source, bytes)
+        assert len(source) == 255
         target = list(iter_byte_chars(source))
     for k, v in mapping.items():
         if isinstance(k, unicode_or_bytes):
             k = ord(k)
-        assert isinstance(k, int) and 0 <= k < 256
+        assert isinstance(k, int)
+        assert 0 <= k < 256
         if isinstance(v, str):
             v = v.encode("ascii")
-        assert isinstance(v, bytes) and len(v) == 1
+        assert isinstance(v, bytes)
+        assert len(v) == 1
         target[k] = v
     return B_EMPTY.join(target)
 

@@ -313,8 +313,8 @@ class _bcrypt_test(HandlerCase):
             assert hash.startswith(("$2a$", "$2b$")) and len(hash) >= 28, (
                 "unexpectedly malformed hash: %r" % (hash,)
             )
-            self.assertTrue(
-                hash[28] in ".Oeu", "unused bits incorrectly set in hash: %r" % (hash,)
+            assert hash[28] in ".Oeu", "unused bits incorrectly set in hash: %r" % (
+                hash,
             )
 
         for i in range(6):
@@ -327,7 +327,7 @@ class _bcrypt_test(HandlerCase):
         #
         with pytest.warns(match=corr_desc), pytest.warns(match="salt too large"):
             hash = bcrypt.genconfig(salt="." * 21 + "A.", rounds=5, relaxed=True)
-        self.assertEqual(hash, "$2b$05$" + "." * (22 + 31))
+        assert hash == "$2b$05$" + "." * (22 + 31)
 
         #
         # test public methods against good & bad hashes
@@ -336,24 +336,24 @@ class _bcrypt_test(HandlerCase):
         for pwd, bad, good in samples:
             # make sure genhash() corrects bad configs, leaves good unchanged
             with pytest.warns(match=corr_desc):
-                self.assertEqual(bcrypt.genhash(pwd, bad), good)
+                assert bcrypt.genhash(pwd, bad) == good
             with no_warnings():
-                self.assertEqual(bcrypt.genhash(pwd, good), good)
+                assert bcrypt.genhash(pwd, good) == good
 
             # make sure verify() works correctly with good & bad hashes
             with pytest.warns(match=corr_desc):
-                self.assertTrue(bcrypt.verify(pwd, bad))
+                assert bcrypt.verify(pwd, bad)
             with no_warnings():
-                self.assertTrue(bcrypt.verify(pwd, good))
+                assert bcrypt.verify(pwd, good)
 
             # make sure normhash() corrects bad hashes, leaves good unchanged
             with pytest.warns(match=corr_desc):
-                self.assertEqual(bcrypt.normhash(bad), good)
+                assert bcrypt.normhash(bad) == good
             with no_warnings():
-                self.assertEqual(bcrypt.normhash(good), good)
+                assert bcrypt.normhash(good) == good
 
         # make sure normhash() leaves non-bcrypt hashes alone
-        self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
+        assert bcrypt.normhash("$md5$abc") == "$md5$abc"
 
     def test_needs_update_w_padding(self):
         """needs_update corrects bcrypt padding"""
@@ -366,8 +366,8 @@ class _bcrypt_test(HandlerCase):
         BAD1 = "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
         GOOD1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
 
-        self.assertTrue(bcrypt.needs_update(BAD1))
-        self.assertFalse(bcrypt.needs_update(GOOD1))
+        assert bcrypt.needs_update(BAD1)
+        assert not bcrypt.needs_update(GOOD1)
 
 
 # create test cases for specific backends
@@ -570,11 +570,11 @@ class _bcrypt_sha256_test(HandlerCase):
     def test_using_version(self):
         # default to v2
         handler = self.handler
-        self.assertEqual(handler.version, 2)
+        assert handler.version == 2
 
         # allow v1 explicitly
         subcls = handler.using(version=1)
-        self.assertEqual(subcls.version, 1)
+        assert subcls.version == 1
 
         # forbid unknown ver
         self.assertRaises(ValueError, handler.using, version=999)
@@ -597,20 +597,20 @@ class _bcrypt_sha256_test(HandlerCase):
             secret.encode("ascii")
         )
         temp_digest = b64encode(temp_digest).decode("ascii")
-        self.assertEqual(temp_digest, "J5TlyIDm+IcSWmKiDJm+MeICndBkFVPn4kKdJW8f+xY=")
+        assert temp_digest == "J5TlyIDm+IcSWmKiDJm+MeICndBkFVPn4kKdJW8f+xY="
 
         # manually final hash from intermediary
         # XXX: genhash() could be useful here
         bcrypt_digest = bcrypt(ident="2b", salt=salt, rounds=12)._calc_checksum(
             temp_digest
         )
-        self.assertEqual(bcrypt_digest, "M0wE0Ov/9LXoQFCe.jRHu3MSHPF54Ta")
-        self.assertTrue(bcrypt.verify(temp_digest, "$2b$12$" + salt + bcrypt_digest))
+        assert bcrypt_digest == "M0wE0Ov/9LXoQFCe.jRHu3MSHPF54Ta"
+        assert bcrypt.verify(temp_digest, "$2b$12$" + salt + bcrypt_digest)
 
         # confirm handler outputs same thing.
         # XXX: genhash() could be useful here
         result = self.handler(ident="2b", salt=salt, rounds=12)._calc_checksum(secret)
-        self.assertEqual(result, bcrypt_digest)
+        assert result == bcrypt_digest
 
 
 # create test cases for specific backends

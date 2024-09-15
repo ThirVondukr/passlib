@@ -67,7 +67,7 @@ class Pbkdf1_Test(TestCase):
 
         for secret, salt, rounds, keylen, digest, correct in self.pbkdf1_tests:
             result = pbkdf1(secret, salt, rounds, keylen, digest)
-            self.assertEqual(result, correct)
+            assert result == correct
 
     def test_border(self):
         """test border cases"""
@@ -259,7 +259,7 @@ class Pbkdf2_Test(TestCase):
             correct, secret, salt, rounds, keylen = row[:5]
             prf = row[5] if len(row) == 6 else "hmac-sha1"
             result = pbkdf2(secret, salt, rounds, keylen, prf)
-            self.assertEqual(result, correct)
+            assert result == correct
 
     def test_border(self):
         """test border cases"""
@@ -302,8 +302,8 @@ class Pbkdf2_Test(TestCase):
         ):
             return pbkdf2(secret, salt, rounds, keylen, prf)
 
-        self.assertEqual(len(helper(prf="hmac-sha1")), 20)
-        self.assertEqual(len(helper(prf="hmac-sha256")), 32)
+        assert len(helper(prf="hmac-sha1")) == 20
+        assert len(helper(prf="hmac-sha256")) == 32
 
     def test_custom_prf(self):
         """test custom prf function"""

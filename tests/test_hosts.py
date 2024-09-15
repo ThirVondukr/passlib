@@ -20,8 +20,8 @@ class HostsTest(TestCase):
             "*",
             "!$1$TXl/FX/U$BZge.lr.ux6ekjEjxmzwz0",
         ]:
-            self.assertEqual(ctx.identify(hash), "unix_disabled")
-            self.assertFalse(ctx.verify("test", hash))
+            assert ctx.identify(hash) == "unix_disabled"
+            assert not ctx.verify("test", hash)
 
     def test_linux_context(self):
         ctx = hosts.linux_context
@@ -37,7 +37,7 @@ class HostsTest(TestCase):
             "$1$TXl/FX/U$BZge.lr.ux6ekjEjxmzwz0",
             "kAJJz.Rwp0A/I",
         ]:
-            self.assertTrue(ctx.verify("test", hash))
+            assert ctx.verify("test", hash)
         self.check_unix_disabled(ctx)
 
     def test_bsd_contexts(self):
@@ -50,12 +50,12 @@ class HostsTest(TestCase):
                 "$1$TXl/FX/U$BZge.lr.ux6ekjEjxmzwz0",
                 "kAJJz.Rwp0A/I",
             ]:
-                self.assertTrue(ctx.verify("test", hash))
+                assert ctx.verify("test", hash)
             h1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
             if hashmod.bcrypt.has_backend():
-                self.assertTrue(ctx.verify("test", h1))
+                assert ctx.verify("test", h1)
             else:
-                self.assertEqual(ctx.identify(h1), "bcrypt")
+                assert ctx.identify(h1) == "bcrypt"
             self.check_unix_disabled(ctx)
 
     def test_host_context(self):
@@ -66,14 +66,13 @@ class HostsTest(TestCase):
         # validate schemes is non-empty,
         # and contains unix_disabled + at least one real scheme
         schemes = list(ctx.schemes())
-        self.assertTrue(
-            schemes,
-            "appears to be unix system, but no known schemes supported by crypt",
-        )
-        self.assertTrue("unix_disabled" in schemes)
+        assert (
+            schemes
+        ), "appears to be unix system, but no known schemes supported by crypt"
+        assert "unix_disabled" in schemes
         schemes.remove("unix_disabled")
-        self.assertTrue(schemes, "should have schemes beside fallback scheme")
-        self.assertTrue(set(unix_crypt_schemes).issuperset(schemes))
+        assert schemes, "should have schemes beside fallback scheme"
+        assert set(unix_crypt_schemes).issuperset(schemes)
 
         # check for hash support
         self.check_unix_disabled(ctx)
@@ -96,4 +95,4 @@ class HostsTest(TestCase):
             ("des_crypt", "kAJJz.Rwp0A/I"),
         ]:
             if scheme in schemes:
-                self.assertTrue(ctx.verify("test", hash))
+                assert ctx.verify("test", hash)

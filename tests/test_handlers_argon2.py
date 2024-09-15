@@ -454,15 +454,15 @@ class _base_argon2_test(HandlerCase):
             self.assertRaises(NotImplementedError, handler.verify, "password", sample1)
 
             # incorrectly returns sample3, dropping data parameter
-            self.assertEqual(handler.genhash("password", sample1), sample3)
+            assert handler.genhash("password", sample1) == sample3
 
         else:
             assert self.backend == "argon2pure"
             # should parse and verify
-            self.assertTrue(handler.verify("password", sample1))
+            assert handler.verify("password", sample1)
 
             # should preserve sample1
-            self.assertEqual(handler.genhash("password", sample1), sample1)
+            assert handler.genhash("password", sample1) == sample1
 
         #
         # test sample 2
@@ -475,15 +475,15 @@ class _base_argon2_test(HandlerCase):
             self.assertRaises(NotImplementedError, handler.verify, "password", sample2)
 
             # incorrectly returns sample3, dropping data parameter
-            self.assertEqual(handler.genhash("password", sample1), sample3)
+            assert handler.genhash("password", sample1) == sample3
 
         else:
             assert self.backend == "argon2pure"
             # should parse, but fail to verify
-            self.assertFalse(self.handler.verify("password", sample2))
+            assert not self.handler.verify("password", sample2)
 
             # should return sample1 (corrected digest)
-            self.assertEqual(handler.genhash("password", sample2), sample1)
+            assert handler.genhash("password", sample2) == sample1
 
     def test_keyid_and_data_parameters(self):
         # test combination of the two, just in case
@@ -502,16 +502,16 @@ class _base_argon2_test(HandlerCase):
         #      maybe switch argon2 class to use that mixin instead of "type" kwd?
 
         # check settings
-        self.assertTrue("type" in cls.setting_kwds)
+        assert "type" in cls.setting_kwds
 
         # check supported type_values
         for value in cls.type_values:
-            self.assertIsInstance(value, str)
-        self.assertTrue("i" in cls.type_values)
-        self.assertTrue("d" in cls.type_values)
+            assert isinstance(value, str)
+        assert "i" in cls.type_values
+        assert "d" in cls.type_values
 
         # check default
-        self.assertTrue(cls.type in cls.type_values)
+        assert cls.type in cls.type_values
 
         # check constructor validates ident correctly.
         handler = cls
@@ -554,37 +554,37 @@ class _base_argon2_test(HandlerCase):
 
         # keep default if nothing else specified
         subcls = handler.using()
-        self.assertEqual(subcls.type, orig_type)
+        assert subcls.type == orig_type
 
         # accepts alt type
         subcls = handler.using(type=alt_type)
-        self.assertEqual(subcls.type, alt_type)
-        self.assertEqual(handler.type, orig_type)
+        assert subcls.type == alt_type
+        assert handler.type == orig_type
 
         # check subcls actually *generates* default type,
         # and that we didn't affect orig handler
-        self.assertEqual(effective_type(subcls), alt_type)
-        self.assertEqual(effective_type(handler), orig_type)
+        assert effective_type(subcls) == alt_type
+        assert effective_type(handler) == orig_type
 
         # rejects bad type
         self.assertRaises(ValueError, handler.using, type="xXx")
 
         # honor 'type' alias
         subcls = handler.using(type=alt_type)
-        self.assertEqual(subcls.type, alt_type)
-        self.assertEqual(handler.type, orig_type)
+        assert subcls.type == alt_type
+        assert handler.type == orig_type
 
         # check type aliases are being honored
-        self.assertEqual(effective_type(handler.using(type="I")), "i")
+        assert effective_type(handler.using(type="I")) == "i"
 
     def test_needs_update_w_type(self):
         handler = self.handler
 
         hash = handler.hash("stub")
-        self.assertFalse(handler.needs_update(hash))
+        assert not handler.needs_update(hash)
 
         hash2 = re.sub(r"\$argon2\w+\$", "$argon2d$", hash)
-        self.assertTrue(handler.needs_update(hash2))
+        assert handler.needs_update(hash2)
 
     def test_needs_update_w_version(self):
         handler = self.handler.using(
@@ -595,9 +595,9 @@ class _base_argon2_test(HandlerCase):
             "QWLzI4TY9HkL2ZTLc8g6SinwdhZewYrzz9zxCo0bkGY"
         )
         if handler.max_version == 0x10:
-            self.assertFalse(handler.needs_update(hash))
+            assert not handler.needs_update(hash)
         else:
-            self.assertTrue(handler.needs_update(hash))
+            assert handler.needs_update(hash)
 
     def test_argon_byte_encoding(self):
         """verify we're using right base64 encoding for argon2"""
@@ -617,11 +617,10 @@ class _base_argon2_test(HandlerCase):
             type="i",
         )
         hash = temp.hash("password")
-        self.assertEqual(
-            hash,
-            "$argon2i$v=19$m=256,t=2,p=2"
+        assert (
+            hash == "$argon2i$v=19$m=256,t=2,p=2"
             "$c29tZXNhbHQ"
-            "$T/XOJ2mh1/TIpJHfCdQan76Q5esCFVoT5MAeIM1Oq2E",
+            "$T/XOJ2mh1/TIpJHfCdQan76Q5esCFVoT5MAeIM1Oq2E"
         )
 
         # 16 byte salt
@@ -635,11 +634,10 @@ class _base_argon2_test(HandlerCase):
             type="i",
         )
         hash = temp.hash("password")
-        self.assertEqual(
-            hash,
-            "$argon2i$v=19$m=256,t=2,p=2"
+        assert (
+            hash == "$argon2i$v=19$m=256,t=2,p=2"
             "$c29tZXNhbHQAAAAAAAAAAA"
-            "$rqnbEp1/jFDUEKZZmw+z14amDsFqMDC53dIe57ZHD38",
+            "$rqnbEp1/jFDUEKZZmw+z14amDsFqMDC53dIe57ZHD38"
         )
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):

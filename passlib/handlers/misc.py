@@ -99,7 +99,8 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
             return cls.using(**kwds).hash(secret)
         uh.validate_secret(secret)
         marker = cls.default_marker
-        assert marker and cls.identify(marker)
+        assert marker
+        assert cls.identify(marker)
         return to_native_str(marker, param="marker")
 
     @uh.deprecated_method(deprecated="1.7", removed="2.0")

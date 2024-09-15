@@ -53,33 +53,33 @@ class SkeletonTest(TestCase):
                 return "b" if self.flag else "a"
 
         # check default identify method
-        self.assertTrue(d1.identify("_a"))
-        self.assertTrue(d1.identify(b"_a"))
-        self.assertTrue(d1.identify("_b"))
+        assert d1.identify("_a")
+        assert d1.identify(b"_a")
+        assert d1.identify("_b")
 
-        self.assertFalse(d1.identify("_c"))
-        self.assertFalse(d1.identify(b"_c"))
-        self.assertFalse(d1.identify("a"))
-        self.assertFalse(d1.identify("b"))
-        self.assertFalse(d1.identify("c"))
+        assert not d1.identify("_c")
+        assert not d1.identify(b"_c")
+        assert not d1.identify("a")
+        assert not d1.identify("b")
+        assert not d1.identify("c")
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
 
         # check default genconfig method
-        self.assertEqual(d1.genconfig(), d1.hash(""))
+        assert d1.genconfig() == d1.hash("")
 
         # check default verify method
-        self.assertTrue(d1.verify("s", b"_a"))
-        self.assertTrue(d1.verify("s", "_a"))
-        self.assertFalse(d1.verify("s", b"_b"))
-        self.assertFalse(d1.verify("s", "_b"))
-        self.assertTrue(d1.verify("s", b"_b", flag=True))
+        assert d1.verify("s", b"_a")
+        assert d1.verify("s", "_a")
+        assert not d1.verify("s", b"_b")
+        assert not d1.verify("s", "_b")
+        assert d1.verify("s", b"_b", flag=True)
         self.assertRaises(ValueError, d1.verify, "s", b"_c")
         self.assertRaises(ValueError, d1.verify, "s", "_c")
 
         # check default hash method
-        self.assertEqual(d1.hash("s"), "_a")
-        self.assertEqual(d1.hash("s", flag=True), "_b")
+        assert d1.hash("s") == "_a"
+        assert d1.hash("s", flag=True) == "_b"
 
     def test_10_identify(self):
         """test GenericHandler.identify()"""
@@ -97,24 +97,24 @@ class SkeletonTest(TestCase):
         # check fallback
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
-        self.assertFalse(d1.identify(""))
-        self.assertTrue(d1.identify("a"))
-        self.assertFalse(d1.identify("b"))
+        assert not d1.identify("")
+        assert d1.identify("a")
+        assert not d1.identify("b")
 
         # check regexp
         d1._hash_regex = re.compile("@.")
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
-        self.assertTrue(d1.identify("@a"))
-        self.assertFalse(d1.identify("a"))
+        assert d1.identify("@a")
+        assert not d1.identify("a")
         del d1._hash_regex
 
         # check ident-based
         d1.ident = "!"
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
-        self.assertTrue(d1.identify("!a"))
-        self.assertFalse(d1.identify("a"))
+        assert d1.identify("!a")
+        assert not d1.identify("a")
         del d1.ident
 
     def test_11_norm_checksum(self):
@@ -133,8 +133,8 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, norm_checksum, "xxx")
 
         # right size
-        self.assertEqual(norm_checksum("xxxx"), "xxxx")
-        self.assertEqual(norm_checksum("xzxz"), "xzxz")
+        assert norm_checksum("xxxx") == "xxxx"
+        assert norm_checksum("xzxz") == "xzxz"
 
         # too large
         self.assertRaises(ValueError, norm_checksum, "xxxxx")
@@ -152,7 +152,7 @@ class SkeletonTest(TestCase):
         # self.assertRaises(TypeError, norm_checksum, 1, relaxed=True)
 
         # test _stub_checksum behavior
-        self.assertEqual(d1()._stub_checksum, "xxxx")
+        assert d1()._stub_checksum == "xxxx"
 
     def test_12_norm_checksum_raw(self):
         """test GenericHandler + HasRawChecksum mixin"""
@@ -165,7 +165,7 @@ class SkeletonTest(TestCase):
             return d1(*a, **k).checksum
 
         # test bytes
-        self.assertEqual(norm_checksum(b"1234"), b"1234")
+        assert norm_checksum(b"1234") == b"1234"
 
         # test str
         self.assertRaises(TypeError, norm_checksum, "xxyx")
@@ -174,7 +174,7 @@ class SkeletonTest(TestCase):
         # self.assertRaises(TypeError, norm_checksum, u'xxyx', relaxed=True)
 
         # test _stub_checksum behavior
-        self.assertEqual(d1()._stub_checksum, b"\x00" * 4)
+        assert d1()._stub_checksum == b"\x00" * 4
 
     def test_20_norm_salt(self):
         """test GenericHandler + HasSalt mixin"""
@@ -201,7 +201,7 @@ class SkeletonTest(TestCase):
         # check salt=None
         self.assertRaises(TypeError, norm_salt)
         self.assertRaises(TypeError, norm_salt, salt=None)
-        self.assertIn(norm_salt(use_defaults=True), salts3)
+        assert norm_salt(use_defaults=True) in salts3
 
         # check explicit salts
         with no_warnings():
@@ -210,9 +210,9 @@ class SkeletonTest(TestCase):
             self.assertRaises(ValueError, norm_salt, salt="a")
 
             # check correct salts
-            self.assertEqual(norm_salt(salt="ab"), "ab")
-            self.assertEqual(norm_salt(salt="aba"), "aba")
-            self.assertEqual(norm_salt(salt="abba"), "abba")
+            assert norm_salt(salt="ab") == "ab"
+            assert norm_salt(salt="aba") == "aba"
+            assert norm_salt(salt="abba") == "abba"
 
             # check too-large salts
             self.assertRaises(ValueError, norm_salt, salt="aaaabb")
@@ -224,21 +224,21 @@ class SkeletonTest(TestCase):
             self.assertRaises(ValueError, gen_salt, 1)
 
             # check correct salt size
-            self.assertIn(gen_salt(2), salts2)
-            self.assertIn(gen_salt(3), salts3)
-            self.assertIn(gen_salt(4), salts4)
+            assert gen_salt(2) in salts2
+            assert gen_salt(3) in salts3
+            assert gen_salt(4) in salts4
 
             # check too-large salt size
             self.assertRaises(ValueError, gen_salt, 5)
 
         with pytest.warns(match="salt_size.*above max_salt_size"):
-            self.assertIn(gen_salt(5, relaxed=True), salts4)
+            assert gen_salt(5, relaxed=True) in salts4
 
         # test with max_salt_size=None
         del d1.max_salt_size
         with no_warnings():
-            self.assertEqual(len(gen_salt(None)), 3)
-            self.assertEqual(len(gen_salt(5)), 5)
+            assert len(gen_salt(None)) == 3
+            assert len(gen_salt(5)) == 5
 
     # TODO: test HasRawSalt mixin
 
@@ -260,7 +260,7 @@ class SkeletonTest(TestCase):
         # check rounds=None
         self.assertRaises(TypeError, norm_rounds)
         self.assertRaises(TypeError, norm_rounds, rounds=None)
-        self.assertEqual(norm_rounds(use_defaults=True), 2)
+        assert norm_rounds(use_defaults=True) == 2
 
         # check rounds=non int
         self.assertRaises(TypeError, norm_rounds, rounds=1.5)
@@ -271,9 +271,9 @@ class SkeletonTest(TestCase):
             self.assertRaises(ValueError, norm_rounds, rounds=0)
 
             # just right
-            self.assertEqual(norm_rounds(rounds=1), 1)
-            self.assertEqual(norm_rounds(rounds=2), 2)
-            self.assertEqual(norm_rounds(rounds=3), 3)
+            assert norm_rounds(rounds=1) == 1
+            assert norm_rounds(rounds=2) == 2
+            assert norm_rounds(rounds=3) == 3
 
             # too large
             self.assertRaises(ValueError, norm_rounds, rounds=4)
@@ -321,32 +321,32 @@ class SkeletonTest(TestCase):
         self.assertRaises(MissingBackendError, d1.set_backend)
         self.assertRaises(MissingBackendError, d1.set_backend, "any")
         self.assertRaises(MissingBackendError, d1.set_backend, "default")
-        self.assertFalse(d1.has_backend())
+        assert not d1.has_backend()
 
         # enable 'b' backend
         d1._enable_b = True
 
         # test lazy load
         obj = d1()
-        self.assertEqual(obj._calc_checksum("s"), "b")
+        assert obj._calc_checksum("s") == "b"
 
         # test repeat load
         d1.set_backend("b")
         d1.set_backend("any")
-        self.assertEqual(obj._calc_checksum("s"), "b")
+        assert obj._calc_checksum("s") == "b"
 
         # test unavailable
         self.assertRaises(MissingBackendError, d1.set_backend, "a")
-        self.assertTrue(d1.has_backend("b"))
-        self.assertFalse(d1.has_backend("a"))
+        assert d1.has_backend("b")
+        assert not d1.has_backend("a")
 
         # enable 'a' backend also
         d1._enable_a = True
 
         # test explicit
-        self.assertTrue(d1.has_backend())
+        assert d1.has_backend()
         d1.set_backend("a")
-        self.assertEqual(obj._calc_checksum("s"), "a")
+        assert obj._calc_checksum("s") == "a"
 
         # test unknown backend
         self.assertRaises(ValueError, d1.set_backend, "c")
@@ -388,32 +388,32 @@ class SkeletonTest(TestCase):
         self.assertRaises(MissingBackendError, d1.set_backend)
         self.assertRaises(MissingBackendError, d1.set_backend, "any")
         self.assertRaises(MissingBackendError, d1.set_backend, "default")
-        self.assertFalse(d1.has_backend())
+        assert not d1.has_backend()
 
         # enable 'b' backend
         d1._has_backend_b = True
 
         # test lazy load
         obj = d1()
-        self.assertEqual(obj._calc_checksum("s"), "b")
+        assert obj._calc_checksum("s") == "b"
 
         # test repeat load
         d1.set_backend("b")
         d1.set_backend("any")
-        self.assertEqual(obj._calc_checksum("s"), "b")
+        assert obj._calc_checksum("s") == "b"
 
         # test unavailable
         self.assertRaises(MissingBackendError, d1.set_backend, "a")
-        self.assertTrue(d1.has_backend("b"))
-        self.assertFalse(d1.has_backend("a"))
+        assert d1.has_backend("b")
+        assert not d1.has_backend("a")
 
         # enable 'a' backend also
         d1._has_backend_a = True
 
         # test explicit
-        self.assertTrue(d1.has_backend())
+        assert d1.has_backend()
         d1.set_backend("a")
-        self.assertEqual(obj._calc_checksum("s"), "a")
+        assert obj._calc_checksum("s") == "a"
 
         # test unknown backend
         self.assertRaises(ValueError, d1.set_backend, "c")
@@ -436,25 +436,25 @@ class SkeletonTest(TestCase):
         # check ident=None
         self.assertRaises(TypeError, norm_ident)
         self.assertRaises(TypeError, norm_ident, ident=None)
-        self.assertEqual(norm_ident(use_defaults=True), "!A")
+        assert norm_ident(use_defaults=True) == "!A"
 
         # check valid idents
-        self.assertEqual(norm_ident(ident="!A"), "!A")
-        self.assertEqual(norm_ident(ident="!B"), "!B")
+        assert norm_ident(ident="!A") == "!A"
+        assert norm_ident(ident="!B") == "!B"
         self.assertRaises(ValueError, norm_ident, ident="!C")
 
         # check aliases
-        self.assertEqual(norm_ident(ident="A"), "!A")
+        assert norm_ident(ident="A") == "!A"
 
         # check invalid idents
         self.assertRaises(ValueError, norm_ident, ident="B")
 
         # check identify is honoring ident system
-        self.assertTrue(d1.identify("!Axxx"))
-        self.assertTrue(d1.identify("!Bxxx"))
-        self.assertFalse(d1.identify("!Cxxx"))
-        self.assertFalse(d1.identify("A"))
-        self.assertFalse(d1.identify(""))
+        assert d1.identify("!Axxx")
+        assert d1.identify("!Bxxx")
+        assert not d1.identify("!Cxxx")
+        assert not d1.identify("A")
+        assert not d1.identify("")
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
 
@@ -477,67 +477,53 @@ class SkeletonTest(TestCase):
 
         # simple hash w/ salt
         result = hash.des_crypt.parsehash("OgAwTx2l6NADI")
-        self.assertEqual(result, {"checksum": "AwTx2l6NADI", "salt": "Og"})
+        assert result == {"checksum": "AwTx2l6NADI", "salt": "Og"}
 
         # parse rounds and extra implicit_rounds flag
         h = "$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9"
         s = "LKO/Ute40T3FNF95"
         c = "U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9"
         result = hash.sha256_crypt.parsehash(h)
-        self.assertEqual(
-            result, dict(salt=s, rounds=5000, implicit_rounds=True, checksum=c)
-        )
+        assert result == dict(salt=s, rounds=5000, implicit_rounds=True, checksum=c)
 
         # omit checksum
         result = hash.sha256_crypt.parsehash(h, checksum=False)
-        self.assertEqual(result, dict(salt=s, rounds=5000, implicit_rounds=True))
+        assert result == dict(salt=s, rounds=5000, implicit_rounds=True)
 
         # sanitize
         result = hash.sha256_crypt.parsehash(h, sanitize=True)
-        self.assertEqual(
-            result,
-            dict(
-                rounds=5000,
-                implicit_rounds=True,
-                salt="LK**************",
-                checksum="U0pr***************************************",
-            ),
+        assert result == dict(
+            rounds=5000,
+            implicit_rounds=True,
+            salt="LK**************",
+            checksum="U0pr***************************************",
         )
 
         # parse w/o implicit rounds flag
         result = hash.sha256_crypt.parsehash(
             "$5$rounds=10428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3"
         )
-        self.assertEqual(
-            result,
-            dict(
-                checksum="YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3",
-                salt="uy/jIAhCetNCTtb0",
-                rounds=10428,
-            ),
+        assert result == dict(
+            checksum="YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3",
+            salt="uy/jIAhCetNCTtb0",
+            rounds=10428,
         )
 
         # parsing of raw checksums & salts
         h1 = "$pbkdf2$60000$DoEwpvQeA8B4T.k951yLUQ$O26Y3/NJEiLCVaOVPxGXshyjW8k"
         result = hash.pbkdf2_sha1.parsehash(h1)
-        self.assertEqual(
-            result,
-            dict(
-                checksum=b';n\x98\xdf\xf3I\x12"\xc2U\xa3\x95?\x11\x97\xb2\x1c\xa3[\xc9',
-                rounds=60000,
-                salt=b"\x0e\x810\xa6\xf4\x1e\x03\xc0xO\xe9=\xe7\\\x8bQ",
-            ),
+        assert result == dict(
+            checksum=b';n\x98\xdf\xf3I\x12"\xc2U\xa3\x95?\x11\x97\xb2\x1c\xa3[\xc9',
+            rounds=60000,
+            salt=b"\x0e\x810\xa6\xf4\x1e\x03\xc0xO\xe9=\xe7\\\x8bQ",
         )
 
         # sanitizing of raw checksums & salts
         result = hash.pbkdf2_sha1.parsehash(h1, sanitize=True)
-        self.assertEqual(
-            result,
-            dict(
-                checksum="O26************************",
-                rounds=60000,
-                salt="Do********************",
-            ),
+        assert result == dict(
+            checksum="O26************************",
+            rounds=60000,
+            salt="Do********************",
         )
 
     def test_92_bitsize(self):
@@ -546,24 +532,28 @@ class SkeletonTest(TestCase):
         from passlib import hash
 
         # no rounds
-        self.assertEqual(hash.des_crypt.bitsize(), {"checksum": 66, "salt": 12})
+        assert hash.des_crypt.bitsize() == {"checksum": 66, "salt": 12}
 
         # log2 rounds
-        self.assertEqual(hash.bcrypt.bitsize(), {"checksum": 186, "salt": 132})
+        assert hash.bcrypt.bitsize() == {"checksum": 186, "salt": 132}
 
         # linear rounds
         # NOTE: +3 comes from int(math.log(.1,2)),
         #       where 0.1 = 10% = default allowed variation in rounds
         self.patchAttr(hash.sha256_crypt, "default_rounds", 1 << (14 + 3))
-        self.assertEqual(
-            hash.sha256_crypt.bitsize(), {"checksum": 258, "rounds": 14, "salt": 96}
-        )
+        assert hash.sha256_crypt.bitsize() == {
+            "checksum": 258,
+            "rounds": 14,
+            "salt": 96,
+        }
 
         # raw checksum
         self.patchAttr(hash.pbkdf2_sha1, "default_rounds", 1 << (13 + 3))
-        self.assertEqual(
-            hash.pbkdf2_sha1.bitsize(), {"checksum": 160, "rounds": 13, "salt": 128}
-        )
+        assert hash.pbkdf2_sha1.bitsize() == {
+            "checksum": 160,
+            "rounds": 13,
+            "salt": 128,
+        }
 
         # TODO: handle fshp correctly, and other glitches noted in code.
         ##self.assertEqual(hash.fshp.bitsize(variant=1),
@@ -606,29 +596,29 @@ class PrefixWrapperTest(TestCase):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}", lazy=True)
 
         # check base state
-        self.assertEqual(d1._wrapped_name, "ldap_md5")
-        self.assertIs(d1._wrapped_handler, None)
+        assert d1._wrapped_name == "ldap_md5"
+        assert d1._wrapped_handler is None
 
         # check loading works
-        self.assertIs(d1.wrapped, ldap_md5)
-        self.assertIs(d1._wrapped_handler, ldap_md5)
+        assert d1.wrapped is ldap_md5
+        assert d1._wrapped_handler is ldap_md5
 
         # replace w/ wrong handler, make sure doesn't reload w/ dummy
         with dummy_handler_in_registry("ldap_md5"):
-            self.assertIs(d1.wrapped, ldap_md5)
+            assert d1.wrapped is ldap_md5
 
     def test_01_active_loading(self):
         """test PrefixWrapper active loading of handler"""
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
 
         # check base state
-        self.assertEqual(d1._wrapped_name, "ldap_md5")
-        self.assertIs(d1._wrapped_handler, ldap_md5)
-        self.assertIs(d1.wrapped, ldap_md5)
+        assert d1._wrapped_name == "ldap_md5"
+        assert d1._wrapped_handler is ldap_md5
+        assert d1.wrapped is ldap_md5
 
         # replace w/ wrong handler, make sure doesn't reload w/ dummy
         with dummy_handler_in_registry("ldap_md5"):
-            self.assertIs(d1.wrapped, ldap_md5)
+            assert d1.wrapped is ldap_md5
 
     def test_02_explicit(self):
         """test PrefixWrapper with explicitly specified handler"""
@@ -636,23 +626,23 @@ class PrefixWrapperTest(TestCase):
         d1 = uh.PrefixWrapper("d1", ldap_md5, "{XXX}", "{MD5}")
 
         # check base state
-        self.assertEqual(d1._wrapped_name, None)
-        self.assertIs(d1._wrapped_handler, ldap_md5)
-        self.assertIs(d1.wrapped, ldap_md5)
+        assert d1._wrapped_name is None
+        assert d1._wrapped_handler is ldap_md5
+        assert d1.wrapped is ldap_md5
 
         # replace w/ wrong handler, make sure doesn't reload w/ dummy
         with dummy_handler_in_registry("ldap_md5"):
-            self.assertIs(d1.wrapped, ldap_md5)
+            assert d1.wrapped is ldap_md5
 
     def test_10_wrapped_attributes(self):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
-        self.assertEqual(d1.name, "d1")
-        self.assertIs(d1.setting_kwds, ldap_md5.setting_kwds)
-        self.assertFalse("max_rounds" in dir(d1))
+        assert d1.name == "d1"
+        assert d1.setting_kwds is ldap_md5.setting_kwds
+        assert "max_rounds" not in dir(d1)
 
         d2 = uh.PrefixWrapper("d2", "sha256_crypt", "{XXX}")
-        self.assertIs(d2.setting_kwds, sha256_crypt.setting_kwds)
-        self.assertTrue("max_rounds" in dir(d2))
+        assert d2.setting_kwds is sha256_crypt.setting_kwds
+        assert "max_rounds" in dir(d2)
 
     def test_11_wrapped_methods(self):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
@@ -660,44 +650,44 @@ class PrefixWrapperTest(TestCase):
         lph = "{MD5}X03MO1qnZdYdgyfeuILPmQ=="
 
         # genconfig
-        self.assertEqual(d1.genconfig(), "{XXX}1B2M2Y8AsgTpgAmY7PhCfg==")
+        assert d1.genconfig() == "{XXX}1B2M2Y8AsgTpgAmY7PhCfg=="
 
         # genhash
         self.assertRaises(TypeError, d1.genhash, "password", None)
-        self.assertEqual(d1.genhash("password", dph), dph)
+        assert d1.genhash("password", dph) == dph
         self.assertRaises(ValueError, d1.genhash, "password", lph)
 
         # hash
-        self.assertEqual(d1.hash("password"), dph)
+        assert d1.hash("password") == dph
 
         # identify
-        self.assertTrue(d1.identify(dph))
-        self.assertFalse(d1.identify(lph))
+        assert d1.identify(dph)
+        assert not d1.identify(lph)
 
         # verify
         self.assertRaises(ValueError, d1.verify, "password", lph)
-        self.assertTrue(d1.verify("password", dph))
+        assert d1.verify("password", dph)
 
     def test_12_ident(self):
         # test ident is proxied
         h = uh.PrefixWrapper("h2", "ldap_md5", "{XXX}")
-        self.assertEqual(h.ident, "{XXX}{MD5}")
-        self.assertIs(h.ident_values, None)
+        assert h.ident == "{XXX}{MD5}"
+        assert h.ident_values is None
 
         # test lack of ident means no proxy
         h = uh.PrefixWrapper("h2", "des_crypt", "{XXX}")
-        self.assertIs(h.ident, None)
-        self.assertIs(h.ident_values, None)
+        assert h.ident is None
+        assert h.ident_values is None
 
         # test orig_prefix disabled ident proxy
         h = uh.PrefixWrapper("h1", "ldap_md5", "{XXX}", "{MD5}")
-        self.assertIs(h.ident, None)
-        self.assertIs(h.ident_values, None)
+        assert h.ident is None
+        assert h.ident_values is None
 
         # test custom ident overrides default
         h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{X")
-        self.assertEqual(h.ident, "{X")
-        self.assertIs(h.ident_values, None)
+        assert h.ident == "{X"
+        assert h.ident_values is None
 
         # test custom ident must match
         h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{XXX}A")
@@ -710,13 +700,13 @@ class PrefixWrapperTest(TestCase):
 
         # test ident_values is proxied
         h = uh.PrefixWrapper("h4", "phpass", "{XXX}")
-        self.assertIs(h.ident, None)
-        self.assertEqual(h.ident_values, ("{XXX}$P$", "{XXX}$H$"))
+        assert h.ident is None
+        assert h.ident_values == ("{XXX}$P$", "{XXX}$H$")
 
         # test ident=True means use prefix even if hash has no ident.
         h = uh.PrefixWrapper("h5", "des_crypt", "{XXX}", ident=True)
-        self.assertEqual(h.ident, "{XXX}")
-        self.assertIs(h.ident_values, None)
+        assert h.ident == "{XXX}"
+        assert h.ident_values is None
 
         # ... but requires prefix
         self.assertRaises(ValueError, uh.PrefixWrapper, "h6", "des_crypt", ident=True)
@@ -724,20 +714,15 @@ class PrefixWrapperTest(TestCase):
         # orig_prefix + HasManyIdent - warning
         with pytest.warns(match="orig_prefix.*may not work correctly"):
             h = uh.PrefixWrapper("h7", "phpass", orig_prefix="$", prefix="?")
-        self.assertEqual(h.ident_values, None)  # TODO: should output (u"?P$", u"?H$"))
-        self.assertEqual(h.ident, None)
+        assert h.ident_values is None  # TODO: should output (u"?P$", u"?H$"))
+        assert h.ident is None
 
     def test_13_repr(self):
         """test repr()"""
         h = uh.PrefixWrapper("h2", "md5_crypt", "{XXX}", orig_prefix="$1$")
-        self.assertRegex(
+        assert re.search(
+            "(?x)^PrefixWrapper\\(\n                ['\"]h2['\"],\\s+\n                ['\"]md5_crypt['\"],\\s+\n                prefix=u?[\"']{XXX}['\"],\\s+\n                orig_prefix=u?[\"']\\$1\\$['\"]\n            \\)$",
             repr(h),
-            r"""(?x)^PrefixWrapper\(
-                ['"]h2['"],\s+
-                ['"]md5_crypt['"],\s+
-                prefix=u?["']{XXX}['"],\s+
-                orig_prefix=u?["']\$1\$['"]
-            \)$""",
         )
 
     def test_14_bad_hash(self):

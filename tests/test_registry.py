@@ -74,20 +74,20 @@ class RegistryTest(TestCase):
         old = getattr(hash, "__loader__", None)
         test = object()
         hash.__loader__ = test
-        self.assertIs(hash.__loader__, test)
+        assert hash.__loader__ is test
         if old is None:
             del hash.__loader__
-            self.assertFalse(hasattr(hash, "__loader__"))
+            assert not hasattr(hash, "__loader__")
         else:
             hash.__loader__ = old
-            self.assertIs(hash.__loader__, old)
+            assert hash.__loader__ is old
 
         # check storing attr calls register_crypt_handler
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"
 
         hash.dummy_1 = dummy_1
-        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
+        assert get_crypt_handler("dummy_1") is dummy_1
 
         # check storing under wrong name results in error
         self.assertRaises(ValueError, setattr, hash, "dummy_1x", dummy_1)
@@ -98,8 +98,8 @@ class RegistryTest(TestCase):
         paths = registry._locations
 
         # check namespace is clear
-        self.assertTrue("dummy_0" not in paths)
-        self.assertFalse(hasattr(hash, "dummy_0"))
+        assert "dummy_0" not in paths
+        assert not hasattr(hash, "dummy_0")
 
         # check invalid names are rejected
         self.assertRaises(
@@ -120,15 +120,15 @@ class RegistryTest(TestCase):
 
         # try lazy load
         register_crypt_handler_path("dummy_0", __name__)
-        self.assertTrue("dummy_0" in list_crypt_handlers())
-        self.assertTrue("dummy_0" not in list_crypt_handlers(loaded_only=True))
-        self.assertIs(hash.dummy_0, dummy_0)
-        self.assertTrue("dummy_0" in list_crypt_handlers(loaded_only=True))
+        assert "dummy_0" in list_crypt_handlers()
+        assert "dummy_0" not in list_crypt_handlers(loaded_only=True)
+        assert hash.dummy_0 is dummy_0
+        assert "dummy_0" in list_crypt_handlers(loaded_only=True)
         unload_handler_name("dummy_0")
 
         # try lazy load w/ alt
         register_crypt_handler_path("dummy_0", __name__ + ":alt_dummy_0")
-        self.assertIs(hash.dummy_0, alt_dummy_0)
+        assert hash.dummy_0 is alt_dummy_0
         unload_handler_name("dummy_0")
 
         # check lazy load w/ wrong type fails
@@ -189,19 +189,19 @@ class RegistryTest(TestCase):
         class dummy_1b(uh.StaticHandler):
             name = "dummy_1"
 
-        self.assertTrue("dummy_1" not in list_crypt_handlers())
+        assert "dummy_1" not in list_crypt_handlers()
 
         register_crypt_handler(dummy_1)
         register_crypt_handler(dummy_1)
-        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
+        assert get_crypt_handler("dummy_1") is dummy_1
 
         self.assertRaises(KeyError, register_crypt_handler, dummy_1b)
-        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
+        assert get_crypt_handler("dummy_1") is dummy_1
 
         register_crypt_handler(dummy_1b, force=True)
-        self.assertIs(get_crypt_handler("dummy_1"), dummy_1b)
+        assert get_crypt_handler("dummy_1") is dummy_1b
 
-        self.assertTrue("dummy_1" in list_crypt_handlers())
+        assert "dummy_1" in list_crypt_handlers()
 
     def test_get_crypt_handler(self):
         """test get_crypt_handler()"""
@@ -211,11 +211,11 @@ class RegistryTest(TestCase):
 
         # without available handler
         self.assertRaises(KeyError, get_crypt_handler, "dummy_1")
-        self.assertIs(get_crypt_handler("dummy_1", None), None)
+        assert get_crypt_handler("dummy_1", None) is None
 
         # already loaded handler
         register_crypt_handler(dummy_1)
-        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
+        assert get_crypt_handler("dummy_1") is dummy_1
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -225,11 +225,11 @@ class RegistryTest(TestCase):
             )
 
             # already loaded handler, using incorrect name
-            self.assertIs(get_crypt_handler("DUMMY-1"), dummy_1)
+            assert get_crypt_handler("DUMMY-1") is dummy_1
 
             # lazy load of unloaded handler, using incorrect name
             register_crypt_handler_path("dummy_0", __name__)
-            self.assertIs(get_crypt_handler("DUMMY-0"), dummy_0)
+            assert get_crypt_handler("DUMMY-0") is dummy_0
 
         # check system & private names aren't returned
         from passlib import hash
@@ -237,7 +237,7 @@ class RegistryTest(TestCase):
         hash.__dict__["_fake"] = "dummy"
         for name in ["_fake", "__package__"]:
             self.assertRaises(KeyError, get_crypt_handler, name)
-            self.assertIs(get_crypt_handler(name, None), None)
+            assert get_crypt_handler(name, None) is None
 
     def test_list_crypt_handlers(self):
         """test list_crypt_handlers()"""
@@ -246,7 +246,7 @@ class RegistryTest(TestCase):
         # check system & private names aren't returned
         hash.__dict__["_fake"] = "dummy"
         for name in list_crypt_handlers():
-            self.assertFalse(name.startswith("_"), "%r: " % name)
+            assert not name.startswith("_"), "%r: " % name
         unload_handler_name("_fake")
 
     def test_handlers(self):
@@ -265,7 +265,7 @@ class RegistryTest(TestCase):
                 continue
             # check the remaining ones all have a handler
             try:
-                self.assertTrue(get_handler_case(name))
+                assert get_handler_case(name)
             except exc.MissingBackendError:
                 if (
                     name in conditionally_available_hashes

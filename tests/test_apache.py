@@ -102,11 +102,11 @@ class HtdigestFileTest(TestCase):
         path = self.mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
-        self.assertEqual(ht.to_string(), self.sample_01)
+        assert ht.to_string() == self.sample_01
 
         # check without autoload
         ht = apache.HtdigestFile(path, new=True)
-        self.assertEqual(ht.to_string(), b"")
+        assert ht.to_string() == b""
 
         # check missing file
         os.remove(path)
@@ -116,11 +116,11 @@ class HtdigestFileTest(TestCase):
     def test_01_delete(self):
         """test delete()"""
         ht = apache.HtdigestFile.from_string(self.sample_01)
-        self.assertTrue(ht.delete("user1", "realm"))
-        self.assertTrue(ht.delete("user2", "realm"))
-        self.assertFalse(ht.delete("user5", "realm"))
-        self.assertFalse(ht.delete("user3", "realm5"))
-        self.assertEqual(ht.to_string(), self.sample_02)
+        assert ht.delete("user1", "realm")
+        assert ht.delete("user2", "realm")
+        assert not ht.delete("user5", "realm")
+        assert not ht.delete("user3", "realm5")
+        assert ht.to_string() == self.sample_02
 
         # invalid user
         self.assertRaises(ValueError, ht.delete, "user:", "realm")
@@ -133,21 +133,21 @@ class HtdigestFileTest(TestCase):
         set_file(path, self.sample_01)
 
         ht = apache.HtdigestFile(path)
-        self.assertTrue(ht.delete("user1", "realm"))
-        self.assertFalse(ht.delete("user3", "realm5"))
-        self.assertFalse(ht.delete("user5", "realm"))
-        self.assertEqual(get_file(path), self.sample_01)
+        assert ht.delete("user1", "realm")
+        assert not ht.delete("user3", "realm5")
+        assert not ht.delete("user5", "realm")
+        assert get_file(path) == self.sample_01
 
         ht.autosave = True
-        self.assertTrue(ht.delete("user2", "realm"))
-        self.assertEqual(get_file(path), self.sample_02)
+        assert ht.delete("user2", "realm")
+        assert get_file(path) == self.sample_02
 
     def test_02_set_password(self):
         """test update()"""
         ht = apache.HtdigestFile.from_string(self.sample_01)
-        self.assertTrue(ht.set_password("user2", "realm", "pass2x"))
-        self.assertFalse(ht.set_password("user5", "realm", "pass5"))
-        self.assertEqual(ht.to_string(), self.sample_03)
+        assert ht.set_password("user2", "realm", "pass2x")
+        assert not ht.set_password("user5", "realm", "pass5")
+        assert ht.to_string() == self.sample_03
 
         # default realm
         self.assertRaises(TypeError, ht.set_password, "user2", "pass3")
@@ -171,9 +171,13 @@ class HtdigestFileTest(TestCase):
         ht.set_password("user5", "realm", "pass5")
         ht.delete("user3", "realm")
         ht.set_password("user3", "realm", "pass3")
-        self.assertEqual(
-            sorted(ht.users("realm")), ["user1", "user2", "user3", "user4", "user5"]
-        )
+        assert sorted(ht.users("realm")) == [
+            "user1",
+            "user2",
+            "user3",
+            "user4",
+            "user5",
+        ]
 
         self.assertRaises(TypeError, ht.users, 1)
 
@@ -182,17 +186,17 @@ class HtdigestFileTest(TestCase):
         ht = apache.HtdigestFile.from_string(self.sample_01)
         self.assertRaises(TypeError, ht.check_password, 1, "realm", "pass5")
         self.assertRaises(TypeError, ht.check_password, "user", 1, "pass5")
-        self.assertIs(ht.check_password("user5", "realm", "pass5"), None)
+        assert ht.check_password("user5", "realm", "pass5") is None
         for i in range(1, 5):
             i = str(i)
-            self.assertTrue(ht.check_password("user" + i, "realm", "pass" + i))
-            self.assertIs(ht.check_password("user" + i, "realm", "pass5"), False)
+            assert ht.check_password("user" + i, "realm", "pass" + i)
+            assert ht.check_password("user" + i, "realm", "pass5") is False
 
         # default realm
         self.assertRaises(TypeError, ht.check_password, "user5", "pass5")
         ht.default_realm = "realm"
-        self.assertTrue(ht.check_password("user1", "pass1"))
-        self.assertIs(ht.check_password("user5", "pass5"), None)
+        assert ht.check_password("user1", "pass1")
+        assert ht.check_password("user5", "pass5") is None
 
         # invalid user
         self.assertRaises(ValueError, ht.check_password, "user:", "realm", "pass")
@@ -204,24 +208,22 @@ class HtdigestFileTest(TestCase):
         set_file(path, "")
         backdate_file_mtime(path, 5)
         ha = apache.HtdigestFile(path)
-        self.assertEqual(ha.to_string(), b"")
+        assert ha.to_string() == b""
 
         # make changes, check load_if_changed() does nothing
         ha.set_password("user1", "realm", "pass1")
         ha.load_if_changed()
-        self.assertEqual(
-            ha.to_string(), b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n"
-        )
+        assert ha.to_string() == b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n"
 
         # change file
         set_file(path, self.sample_01)
         ha.load_if_changed()
-        self.assertEqual(ha.to_string(), self.sample_01)
+        assert ha.to_string() == self.sample_01
 
         # make changes, check load_if_changed overwrites them
         ha.set_password("user5", "realm", "pass5")
         ha.load()
-        self.assertEqual(ha.to_string(), self.sample_01)
+        assert ha.to_string() == self.sample_01
 
         # test load w/ no path
         hb = apache.HtdigestFile()
@@ -231,7 +233,7 @@ class HtdigestFileTest(TestCase):
         # test load w/ explicit path
         hc = apache.HtdigestFile()
         hc.load(path)
-        self.assertEqual(hc.to_string(), self.sample_01)
+        assert hc.to_string() == self.sample_01
 
     def test_06_save(self):
         """test save()"""
@@ -244,7 +246,7 @@ class HtdigestFileTest(TestCase):
         ht.delete("user1", "realm")
         ht.delete("user2", "realm")
         ht.save()
-        self.assertEqual(get_file(path), self.sample_02)
+        assert get_file(path) == self.sample_02
 
         # test save w/ no path
         hb = apache.HtdigestFile()
@@ -253,29 +255,25 @@ class HtdigestFileTest(TestCase):
 
         # test save w/ explicit path
         hb.save(path)
-        self.assertEqual(get_file(path), hb.to_string())
+        assert get_file(path) == hb.to_string()
 
     def test_07_realms(self):
         """test realms() & delete_realm()"""
         ht = apache.HtdigestFile.from_string(self.sample_01)
 
-        self.assertEqual(ht.delete_realm("x"), 0)
-        self.assertEqual(ht.realms(), ["realm"])
+        assert ht.delete_realm("x") == 0
+        assert ht.realms() == ["realm"]
 
-        self.assertEqual(ht.delete_realm("realm"), 4)
-        self.assertEqual(ht.realms(), [])
-        self.assertEqual(ht.to_string(), b"")
+        assert ht.delete_realm("realm") == 4
+        assert ht.realms() == []
+        assert ht.to_string() == b""
 
     def test_08_get_hash(self):
         """test get_hash()"""
         ht = apache.HtdigestFile.from_string(self.sample_01)
-        self.assertEqual(
-            ht.get_hash("user3", "realm"), "a500bb8c02f6a9170ae46af10c898744"
-        )
-        self.assertEqual(
-            ht.get_hash("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519"
-        )
-        self.assertEqual(ht.get_hash("user5", "realm"), None)
+        assert ht.get_hash("user3", "realm") == "a500bb8c02f6a9170ae46af10c898744"
+        assert ht.get_hash("user4", "realm") == "ab7b5d5f28ccc7666315f508c7358519"
+        assert ht.get_hash("user5", "realm") is None
 
     def test_09_encodings(self):
         """test encoding parameter"""
@@ -286,26 +284,26 @@ class HtdigestFileTest(TestCase):
         ht = apache.HtdigestFile.from_string(
             self.sample_04_utf8, encoding="utf-8", return_unicode=True
         )
-        self.assertEqual(ht.realms(), ["realm\u00e6"])
-        self.assertEqual(ht.users("realm\u00e6"), ["user\u00e6"])
+        assert ht.realms() == ["realmæ"]
+        assert ht.users("realmæ") == ["useræ"]
 
         # check sample latin-1
         ht = apache.HtdigestFile.from_string(
             self.sample_04_latin1, encoding="latin-1", return_unicode=True
         )
-        self.assertEqual(ht.realms(), ["realm\u00e6"])
-        self.assertEqual(ht.users("realm\u00e6"), ["user\u00e6"])
+        assert ht.realms() == ["realmæ"]
+        assert ht.users("realmæ") == ["useræ"]
 
     def test_10_to_string(self):
         """test to_string()"""
 
         # check sample
         ht = apache.HtdigestFile.from_string(self.sample_01)
-        self.assertEqual(ht.to_string(), self.sample_01)
+        assert ht.to_string() == self.sample_01
 
         # check blank
         ht = apache.HtdigestFile()
-        self.assertEqual(ht.to_string(), b"")
+        assert ht.to_string() == b""
 
     def test_11_malformed(self):
         self.assertRaises(

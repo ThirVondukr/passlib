@@ -10,27 +10,21 @@ class ldap_pbkdf2_test(TestCase):
     def test_wrappers(self):
         """test ldap pbkdf2 wrappers"""
 
-        self.assertTrue(
-            hash.ldap_pbkdf2_sha1.verify(
-                "password",
-                "{PBKDF2}1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI",
-            )
+        assert hash.ldap_pbkdf2_sha1.verify(
+            "password",
+            "{PBKDF2}1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI",
         )
 
-        self.assertTrue(
-            hash.ldap_pbkdf2_sha256.verify(
-                "password",
-                "{PBKDF2-SHA256}1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg"
-                ".fJPeq1h/gXXY7acBp9/6c.tmQ",
-            )
+        assert hash.ldap_pbkdf2_sha256.verify(
+            "password",
+            "{PBKDF2-SHA256}1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg"
+            ".fJPeq1h/gXXY7acBp9/6c.tmQ",
         )
 
-        self.assertTrue(
-            hash.ldap_pbkdf2_sha512.verify(
-                "password",
-                "{PBKDF2-SHA512}1212$RHY0Fr3IDMSVO/RSZyb5ow$eNLfBK.eVozomMr.1gYa1"
-                "7k9B7KIK25NOEshvhrSX.esqY3s.FvWZViXz4KoLlQI.BzY/YTNJOiKc5gBYFYGww",
-            )
+        assert hash.ldap_pbkdf2_sha512.verify(
+            "password",
+            "{PBKDF2-SHA512}1212$RHY0Fr3IDMSVO/RSZyb5ow$eNLfBK.eVozomMr.1gYa1"
+            "7k9B7KIK25NOEshvhrSX.esqY3s.FvWZViXz4KoLlQI.BzY/YTNJOiKc5gBYFYGww",
         )
 
 
@@ -251,15 +245,15 @@ class scram_test(HandlerCase):
             return self.handler(algs=algs, **kwds).algs
 
         # None -> default list
-        self.assertEqual(parse(None, use_defaults=True), hash.scram.default_algs)
+        assert parse(None, use_defaults=True) == hash.scram.default_algs
         self.assertRaises(TypeError, parse, None)
 
         # strings should be parsed
-        self.assertEqual(parse("sha1"), ["sha-1"])
-        self.assertEqual(parse("sha1, sha256, md5"), ["md5", "sha-1", "sha-256"])
+        assert parse("sha1") == ["sha-1"]
+        assert parse("sha1, sha256, md5") == ["md5", "sha-1", "sha-256"]
 
         # lists should be normalized
-        self.assertEqual(parse(["sha-1", "sha256"]), ["sha-1", "sha-256"])
+        assert parse(["sha-1", "sha256"]) == ["sha-1", "sha-256"]
 
         # sha-1 required
         self.assertRaises(ValueError, parse, ["sha-256"])
@@ -294,9 +288,9 @@ class scram_test(HandlerCase):
         # return appropriate value or throw KeyError
         h = "$scram$10$AAAAAA$sha-1=AQ,bbb=Ag,ccc=Aw"
         s = b"\x00" * 4
-        self.assertEqual(edi(h, "SHA1"), (s, 10, b"\x01"))
-        self.assertEqual(edi(h, "bbb"), (s, 10, b"\x02"))
-        self.assertEqual(edi(h, "ccc"), (s, 10, b"\x03"))
+        assert edi(h, "SHA1") == (s, 10, b"\x01")
+        assert edi(h, "bbb") == (s, 10, b"\x02")
+        assert edi(h, "ccc") == (s, 10, b"\x03")
         self.assertRaises(KeyError, edi, h, "ddd")
 
         # config strings should cause value error.
@@ -309,29 +303,22 @@ class scram_test(HandlerCase):
         """test scram.extract_digest_algs()"""
         eda = self.handler.extract_digest_algs
 
-        self.assertEqual(
-            eda("$scram$4096$QSXCR.Q6sek8bf92$" "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30"),
-            ["sha-1"],
-        )
+        assert eda(
+            "$scram$4096$QSXCR.Q6sek8bf92$" "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30"
+        ) == ["sha-1"]
 
-        self.assertEqual(
-            eda(
-                "$scram$4096$QSXCR.Q6sek8bf92$" "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30",
-                format="hashlib",
-            ),
-            ["sha1"],
-        )
+        assert eda(
+            "$scram$4096$QSXCR.Q6sek8bf92$" "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30",
+            format="hashlib",
+        ) == ["sha1"]
 
-        self.assertEqual(
-            eda(
-                "$scram$4096$QSXCR.Q6sek8bf92$"
-                "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,"
-                "sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,"
-                "sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/"
-                "edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ"
-            ),
-            ["sha-1", "sha-256", "sha-512"],
-        )
+        assert eda(
+            "$scram$4096$QSXCR.Q6sek8bf92$"
+            "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,"
+            "sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,"
+            "sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/"
+            "edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ"
+        ) == ["sha-1", "sha-256", "sha-512"]
 
     def test_93_derive_digest(self):
         """test scram.derive_digest()"""
@@ -342,15 +329,15 @@ class scram_test(HandlerCase):
         # check various encodings of password work.
         s1 = b"\x01\x02\x03"
         d1 = b"\xb2\xfb\xab\x82[tNuPnI\x8aZZ\x19\x87\xcen\xe9\xd3"
-        self.assertEqual(hash("\u2168", s1, 1000, "sha-1"), d1)
-        self.assertEqual(hash(b"\xe2\x85\xa8", s1, 1000, "SHA-1"), d1)
-        self.assertEqual(hash("IX", s1, 1000, "sha1"), d1)
-        self.assertEqual(hash(b"IX", s1, 1000, "SHA1"), d1)
+        assert hash("Ⅸ", s1, 1000, "sha-1") == d1
+        assert hash(b"\xe2\x85\xa8", s1, 1000, "SHA-1") == d1
+        assert hash("IX", s1, 1000, "sha1") == d1
+        assert hash(b"IX", s1, 1000, "SHA1") == d1
 
         # check algs
-        self.assertEqual(
-            hash("IX", s1, 1000, "md5"),
-            b"3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od",
+        assert (
+            hash("IX", s1, 1000, "md5")
+            == b"3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od"
         )
         self.assertRaises(ValueError, hash, "IX", s1, 1000, "sha-666")
 
@@ -358,7 +345,7 @@ class scram_test(HandlerCase):
         self.assertRaises(ValueError, hash, "IX", s1, 0, "sha-1")
 
         # unicode salts accepted as of passlib 1.7 (previous caused TypeError)
-        self.assertEqual(hash("IX", s1.decode("latin-1"), 1000, "sha1"), d1)
+        assert hash("IX", s1.decode("latin-1"), 1000, "sha1") == d1
 
     def test_94_saslprep(self):
         """test hash/verify use saslprep"""
@@ -368,13 +355,13 @@ class scram_test(HandlerCase):
 
         # hash unnormalized
         h = self.do_encrypt("I\u00adX")
-        self.assertTrue(self.do_verify("IX", h))
-        self.assertTrue(self.do_verify("\u2168", h))
+        assert self.do_verify("IX", h)
+        assert self.do_verify("Ⅸ", h)
 
         # hash normalized
         h = self.do_encrypt("\xf3")
-        self.assertTrue(self.do_verify("o\u0301", h))
-        self.assertTrue(self.do_verify("\u200do\u0301", h))
+        assert self.do_verify("ó", h)
+        assert self.do_verify("\u200dó", h)
 
         # throws error if forbidden char provided
         self.assertRaises(ValueError, self.do_encrypt, "\ufdd0")
@@ -388,14 +375,14 @@ class scram_test(HandlerCase):
         subcls = handler.using(**{param: "sha1,md5"})
 
         # shouldn't have changed handler
-        self.assertEqual(handler.default_algs, orig)
+        assert handler.default_algs == orig
 
         # should have own set
-        self.assertEqual(subcls.default_algs, ["md5", "sha-1"])
+        assert subcls.default_algs == ["md5", "sha-1"]
 
         # test hash output
         h1 = subcls.hash("dummy")
-        self.assertEqual(handler.extract_digest_algs(h1), ["md5", "sha-1"])
+        assert handler.extract_digest_algs(h1) == ["md5", "sha-1"]
 
     def test_94_using_w_algs(self):
         """using() -- 'algs' parameter"""
@@ -407,16 +394,16 @@ class scram_test(HandlerCase):
 
         # shouldn't need update, has same algs
         h1 = handler1.hash("dummy")
-        self.assertFalse(handler1.needs_update(h1))
+        assert not handler1.needs_update(h1)
 
         # *currently* shouldn't need update, has superset of algs required by handler2
         # (may change this policy)
         handler2 = handler1.using(algs="sha1")
-        self.assertFalse(handler2.needs_update(h1))
+        assert not handler2.needs_update(h1)
 
         # should need update, doesn't have all algs required by handler3
         handler3 = handler1.using(algs="sha1,sha256")
-        self.assertTrue(handler3.needs_update(h1))
+        assert handler3.needs_update(h1)
 
     def test_95_context_algs(self):
         """test handling of 'algs' in context object"""
@@ -426,14 +413,14 @@ class scram_test(HandlerCase):
         c1 = CryptContext(["scram"], scram__algs="sha1,md5")
 
         h = c1.hash("dummy")
-        self.assertEqual(handler.extract_digest_algs(h), ["md5", "sha-1"])
-        self.assertFalse(c1.needs_update(h))
+        assert handler.extract_digest_algs(h) == ["md5", "sha-1"]
+        assert not c1.needs_update(h)
 
         c2 = c1.copy(scram__algs="sha1")
-        self.assertFalse(c2.needs_update(h))
+        assert not c2.needs_update(h)
 
         c2 = c1.copy(scram__algs="sha1,sha256")
-        self.assertTrue(c2.needs_update(h))
+        assert c2.needs_update(h)
 
     def test_96_full_verify(self):
         """test verify(full=True) flag"""
@@ -452,8 +439,8 @@ class scram_test(HandlerCase):
             "sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/"
             "edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ"
         )
-        self.assertTrue(vfull("pencil", h))
-        self.assertFalse(vfull("tape", h))
+        assert vfull("pencil", h)
+        assert not vfull("tape", h)
 
         # catch truncated digests.
         h = (
@@ -485,7 +472,7 @@ class scram_test(HandlerCase):
             "sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/"  # 'pencil'
             "edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ"
         )
-        self.assertTrue(vpart("tape", h))
-        self.assertFalse(vpart("pencil", h))
+        assert vpart("tape", h)
+        assert not vpart("pencil", h)
         self.assertRaises(ValueError, vfull, "pencil", h)
         self.assertRaises(ValueError, vfull, "tape", h)

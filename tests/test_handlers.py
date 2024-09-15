@@ -199,16 +199,16 @@ class _bsdi_crypt_test(HandlerCase):
         secret = "test"
 
         # don't issue warning
-        self.assertTrue(handler.verify(secret, even_hash))
-        self.assertTrue(handler.verify(secret, odd_hash))
+        assert handler.verify(secret, even_hash)
+        assert handler.verify(secret, odd_hash)
 
         # *do* signal as needing updates
-        self.assertTrue(handler.needs_update(even_hash))
-        self.assertFalse(handler.needs_update(odd_hash))
+        assert handler.needs_update(even_hash)
+        assert not handler.needs_update(odd_hash)
 
         # new hashes shouldn't have even rounds
         new_hash = handler.hash("stub")
-        self.assertFalse(handler.needs_update(new_hash))
+        assert not handler.needs_update(new_hash)
 
 
 # create test cases for specific backends
@@ -394,7 +394,7 @@ class hex_md5_test(HandlerCase):
 
         # check if md5 is available so we can test mock helper
         supported = lookup_hash("md5", required=False).supported
-        self.assertEqual(self.handler.supported, supported)
+        assert self.handler.supported == supported
         if supported:
             _set_mock_fips_mode()
             self.addCleanup(_set_mock_fips_mode, False)
@@ -404,13 +404,13 @@ class hex_md5_test(HandlerCase):
         from passlib.handlers.digests import create_hex_hash
 
         hasher = create_hex_hash("md5", required=False)
-        self.assertFalse(hasher.supported)
+        assert not hasher.supported
 
         # can identify hashes even if disabled
         ref1 = "5f4dcc3b5aa765d61d8327deb882cf99"
         ref2 = "xxx"
-        self.assertTrue(hasher.identify(ref1))
-        self.assertFalse(hasher.identify(ref2))
+        assert hasher.identify(ref1)
+        assert not hasher.identify(ref2)
 
         # throw error if try to use it
         pat = "'md5' hash disabled for fips"
@@ -770,7 +770,7 @@ class lmhash_test(EncodingHandlerMixin, HandlerCase):
             kwds = {}
             secret = self.populate_context(secret, kwds)
             data = unhexlify(str_to_bascii(hashed))
-            self.assertEqual(lmhash.raw(secret, **kwds), data)
+            assert lmhash.raw(secret, **kwds) == data
         self.assertRaises(TypeError, lmhash.raw, 1)
 
 
@@ -1130,7 +1130,7 @@ class mysql323_test(HandlerCase):
         """check whitespace is ignored per spec"""
         h = self.do_encrypt("mypass")
         h2 = self.do_encrypt("my pass")
-        self.assertEqual(h, h2)
+        assert h == h2
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
         def accept_password_pair(self, secret, other):
@@ -1386,8 +1386,8 @@ sha1_crypt_builtin_test = _sha1_crypt_test.create_backend_case("builtin")
 
 class RoundupTest(TestCase):
     def _test_pair(self, h, secret, hash):
-        self.assertTrue(h.verify(secret, hash))
-        self.assertFalse(h.verify("x" + secret, hash))
+        assert h.verify(secret, hash)
+        assert not h.verify("x" + secret, hash)
 
     def test_pairs(self):
         self._test_pair(
@@ -1558,7 +1558,7 @@ class _sha256_crypt_test(HandlerCase):
     filter_config_warnings = True  # rounds too low, salt too small
 
     platform_crypt_support = [
-        ("freebsd(9|1\d)|linux", True),
+        (r"freebsd(9|1\d)|linux", True),
         ("freebsd8", None),  # added in freebsd 8.3
         ("freebsd|openbsd|netbsd|darwin", False),
         ("solaris", None),  # depends on policy
@@ -1824,22 +1824,22 @@ class unix_disabled_test(HandlerCase):
     def test_90_special(self):
         """test marker option & special behavior"""
         warnings.filterwarnings(
-            "ignore", "passing settings to .*.hash\(\) is deprecated"
+            "ignore", r"passing settings to .*.hash\(\) is deprecated"
         )
         handler = self.handler
 
         # preserve hash if provided
-        self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
+        assert handler.genhash("stub", "!asd") == "!asd"
 
         # use marker if no hash
-        self.assertEqual(handler.genhash("stub", ""), handler.default_marker)
-        self.assertEqual(handler.hash("stub"), handler.default_marker)
-        self.assertEqual(handler.using().default_marker, handler.default_marker)
+        assert handler.genhash("stub", "") == handler.default_marker
+        assert handler.hash("stub") == handler.default_marker
+        assert handler.using().default_marker == handler.default_marker
 
         # custom marker
-        self.assertEqual(handler.genhash("stub", "", marker="*xxx"), "*xxx")
-        self.assertEqual(handler.hash("stub", marker="*xxx"), "*xxx")
-        self.assertEqual(handler.using(marker="*xxx").hash("stub"), "*xxx")
+        assert handler.genhash("stub", "", marker="*xxx") == "*xxx"
+        assert handler.hash("stub", marker="*xxx") == "*xxx"
+        assert handler.using(marker="*xxx").hash("stub") == "*xxx"
 
         # reject invalid marker
         self.assertRaises(ValueError, handler.genhash, "stub", "", marker="abc")
