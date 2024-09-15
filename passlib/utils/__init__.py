@@ -1,5 +1,6 @@
 """passlib.utils -- helpers for writing password hashes"""
 
+import codecs
 import hmac
 import inspect
 import itertools
@@ -11,10 +12,8 @@ import sys
 import threading
 import time
 import timeit
-from codecs import lookup as _lookup_codec
 from collections.abc import Sequence, Iterable
-
-from typing import Union, Optional
+from typing import Optional, AnyStr
 
 import unicodedata
 
@@ -452,12 +451,12 @@ add_doc(bytes_to_int, "decode byte string as single big-endian integer")
 add_doc(int_to_bytes, "encode integer as single big-endian byte string")
 
 
-def xor_bytes(left, right):
+def xor_bytes(left: bytes, right: bytes) -> bytes:
     """Perform bitwise-xor of two byte strings (must be same size)"""
     return int_to_bytes(bytes_to_int(left) ^ bytes_to_int(right), len(left))
 
 
-def repeat_string(source, size):
+def repeat_string(source: str, size: int) -> str:
     """
     repeat or truncate <source> string, so it has length <size>
     """
@@ -465,7 +464,7 @@ def repeat_string(source, size):
     return (source * mult)[:size]
 
 
-def utf8_repeat_string(source, size):
+def utf8_repeat_string(source: str, size: int) -> str:
     """
     variant of repeat_string() which truncates to nearest UTF8 boundary.
     """
@@ -477,28 +476,24 @@ _BNULL = b"\x00"
 _UNULL = "\x00"
 
 
-def right_pad_string(source, size, pad=None):
+def right_pad_string(source: AnyStr, size: int, pad: Optional[AnyStr] = None) -> AnyStr:
     """right-pad or truncate <source> string, so it has length <size>"""
-    cur = len(source)
-    if size > cur:
-        if pad is None:
-            pad = _UNULL if isinstance(source, str) else _BNULL
-        return source + pad * (size - cur)
-    else:
-        return source[:size]
+    if pad is None:
+        pad = _UNULL if isinstance(source, str) else _BNULL
+
+    length = len(source)
+    if size > length:
+        return source + pad * (size - length)
+    return source[:size]
 
 
-def utf8_truncate(source, index):
+def utf8_truncate(source: bytes, index: int) -> bytes:
     """
     helper to truncate UTF8 byte string to nearest character boundary ON OR AFTER <index>.
     returned prefix will always have length of at least <index>, and will stop on the
     first byte that's not a UTF8 continuation byte (128 - 191 inclusive).
     since utf8 should never take more than 4 bytes to encode known unicode values,
     we can stop after ``index+3`` is reached.
-
-    :param bytes source:
-    :param int index:
-    :rtype: bytes
     """
     # general approach:
     #
@@ -560,32 +555,32 @@ _ASCII_TEST_BYTES = b"\x00\n aA:#!\x7f"
 _ASCII_TEST_UNICODE = _ASCII_TEST_BYTES.decode("ascii")
 
 
-def is_ascii_codec(codec):
+def is_ascii_codec(codec: str) -> bool:
     """Test if codec is compatible with 7-bit ascii (e.g. latin-1, utf-8; but not utf-16)"""
     return _ASCII_TEST_UNICODE.encode(codec) == _ASCII_TEST_BYTES
 
 
-def is_same_codec(left, right):
+def is_same_codec(left: str, right: str) -> bool:
     """Check if two codec names are aliases for same codec"""
     if left == right:
         return True
     if not (left and right):
         return False
-    return _lookup_codec(left).name == _lookup_codec(right).name
+    return codecs.lookup(left).name == codecs.lookup(right).name
 
 
 _B80 = b"\x80"[0]
 _U80 = "\x80"
 
 
-def is_ascii_safe(source):
+def is_ascii_safe(source: AnyStr) -> bool:
     """Check if string (bytes or unicode) contains only 7-bit ascii"""
     r = _B80 if isinstance(source, bytes) else _U80
     return all(c < r for c in source)
 
 
 def to_bytes(
-    source: Union[str, bytes],
+    source: AnyStr,
     encoding: str = "utf-8",
     param: str = "value",
     source_encoding: Optional[str] = None,
@@ -627,7 +622,7 @@ def to_bytes(
         raise ExpectedStringError(source, param)
 
 
-def to_unicode(source, encoding="utf-8", param="value"):
+def to_unicode(source: AnyStr, encoding="utf-8", param="value") -> str:
     """Helper to normalize input to unicode.
 
     :arg source:
@@ -650,40 +645,23 @@ def to_unicode(source, encoding="utf-8", param="value"):
         return source
     elif isinstance(source, bytes):
         return source.decode(encoding)
-    else:
-        raise ExpectedStringError(source, param)
+
+    raise ExpectedStringError(source, param)
 
 
-def to_native_str(source, encoding="utf-8", param="value"):
+def to_native_str(source: AnyStr, encoding="utf-8", param="value") -> str:
+    """Take in str or bytes, returns str.
+    leaves str alone, decodes bytes using specified encoding.
+
+    :param source: source unicode or bytes string
+    :param encoding: encoding to use when encoding unicode or decoding bytes
+    :param param: optional name of variable/noun to reference when raising errors
+    """
     if isinstance(source, bytes):
         return source.decode(encoding)
     elif isinstance(source, str):
         return source
-    else:
-        raise ExpectedStringError(source, param)
-
-
-add_doc(
-    to_native_str,
-    """Take in str or bytes, returns str.
-
-    leaves str alone, decodes bytes using specified encoding.
-
-    :raises TypeError: if source is not unicode or bytes.
-
-    :arg source:
-        source unicode or bytes string.
-
-    :arg encoding:
-        encoding to use when encoding unicode or decoding bytes.
-        this defaults to ``"utf-8"``.
-
-    :param param:
-        optional name of variable/noun to reference when raising errors.
-
-    :returns: :class:`str` instance
-    """,
-)
+    raise ExpectedStringError(source, param)
 
 
 @deprecated_function(deprecated="1.6", removed="1.7")
@@ -697,7 +675,7 @@ _false_set = set("false f no n off 0 disable disabled".split())
 _none_set = set(["", "none"])
 
 
-def as_bool(value, none=None, param="boolean"):
+def as_bool(value: AnyStr, none: Optional[bool] = None, param="boolean") -> bool:
     """
     helper to convert value to boolean.
     recognizes strings such as "true", "false"
@@ -716,11 +694,10 @@ def as_bool(value, none=None, param="boolean"):
         return value
     elif value is None:
         return none
-    else:
-        return bool(value)
+    return bool(value)
 
 
-def is_safe_crypt_input(value):
+def is_safe_crypt_input(value: AnyStr) -> bool:
     """
     UT helper --
     test if value is safe to pass to crypt.crypt();
@@ -847,7 +824,6 @@ def test_crypt(secret, hash):
 timer = timeit.default_timer
 # legacy alias, will be removed in passlib 2.0
 tick = timer
-
 
 # NOTE:
 # generating salts (e.g. h64_gensalt, below) doesn't require cryptographically

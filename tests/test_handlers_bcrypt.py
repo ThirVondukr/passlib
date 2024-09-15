@@ -12,7 +12,7 @@ from passlib.handlers.bcrypt import (
     IDENT_2X,
     IDENT_2Y,
 )
-from passlib.utils import repeat_string, to_bytes, is_safe_crypt_input
+from passlib.utils import repeat_string, to_bytes
 from tests.test_handlers import UPASS_TABLE
 from tests.utils import HandlerCase, TEST_MODE
 
@@ -374,9 +374,7 @@ bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
 
 class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):
     # os crypt doesn't support non-utf8 secret bytes
-    known_correct_hashes = [
-        row for row in _bcrypt_test.known_correct_hashes if is_safe_crypt_input(row[0])
-    ]
+    known_correct_hashes = _bcrypt_test.known_correct_hashes
 
     # os crypt backend doesn't currently implement a per-call fallback if it fails
     has_os_crypt_fallback = False

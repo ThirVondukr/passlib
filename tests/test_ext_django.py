@@ -412,14 +412,14 @@ class DjangoBehaviorTest(_ExtensionTest):
         :param saved: check that mock commit history for user.password matches this list
         """
         if hash is UNSET:
-            self.assertNotEqual(user.password, "!")
-            self.assertNotEqual(user.password, None)
+            assert user.password != "!"
+            assert user.password is not None
         else:
-            self.assertEqual(user.password, hash)
-        self.assertTrue(
-            user.has_usable_password(), "hash should be usable: %r" % (user.password,)
-        )
-        self.assertEqual(user.pop_saved_passwords(), [] if saved is None else [saved])
+            assert user.password == hash
+
+        assert user.has_usable_password(), f"hash should be usable: {user.password}"
+
+        assert user.pop_saved_passwords() == ([] if saved is None else [saved])
 
     # =============================================================================
     # test hashing interface
