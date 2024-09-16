@@ -347,9 +347,7 @@ class _CommonFile:
         if len(value) > 255:
             raise ValueError(f"{param} must be at most 255 characters: {value!r}")
         if any(c in _INVALID_FIELD_CHARS for c in value):
-            raise ValueError(
-                f"{param} contains invalid characters: {value!r}"
-            )
+            raise ValueError(f"{param} contains invalid characters: {value!r}")
         return value
 
     def _decode_field(self, value):

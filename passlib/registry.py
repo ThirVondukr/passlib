@@ -356,7 +356,9 @@ def get_crypt_handler(name, default=_UNSET):
         handler = _handlers.get(name)
         if handler:
             # XXX: issue deprecation warning here?
-            assert is_crypt_handler(handler), f"unexpected object: name={name!r} object={handler!r}"
+            assert is_crypt_handler(
+                handler
+            ), f"unexpected object: name={name!r} object={handler!r}"
             return handler
 
         # then get real handler & register it

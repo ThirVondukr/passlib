@@ -81,12 +81,12 @@ class _DjangoHelper(TestCase):
 
         assert self.known_correct_hashes
         for secret, hash_ in self.iter_known_hashes():
-            assert check_password(secret, hash_), (
-                f"secret={secret!r} hash={hash_!r} failed to verify"
-            )
-            assert not check_password("x" + secret, hash_), (
-                f"mangled secret={secret!r} hash={hash_!r} incorrect verified"
-            )
+            assert check_password(
+                secret, hash_
+            ), f"secret={secret!r} hash={hash_!r} failed to verify"
+            assert not check_password(
+                "x" + secret, hash_
+            ), f"mangled secret={secret!r} hash={hash_!r} incorrect verified"
 
     def test_91_django_generation(self):
         """test against output of Django's make_password()"""

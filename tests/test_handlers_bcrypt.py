@@ -232,9 +232,7 @@ class _bcrypt_test(HandlerCase):
             try:
                 return bcrypt.hashpw(secret, hash) == hash
             except ValueError:
-                raise ValueError(
-                    f"bcrypt rejected hash: {hash!r} (secret={secret!r})"
-                )
+                raise ValueError(f"bcrypt rejected hash: {hash!r} (secret={secret!r})")
 
         return check_bcrypt
 

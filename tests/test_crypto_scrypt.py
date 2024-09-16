@@ -454,9 +454,9 @@ class _CommonScryptTest(TestCase):
                 result = hexstr(scrypt_mod.scrypt(secret, salt, n, r, p, ks))
                 assert len(result) == 2 * ks
                 if previous is not None:
-                    assert result == previous, (
-                        f"{name!r} output differs from others {available!r}: {[secret, salt, n, r, p, ks]!r}"
-                    )
+                    assert (
+                        result == previous
+                    ), f"{name!r} output differs from others {available!r}: {[secret, salt, n, r, p, ks]!r}"
 
     def test_backend(self):
         """backend management"""

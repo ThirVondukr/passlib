@@ -736,9 +736,10 @@ class _CffiBackend(_Argon2Common):
                 type_map[type] = getattr(TypeEnum, type.upper())
             except AttributeError:
                 # TYPE_ID support not added until v18.2
-                assert type not in (TYPE_I, TYPE_D), (
-                    f"unexpected missing type: {type!r}"
-                )
+                assert type not in (
+                    TYPE_I,
+                    TYPE_D,
+                ), f"unexpected missing type: {type!r}"
         mixin_cls._backend_type_map = type_map
 
         # set version info, and run common setup
@@ -872,9 +873,10 @@ class _PureBackend(_Argon2Common):
                 type_map[type] = getattr(_argon2pure, "ARGON2" + type.upper())
             except AttributeError:
                 # TYPE_ID support not added until v1.3
-                assert type not in (TYPE_I, TYPE_D), (
-                    f"unexpected missing type: {type!r}"
-                )
+                assert type not in (
+                    TYPE_I,
+                    TYPE_D,
+                ), f"unexpected missing type: {type!r}"
         mixin_cls._backend_type_map = type_map
 
         mixin_cls.version = mixin_cls.max_version = max_version

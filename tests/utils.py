@@ -515,9 +515,9 @@ class TestCase(unittest.TestCase):
         def _render_title(_msg=None, **params):
             out = f"[{_msg}] " if _msg else ""
             if params:
-                out += "({})".format(" ".join(
-                    "{}={!r}".format(*tuple(item)) for item in params.items()
-                ))
+                out += "({})".format(
+                    " ".join("{}={!r}".format(*tuple(item)) for item in params.items())
+                )
             return out.strip() or "<subtest>"
 
         test_log = self.getLogger()
@@ -743,9 +743,9 @@ class HandlerCase(TestCase):
     def check_verify(self, secret, hash, msg=None, negate=False):
         """helper to check verify() outcome, honoring is_disabled_handler"""
         result = self.do_verify(secret, hash)
-        assert result is True or result is False, (
-            f"verify() returned non-boolean value: {result!r}"
-        )
+        assert (
+            result is True or result is False
+        ), f"verify() returned non-boolean value: {result!r}"
         if self.handler.is_disabled or negate:
             if not result:
                 return
@@ -760,7 +760,9 @@ class HandlerCase(TestCase):
             raise self.failureException(msg)
 
     def check_returned_native_str(self, result, func_name):
-        assert isinstance(result, str), f"{func_name}() failed to return native string: {result!r}"
+        assert isinstance(
+            result, str
+        ), f"{func_name}() failed to return native string: {result!r}"
 
     # ---------------------------------------------------------------
     # PasswordHash helpers - wraps all calls to PasswordHash api,
@@ -942,9 +944,9 @@ class HandlerCase(TestCase):
         assert name, "name not defined:"
         assert isinstance(name, str), "name must be native str"
         assert name.lower() == name, "name not lower-case:"
-        assert re.match("^[a-z0-9_]+$", name), (
-            f"name must be alphanum + underscore: {name!r}"
-        )
+        assert re.match(
+            "^[a-z0-9_]+$", name
+        ), f"name must be alphanum + underscore: {name!r}"
 
         #
         # setting_kwds should be specified
@@ -999,9 +1001,9 @@ class HandlerCase(TestCase):
 
         # NOTE: changed as of 1.7 -- genconfig() previously might return None,
         #       now must always return valid hash
-        assert self.do_identify(config), (
-            f"identify() failed to identify genconfig() output: {config!r}"
-        )
+        assert self.do_identify(
+            config
+        ), f"identify() failed to identify genconfig() output: {config!r}"
 
     def test_02_using_workflow(self):
         """test basic using() workflow"""
@@ -1126,7 +1128,9 @@ class HandlerCase(TestCase):
             # validate backend name
             #
             assert isinstance(backend, str)
-            assert backend not in RESERVED_BACKEND_NAMES, f"invalid backend name: {backend!r}"
+            assert (
+                backend not in RESERVED_BACKEND_NAMES
+            ), f"invalid backend name: {backend!r}"
 
             #
             # ensure has_backend() returns bool value
@@ -1479,9 +1483,7 @@ class HandlerCase(TestCase):
 
         # check rounds_cost
         if cls.rounds_cost not in rounds_cost_values:
-            raise AssertionError(
-                f"unknown rounds cost constant: {cls.rounds_cost!r}"
-            )
+            raise AssertionError(f"unknown rounds cost constant: {cls.rounds_cost!r}")
 
     def test_21_min_rounds(self):
         """test hash() / genconfig() honors min_rounds"""
@@ -1914,9 +1916,9 @@ class HandlerCase(TestCase):
                     alias, str
                 ), "cls.ident_aliases keys must be str:"  # XXX: allow ints?
                 assert isinstance(ident, str), "cls.ident_aliases values must be str:"
-                assert ident in cls.ident_values, (
-                    f"cls.ident_aliases must map to cls.ident_values members: {ident!r}"
-                )
+                assert (
+                    ident in cls.ident_values
+                ), f"cls.ident_aliases must map to cls.ident_values members: {ident!r}"
 
         # check constructor validates ident correctly.
         handler = cls
@@ -2281,7 +2283,9 @@ class HandlerCase(TestCase):
                 saw8bit = True
 
             # hash should be positively identified by handler
-            assert self.do_identify(hash), f"identify() failed to identify hash: {hash!r}"
+            assert self.do_identify(
+                hash
+            ), f"identify() failed to identify hash: {hash!r}"
 
             # check if what we're about to do is expected to fail due to crypt.crypt() limitation.
             expect_os_crypt_failure = self.expect_os_crypt_failure(secret)
@@ -2296,9 +2300,9 @@ class HandlerCase(TestCase):
 
                 # genhash() should reproduce same hash
                 result = self.do_genhash(secret, hash)
-                assert isinstance(result, str), (
-                    f"genhash() failed to return native string: {result!r}"
-                )
+                assert isinstance(
+                    result, str
+                ), f"genhash() failed to return native string: {result!r}"
                 if self.handler.is_disabled and self.disabled_contains_salt:
                     continue
                 assert result == hash, (
@@ -2320,9 +2324,9 @@ class HandlerCase(TestCase):
             raise self.skipTest("no alternate hashes provided")
         for alt, secret, hash in self.known_alternate_hashes:
             # hash should be positively identified by handler
-            assert self.do_identify(hash), (
-                f"identify() failed to identify alternate hash: {hash!r}"
-            )
+            assert self.do_identify(
+                hash
+            ), f"identify() failed to identify alternate hash: {hash!r}"
 
             # secret should verify successfully against hash
             self.check_verify(
@@ -2334,9 +2338,9 @@ class HandlerCase(TestCase):
 
             # genhash() should reproduce canonical hash
             result = self.do_genhash(secret, alt)
-            assert isinstance(result, str), (
-                f"genhash() failed to return native string: {result!r}"
-            )
+            assert isinstance(
+                result, str
+            ), f"genhash() failed to return native string: {result!r}"
             if self.handler.is_disabled and self.disabled_contains_salt:
                 continue
             assert result == hash, (
@@ -2363,9 +2367,9 @@ class HandlerCase(TestCase):
             warnings.filterwarnings("ignore", category=PasslibHashWarning)
         for config, secret, hash in self.known_correct_configs:
             # config should be positively identified by handler
-            assert self.do_identify(config), (
-                f"identify() failed to identify known config string: {config!r}"
-            )
+            assert self.do_identify(
+                config
+            ), f"identify() failed to identify known config string: {config!r}"
 
             # verify() should throw error for config strings.
             with pytest.raises(ValueError):
@@ -2373,9 +2377,9 @@ class HandlerCase(TestCase):
 
             # genhash() should reproduce hash from config.
             result = self.do_genhash(secret, config)
-            assert isinstance(result, str), (
-                f"genhash() failed to return native string: {result!r}"
-            )
+            assert isinstance(
+                result, str
+            ), f"genhash() failed to return native string: {result!r}"
             assert result == hash, (
                 "genhash() failed to reproduce "
                 f"known hash from config: secret={secret!r}, config={config!r}, hash={hash!r}: "
@@ -2427,16 +2431,16 @@ class HandlerCase(TestCase):
 
             if name == self.handler.name:
                 # identify should accept these
-                assert self.do_identify(hash), (
-                    f"identify() failed to identify known hash: {hash!r}"
-                )
+                assert self.do_identify(
+                    hash
+                ), f"identify() failed to identify known hash: {hash!r}"
 
                 # verify & genhash should NOT throw error
                 self.do_verify("stub", hash)
                 result = self.do_genhash("stub", hash)
-                assert isinstance(result, str), (
-                    f"genhash() failed to return native string: {result!r}"
-                )
+                assert isinstance(
+                    result, str
+                ), f"genhash() failed to return native string: {result!r}"
 
             else:
                 # identify should reject these
@@ -2991,17 +2995,17 @@ class HandlerCase(TestCase):
         # w/o existing hash
         disabled_default = handler.disable()
         assert isinstance(disabled_default, str), "disable() must return native string"
-        assert handler.identify(disabled_default), (
-            f"identify() didn't recognize disable() result: {disabled_default!r}"
-        )
+        assert handler.identify(
+            disabled_default
+        ), f"identify() didn't recognize disable() result: {disabled_default!r}"
 
         # w/ existing hash
         stub = self.getRandom().choice(self.known_other_hashes)[1]
         disabled_stub = handler.disable(stub)
         assert isinstance(disabled_stub, str), "disable() must return native string"
-        assert handler.identify(disabled_stub), (
-            f"identify() didn't recognize disable() result: {disabled_stub!r}"
-        )
+        assert handler.identify(
+            disabled_stub
+        ), f"identify() didn't recognize disable() result: {disabled_stub!r}"
 
         #
         # enable()

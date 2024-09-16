@@ -102,7 +102,9 @@ def guess_app_stacklevel(start=1):
 def warn_hash_settings_deprecation(handler, kwds):
     warn(
         "passing settings to {handler}.hash() is deprecated, and won't be supported in Passlib 2.0; "
-        "use '{handler}.using(**settings).hash(secret)' instead".format(**dict(handler=handler.name)),
+        "use '{handler}.using(**settings).hash(secret)' instead".format(
+            **dict(handler=handler.name)
+        ),
         DeprecationWarning,
         stacklevel=guess_app_stacklevel(2),
     )
@@ -364,7 +366,9 @@ def validate_default_value(handler, default, norm, param="value"):
     designed to get out of the way and reduce overhead when asserts are stripped.
     """
     assert default is not None, f"{handler.name} lacks default {param}"
-    assert norm(default) == default, f"{handler.name}: invalid default {param}: {default!r}"
+    assert (
+        norm(default) == default
+    ), f"{handler.name}: invalid default {param}: {default!r}"
     return True
 
 
@@ -747,9 +751,7 @@ class GenericHandler(MinimalHandler):
         calc checksum implementations may assume secret is always
         either str or bytes, checks are performed by verify/etc.
         """
-        raise NotImplementedError(
-            f"{self.__class__} must implement _calc_checksum()"
-        )
+        raise NotImplementedError(f"{self.__class__} must implement _calc_checksum()")
 
     @classmethod
     def hash(cls, secret, **kwds):
@@ -1745,9 +1747,9 @@ class HasRounds(GenericHandler):
             rounds = self._parse_rounds(rounds)
         elif self.use_defaults:
             rounds = self._generate_rounds()
-            assert self._norm_rounds(rounds) == rounds, (
-                f"generated invalid rounds: {rounds!r}"
-            )
+            assert (
+                self._norm_rounds(rounds) == rounds
+            ), f"generated invalid rounds: {rounds!r}"
         else:
             raise TypeError("no rounds specified")
         self.rounds = rounds
@@ -1800,9 +1802,7 @@ class HasRounds(GenericHandler):
         # load default rounds
         rounds = cls.default_rounds
         if rounds is None:
-            raise TypeError(
-                f"{cls.name} rounds value must be specified explicitly"
-            )
+            raise TypeError(f"{cls.name} rounds value must be specified explicitly")
 
         # randomly vary the rounds slightly basic on vary_rounds parameter.
         # reads default_rounds internally.
@@ -2136,9 +2136,7 @@ class BackendMixin(PasswordHash):
             kwds["dryrun"] = dryrun
         ok = loader(**kwds)
         if ok is False:
-            raise exc.MissingBackendError(
-                f"{cls.name}: backend not available: {name}"
-            )
+            raise exc.MissingBackendError(f"{cls.name}: backend not available: {name}")
         elif ok is not True:
             raise AssertionError(
                 "backend loaders must return True or False" f": {ok!r}"

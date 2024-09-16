@@ -303,8 +303,8 @@ class Pbkdf1_Test(TestCase):
 class Pbkdf2Test(TestCase):
     """test pbkdf2() support"""
 
-    descriptionPrefix = (
-        "passlib.crypto.digest.pbkdf2_hmac() <backends: {}>".format(", ".join(PBKDF2_BACKENDS))
+    descriptionPrefix = "passlib.crypto.digest.pbkdf2_hmac() <backends: {}>".format(
+        ", ".join(PBKDF2_BACKENDS)
     )
 
     pbkdf2_test_vectors = [

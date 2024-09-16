@@ -1521,7 +1521,9 @@ class TOTP:
         # NOTE: not using urllib.urlencode() because it encodes ' ' as '+';
         #       but spec says to use '%20', and not sure how fragile
         #       the various totp clients' parsers are.
-        param_str = "&".join("{}={}".format(key, quote(value, "")) for key, value in params)
+        param_str = "&".join(
+            "{}={}".format(key, quote(value, "")) for key, value in params
+        )
         assert param_str, "param_str should never be empty"
 
         # render uri

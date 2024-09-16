@@ -1049,9 +1049,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
     @classmethod
     def _norm_version(cls, version):
         if version not in cls._supported_versions:
-            raise ValueError(
-                f"{cls.name}: unknown or unsupported version: {version!r}"
-            )
+            raise ValueError(f"{cls.name}: unknown or unsupported version: {version!r}")
         return version
 
     def _calc_checksum(self, secret):

@@ -139,13 +139,17 @@ class DesTest(TestCase):
             # test 56-bit version
             key2 = shrink_des_key(key)
             result = des_encrypt_block(key2, plaintext)
-            assert result == correct, f"key={key!r} shrink(key)={key2!r} plaintext={plaintext!r}:"
+            assert (
+                result == correct
+            ), f"key={key!r} shrink(key)={key2!r} plaintext={plaintext!r}:"
 
             # test with random parity bits
             for _ in range(20):
                 key3 = _pack64(self._random_parity(_unpack64(key)))
                 result = des_encrypt_block(key3, plaintext)
-                assert result == correct, f"key={key!r} rndparity(key)={key3!r} plaintext={plaintext!r}:"
+                assert (
+                    result == correct
+                ), f"key={key!r} rndparity(key)={key3!r} plaintext={plaintext!r}:"
 
         # check invalid keys
         stub = b"\x00" * 8
@@ -184,7 +188,9 @@ class DesTest(TestCase):
             for _ in range(20):
                 key3 = self._random_parity(key)
                 result = des_encrypt_int_block(key3, plaintext)
-                assert result == correct, f"key={key!r} rndparity(key)={key3!r} plaintext={plaintext!r}:"
+                assert (
+                    result == correct
+                ), f"key={key!r} rndparity(key)={key3!r} plaintext={plaintext!r}:"
 
         # check invalid keys
         with pytest.raises(TypeError):

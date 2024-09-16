@@ -47,9 +47,11 @@ def replace_section(data, ident, content):
         \# \s end \s* {ident} \s* \n
         \#[-=]{{10,}}\n
         (?P<tail>.*)
-    """.format(**dict(
-            ident=re.escape(ident).replace("\\ ", "\\s+"),
-        )),
+    """.format(
+            **dict(
+                ident=re.escape(ident).replace("\\ ", "\\s+"),
+            )
+        ),
         data.replace("\r\n", "\n"),
     )
     assert m, f"{ident!r} section not found"
