@@ -38,7 +38,7 @@ _SKIPPED = "skipped"
 _RECORD = "record"
 
 
-class _CommonFile(object):
+class _CommonFile:
     """common framework for HtpasswdFile & HtdigestFile"""
 
     # charset encoding used by file (defaults to utf-8)
@@ -132,10 +132,10 @@ class _CommonFile(object):
         if self.autosave:
             tail += " autosave=True"
         if self._path:
-            tail += " path=%r" % self._path
+            tail += f" path={self._path!r}"
         if self.encoding != "utf-8":
-            tail += " encoding=%r" % self.encoding
-        return "<%s 0x%0x%s>" % (self.__class__.__name__, id(self), tail)
+            tail += f" encoding={self.encoding!r}"
+        return f"<{self.__class__.__name__} 0x{id(self):0x}{tail}>"
 
     # NOTE: ``path`` is a property so that ``_mtime`` is wiped when it's set.
 
@@ -157,7 +157,7 @@ class _CommonFile(object):
     def load_if_changed(self):
         """Reload from ``self.path`` only if file has changed since last load"""
         if not self._path:
-            raise RuntimeError("%r is not bound to a local file" % self)
+            raise RuntimeError(f"{self!r} is not bound to a local file")
         if self._mtime and self._mtime == os.path.getmtime(self._path):
             return False
         self.load()
@@ -180,8 +180,7 @@ class _CommonFile(object):
                 self._load_lines(fh)
         else:
             raise RuntimeError(
-                "%s().path is not set, an explicit path is required"
-                % self.__class__.__name__
+                f"{self.__class__.__name__}().path is not set, an explicit path is required"
             )
         return True
 
@@ -213,7 +212,7 @@ class _CommonFile(object):
             #       which seems to match htpasswd source
             if key in records:
                 logging.warning(
-                    "username occurs multiple times in source file: %r" % key
+                    f"username occurs multiple times in source file: {key!r}"
                 )
                 skipped += line
                 continue
@@ -270,7 +269,7 @@ class _CommonFile(object):
             self._mtime = os.path.getmtime(self._path)
         else:
             raise RuntimeError(
-                "%s().path is not set, cannot autosave" % self.__class__.__name__
+                f"{self.__class__.__name__}().path is not set, cannot autosave"
             )
 
     def to_string(self):
@@ -310,7 +309,7 @@ class _CommonFile(object):
         if __debug__:
             # sanity check that we actually wrote all the records
             # (otherwise _source & _records are somehow out of sync)
-            assert not pending, "failed to write all records: missing=%r" % (pending,)
+            assert not pending, f"failed to write all records: missing={pending!r}"
 
     def _render_record(self, key, value):  # pragma: no cover - abstract method
         """given key/value pair, encode as line of file"""
@@ -346,15 +345,9 @@ class _CommonFile(object):
         elif not isinstance(value, bytes):
             raise ExpectedStringError(value, param)
         if len(value) > 255:
-            raise ValueError("%s must be at most 255 characters: %r" % (param, value))
+            raise ValueError(f"{param} must be at most 255 characters: {value!r}")
         if any(c in _INVALID_FIELD_CHARS for c in value):
-            raise ValueError(
-                "%s contains invalid characters: %r"
-                % (
-                    param,
-                    value,
-                )
-            )
+            raise ValueError(f"{param} contains invalid characters: {value!r}")
         return value
 
     def _decode_field(self, value):
@@ -658,7 +651,7 @@ class HtpasswdFile(_CommonFile):
             if default_scheme in _warn_no_bcrypt:
                 warn(
                     "HtpasswdFile: no bcrypt backends available, "
-                    "using fallback for default scheme %r" % default_scheme,
+                    f"using fallback for default scheme {default_scheme!r}",
                     exc.PasslibSecurityWarning,
                 )
             default_scheme = htpasswd_defaults.get(default_scheme, default_scheme)

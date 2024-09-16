@@ -36,7 +36,7 @@ class MiscTest(TestCase):
         def xprop_func(cls):
             return cls.xvar
 
-        class test(object):
+        class test:
             xvar = 1
 
             xprop = classproperty(xprop_func)
@@ -66,7 +66,7 @@ class MiscTest(TestCase):
     def test_memoized_property(self):
         from passlib.utils.decor import memoized_property
 
-        class dummy(object):
+        class dummy:
             counter = 0
 
             @memoized_property
@@ -272,11 +272,11 @@ class MiscTest(TestCase):
             "abc",
             "\xff\xa2\x12\x00" * 10,
         ]:
-            assert consteq(value, value), "value %r:" % (value,)
-            assert consteq(value, value), "value %r:" % (value,)
+            assert consteq(value, value), f"value {value!r}:"
+            assert consteq(value, value), f"value {value!r}:"
 
             value = value.encode("latin-1")
-            assert consteq(value, value), "value %r:" % (value,)
+            assert consteq(value, value), f"value {value!r}:"
 
         # check non-equal inputs compare correctly
         for left, right in [
@@ -292,15 +292,15 @@ class MiscTest(TestCase):
             ("abc", "defabc"),
             ("qwertyuiopasdfghjklzxcvbnm", "abc"),
         ]:
-            assert not consteq(left, right), "values %r %r:" % (left, right)
-            assert not consteq(right, left), "values %r %r:" % (right, left)
-            assert not consteq(left, right), "values %r %r:" % (left, right)
-            assert not consteq(right, left), "values %r %r:" % (right, left)
+            assert not consteq(left, right), f"values {left!r} {right!r}:"
+            assert not consteq(right, left), f"values {right!r} {left!r}:"
+            assert not consteq(left, right), f"values {left!r} {right!r}:"
+            assert not consteq(right, left), f"values {right!r} {left!r}:"
 
             left = left.encode("latin-1")
             right = right.encode("latin-1")
-            assert not consteq(left, right), "values %r %r:" % (left, right)
-            assert not consteq(right, left), "values %r %r:" % (right, left)
+            assert not consteq(left, right), f"values {left!r} {right!r}:"
+            assert not consteq(right, left), f"values {right!r} {left!r}:"
 
         # TODO: add some tests to ensure we take THETA(strlen) time.
         # this might be hard to do reproducably.
@@ -473,7 +473,7 @@ class MiscTest(TestCase):
 
             end = len(source)
             for idx in range(end + 16):
-                prefix = "source=%r index=%r: " % (source, idx)
+                prefix = f"source={source!r} index={idx!r}: "
 
                 result = utf8_truncate(source, idx)
 
@@ -503,7 +503,7 @@ class MiscTest(TestCase):
         ]:
             end = len(source)
             for idx in range(end + 16):
-                prefix = "source=%r index=%r: " % (source, idx)
+                prefix = f"source={source!r} index={idx!r}: "
                 result = utf8_truncate(source, idx)
                 assert result == source[:idx], prefix
 
@@ -517,7 +517,7 @@ class MiscTest(TestCase):
         ]:
             end = len(source)
             for idx in range(end + 16):
-                prefix = "source=%r index=%r: " % (source, idx)
+                prefix = f"source={source!r} index={idx!r}: "
                 result = utf8_truncate(source, idx)
                 assert result == source[: idx + 3], prefix
 
@@ -836,7 +836,7 @@ class _Base64Test(TestCase):
         encode = engine.encode_bytes
         for raw, encoded in self.encoded_data:
             result = encode(raw)
-            assert result == encoded, "encode %r:" % (raw,)
+            assert result == encoded, f"encode {raw!r}:"
 
     def test_encode_bytes_bad(self):
         """test encode_bytes() with bad input"""
@@ -853,7 +853,7 @@ class _Base64Test(TestCase):
         decode = engine.decode_bytes
         for raw, encoded in self.encoded_data:
             result = decode(encoded)
-            assert result == raw, "decode %r:" % (encoded,)
+            assert result == raw, f"decode {encoded!r}:"
 
     def test_decode_bytes_padding(self):
         """test decode_bytes() ignores padding bits"""
@@ -1028,8 +1028,8 @@ class _Base64Test(TestCase):
         """helper to check encode_intXX & decode_intXX functions"""
         rng = self.getRandom()
         engine = self.engine
-        encode = getattr(engine, "encode_int%s" % bits)
-        decode = getattr(engine, "decode_int%s" % bits)
+        encode = getattr(engine, f"encode_int{bits}")
+        decode = getattr(engine, f"decode_int{bits}")
         pad = -bits % 6
         chars = (bits + pad) // 6
         upper = 1 << bits
@@ -1046,7 +1046,7 @@ class _Base64Test(TestCase):
 
         # test decode func
         for value, encoded in encoded_pairs:
-            assert decode(encoded) == value, "encoded %r:" % (encoded,)
+            assert decode(encoded) == value, f"encoded {encoded!r}:"
         m = self.m
         with pytest.raises(ValueError):
             decode(m(0) * (chars + 1))
@@ -1072,8 +1072,8 @@ class _Base64Test(TestCase):
             # generate some random encoded data, decode, then encode.
             encoded = getrandstr(rng, engine.bytemap, chars)
             value = decode(encoded)
-            assert value >= 0, "decode %r out of bounds:" % encoded
-            assert value < upper, "decode %r out of bounds:" % encoded
+            assert value >= 0, f"decode {encoded!r} out of bounds:"
+            assert value < upper, f"decode {encoded!r} out of bounds:"
             result = encode(value)
             if pad:
                 assert result[:-2] == encoded[:-2]

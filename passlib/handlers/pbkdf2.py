@@ -74,7 +74,7 @@ def create_pbkdf2_hash(
     """create new Pbkdf2DigestHandler subclass for a specific hash"""
     name = "pbkdf2_" + hash_name
     if ident is None:
-        ident = "$pbkdf2-%s$" % (hash_name,)
+        ident = f"$pbkdf2-{hash_name}$"
     base = Pbkdf2DigestHandler
     return type(
         name,

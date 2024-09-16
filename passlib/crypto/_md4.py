@@ -38,7 +38,7 @@ def G(x, y, z):
 MASK_32 = 2**32 - 1
 
 
-class md4(object):
+class md4:
     """pep-247 compatible implementation of MD4 hash algorithm
 
     .. attribute:: digest_size

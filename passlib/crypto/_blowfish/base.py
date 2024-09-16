@@ -1083,7 +1083,7 @@ def _init_constants():
     ]
 
 
-class BlowfishEngine(object):
+class BlowfishEngine:
     def __init__(self):
         if BLOWFISH_P is None:
             _init_constants()

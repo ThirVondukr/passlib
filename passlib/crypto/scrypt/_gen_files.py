@@ -87,14 +87,13 @@ def main():
         :returns: result list containing 16 32-bit integers
         \"""
     
-        %(TLIST)s = input
-        %(VLIST)s = \\
-            %(TLIST)s
+        {TLIST} = input
+        {VLIST} = \\
+            {TLIST}
     
         i = 0
         while i < 4:
-    '''
-            % kwds
+    '''.format(**kwds)
         )
 
         for idx, (target, source1, source2, rotate) in enumerate(_SALSA_OPS):
@@ -130,13 +129,12 @@ def main():
         fh.write(
             """\
     
-        return %(TLIST)s
+        return {TLIST}
     
     #=================================================================
     # eof
     #=================================================================
-    """
-            % kwds
+    """.format(**kwds)
         )
 
 

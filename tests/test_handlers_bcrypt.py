@@ -232,9 +232,7 @@ class _bcrypt_test(HandlerCase):
             try:
                 return bcrypt.hashpw(secret, hash) == hash
             except ValueError:
-                raise ValueError(
-                    "bcrypt rejected hash: %r (secret=%r)" % (hash, secret)
-                )
+                raise ValueError(f"bcrypt rejected hash: {hash!r} (secret={secret!r})")
 
         return check_bcrypt
 
@@ -310,12 +308,10 @@ class _bcrypt_test(HandlerCase):
         # test hash() / genconfig() don't generate invalid salts anymore
         #
         def check_padding(hash):
-            malformed_hash_msg = "unexpectedly malformed hash: %r" % (hash,)
+            malformed_hash_msg = f"unexpectedly malformed hash: {hash!r}"
             assert hash.startswith(("$2a$", "$2b$")), malformed_hash_msg
             assert len(hash) >= 28, malformed_hash_msg
-            assert hash[28] in ".Oeu", "unused bits incorrectly set in hash: %r" % (
-                hash,
-            )
+            assert hash[28] in ".Oeu", f"unused bits incorrectly set in hash: {hash!r}"
 
         for i in range(6):
             check_padding(bcrypt.genconfig())

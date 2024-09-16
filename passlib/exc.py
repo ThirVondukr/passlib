@@ -12,7 +12,7 @@ class UnknownBackendError(ValueError):
     def __init__(self, hasher, backend):
         self.hasher = hasher
         self.backend = backend
-        message = "%s: unknown backend: %r" % (hasher.name, backend)
+        message = f"{hasher.name}: unknown backend: {backend!r}"
         ValueError.__init__(self, message)
 
 
@@ -215,7 +215,7 @@ class UnknownHashError(ValueError):
     def __init__(self, message=None, value=None):
         self.value = value
         if message is None:
-            message = "unknown hash algorithm: %r" % value
+            message = f"unknown hash algorithm: {value!r}"
         self.message = message
         ValueError.__init__(self, message, value)
 
@@ -309,7 +309,7 @@ def type_name(value):
     """return pretty-printed string containing name of value's type"""
     cls = value.__class__
     if cls.__module__ and cls.__module__ not in ["__builtin__", "builtins"]:
-        return "%s.%s" % (cls.__module__, cls.__name__)
+        return f"{cls.__module__}.{cls.__name__}"
     elif value is None:
         return "None"
     else:
@@ -320,7 +320,7 @@ def ExpectedTypeError(value, expected, param):
     """error message when param was supposed to be one type, but found another"""
     # NOTE: value is never displayed, since it may sometimes be a password.
     name = type_name(value)
-    return TypeError("%s must be %s, not %s" % (param, expected, name))
+    return TypeError(f"{param} must be {expected}, not {name}")
 
 
 def ExpectedStringError(value, param):
@@ -334,13 +334,13 @@ def ExpectedStringError(value, param):
 def MissingDigestError(handler=None):
     """raised when verify() method gets passed config string instead of hash"""
     name = _get_name(handler)
-    return ValueError("expected %s hash, got %s config string instead" % (name, name))
+    return ValueError(f"expected {name} hash, got {name} config string instead")
 
 
 def NullPasswordError(handler=None):
     """raised by OS crypt() supporting hashes, which forbid NULLs in password"""
     name = _get_name(handler)
-    return PasswordValueError("%s does not allow NULL bytes in password" % name)
+    return PasswordValueError(f"{name} does not allow NULL bytes in password")
 
 
 # ------------------------------------------------------------------------
@@ -348,14 +348,14 @@ def NullPasswordError(handler=None):
 # ------------------------------------------------------------------------
 def InvalidHashError(handler=None):
     """error raised if unrecognized hash provided to handler"""
-    return ValueError("not a valid %s hash" % _get_name(handler))
+    return ValueError(f"not a valid {_get_name(handler)} hash")
 
 
 def MalformedHashError(handler=None, reason=None):
     """error raised if recognized-but-malformed hash provided to handler"""
-    text = "malformed %s hash" % _get_name(handler)
+    text = f"malformed {_get_name(handler)} hash"
     if reason:
-        text = "%s (%s)" % (text, reason)
+        text = f"{text} ({reason})"
     return ValueError(text)
 
 
@@ -394,7 +394,7 @@ def debug_only_repr(value, param="hash"):
     """
     if ENABLE_DEBUG_ONLY_REPR or value is None or isinstance(value, bool):
         return repr(value)
-    return "<%s %s value omitted>" % (param, type(value))
+    return f"<{param} {type(value)} value omitted>"
 
 
 def CryptBackendError(
@@ -408,10 +408,5 @@ def CryptBackendError(
     takes care of automatically masking contents of config & hash outside of UTs.
     """
     name = _get_name(handler)
-    msg = "%s returned invalid %s hash: config=%s hash=%s" % (
-        source,
-        name,
-        debug_only_repr(config),
-        debug_only_repr(hash),
-    )
+    msg = f"{source} returned invalid {name} hash: config={debug_only_repr(config)} hash={debug_only_repr(hash)}"
     raise InternalBackendError(msg)

@@ -543,7 +543,7 @@ class _Argon2Common(
             return temp
 
         # failure!
-        raise ValueError("unknown argon2 hash type: %r" % (value,))
+        raise ValueError(f"unknown argon2 hash type: {value!r}")
 
     @classmethod
     def _norm_version(cls, version):
@@ -558,9 +558,8 @@ class _Argon2Common(
         backend = cls.get_backend()
         if version > cls.max_version:
             raise ValueError(
-                "%s: hash version 0x%X not supported by %r backend "
-                "(max version is 0x%X); try updating or switching backends"
-                % (cls.name, version, backend, cls.max_version)
+                f"{cls.name}: hash version 0x{version:X} not supported by {backend!r} backend "
+                f"(max version is 0x{cls.max_version:X}); try updating or switching backends"
             )
         return version
 
@@ -586,10 +585,7 @@ class _Argon2Common(
         except KeyError:
             pass
         # XXX: pick better error class?
-        msg = "unsupported argon2 hash (type %r not supported by %s backend)" % (
-            value,
-            cls.get_backend(),
-        )
+        msg = f"unsupported argon2 hash (type {value!r} not supported by {cls.get_backend()} backend)"
         raise ValueError(msg)
 
     def _calc_needs_update(self, **kwds):
@@ -625,7 +621,7 @@ class _Argon2Common(
         assert max_version >= 0x10
         if max_version < 0x13:
             warn(
-                "%r doesn't support argon2 v1.3, and should be upgraded" % name,
+                f"{name!r} doesn't support argon2 v1.3, and should be upgraded",
                 uh.exc.PasslibSecurityWarning,
             )
 
@@ -636,7 +632,7 @@ class _Argon2Common(
                 break
         else:
             warn(
-                "%r lacks support for all known hash types" % name,
+                f"{name!r} lacks support for all known hash types",
                 uh.exc.PasslibRuntimeWarning,
             )
             # NOTE: class will just throw "unsupported argon2 hash" error if they try to use it...
@@ -673,7 +669,7 @@ class _Argon2Common(
         if text not in [
             "Decoding failed"  # argon2_cffi's default message
         ]:
-            reason = "%s reported: %s: hash=%r" % (backend, text, hash)
+            reason = f"{backend} reported: {text}: hash={hash!r}"
         else:
             reason = repr(hash)
         raise exc.MalformedHashError(cls, reason=reason)
@@ -740,9 +736,10 @@ class _CffiBackend(_Argon2Common):
                 type_map[type] = getattr(TypeEnum, type.upper())
             except AttributeError:
                 # TYPE_ID support not added until v18.2
-                assert type not in (TYPE_I, TYPE_D), (
-                    "unexpected missing type: %r" % type
-                )
+                assert type not in (
+                    TYPE_I,
+                    TYPE_D,
+                ), f"unexpected missing type: {type!r}"
         mixin_cls._backend_type_map = type_map
 
         # set version info, and run common setup
@@ -876,9 +873,10 @@ class _PureBackend(_Argon2Common):
                 type_map[type] = getattr(_argon2pure, "ARGON2" + type.upper())
             except AttributeError:
                 # TYPE_ID support not added until v1.3
-                assert type not in (TYPE_I, TYPE_D), (
-                    "unexpected missing type: %r" % type
-                )
+                assert type not in (
+                    TYPE_I,
+                    TYPE_D,
+                ), f"unexpected missing type: {type!r}"
         mixin_cls._backend_type_map = type_map
 
         mixin_cls.version = mixin_cls.max_version = max_version

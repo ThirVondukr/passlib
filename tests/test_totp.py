@@ -562,7 +562,7 @@ class TotpTest(TestCase):
                     expires,
                 )
                 otp = TOTP(**kwds)
-                prefix = "alg=%r time=%r token=%r: " % (otp.alg, time, token)
+                prefix = f"alg={otp.alg!r} time={time!r} token={token!r}: "
                 yield otp, time, token, expires, prefix
 
     def test_ctor_w_new(self):
@@ -995,14 +995,7 @@ class TotpTest(TestCase):
     ):
         """helper to test otp.match() output is correct"""
         # NOTE: TotpMatch return type tested more throughly above ^^^
-        msg = "key=%r alg=%r period=%r token=%r gen_time=%r time=%r:" % (
-            otp.base32_key,
-            otp.alg,
-            otp.period,
-            token,
-            gen_time,
-            time,
-        )
+        msg = f"key={otp.base32_key!r} alg={otp.alg!r} period={otp.period!r} token={token!r} gen_time={gen_time!r} time={time!r}:"
         result = otp.match(token, time, **kwds)
         self.assertTotpMatch(
             result,

@@ -234,7 +234,7 @@ sha512_crypt__min_rounds = 45000
         """test from_path() constructor"""
         # make sure sample files exist
         if not os.path.exists(self.sample_1_path):
-            raise RuntimeError("can't find data file: %r" % self.sample_1_path)
+            raise RuntimeError(f"can't find data file: {self.sample_1_path!r}")
 
         # test sample 1
         ctx = CryptContext.from_path(self.sample_1_path)

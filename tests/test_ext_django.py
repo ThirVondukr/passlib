@@ -49,7 +49,7 @@ if has_min_django:
         # this probably means django globals have been configured already,
         # which we don't want, since test cases reset and manipulate settings.
         raise RuntimeError(
-            "expected django.conf.settings to be LazySettings: %r" % (settings,)
+            f"expected django.conf.settings to be LazySettings: {settings!r}"
         )
 
     # else configure a blank settings instance for the unittests
@@ -205,7 +205,7 @@ sample_hashes = dict(
 )
 
 
-class _ExtensionSupport(object):
+class _ExtensionSupport:
     """
     test support funcs for loading/unloading extension.
     this class is mixed in to various TestCase subclasses.
@@ -262,14 +262,13 @@ class _ExtensionSupport(object):
         # make sure no objects have been replaced, by checking __module__
         for obj, attr, source, patched in self._iter_patch_candidates():
             if patched:
-                assert source.startswith("django.contrib.auth."), (
-                    "obj=%r attr=%r was not reverted: %r" % (obj, attr, source)
-                )
+                assert source.startswith(
+                    "django.contrib.auth."
+                ), f"obj={obj!r} attr={attr!r} was not reverted: {source!r}"
             else:
-                assert not source.startswith("passlib."), (
-                    "obj=%r attr=%r should not have been patched: %r"
-                    % (obj, attr, source)
-                )
+                assert not source.startswith(
+                    "passlib."
+                ), f"obj={obj!r} attr={attr!r} should not have been patched: {source!r}"
 
     def assert_patched(self, context=None):
         """
@@ -283,14 +282,13 @@ class _ExtensionSupport(object):
         # make sure only the expected objects have been patched
         for obj, attr, source, patched in self._iter_patch_candidates():
             if patched:
-                assert source == "passlib.ext.django.utils", (
-                    "obj=%r attr=%r should have been patched: %r" % (obj, attr, source)
-                )
+                assert (
+                    source == "passlib.ext.django.utils"
+                ), f"obj={obj!r} attr={attr!r} should have been patched: {source!r}"
             else:
-                assert not source.startswith("passlib."), (
-                    "obj=%r attr=%r should not have been patched: %r"
-                    % (obj, attr, source)
-                )
+                assert not source.startswith(
+                    "passlib."
+                ), f"obj={obj!r} attr={attr!r} should not have been patched: {source!r}"
 
         # check context matches
         if context is not None:
@@ -725,7 +723,7 @@ class DjangoBehaviorTest(_ExtensionTest):
                 "django_bcrypt",
                 "django_bcrypt_sha256",
                 "django_argon2",
-            ], "%r scheme should always have active backend" % scheme
+            ], f"{scheme!r} scheme should always have active backend"
             log.warning("skipping scheme %r due to missing django dependency", scheme)
             raise self.skipTest("skip due to missing dependency")
 

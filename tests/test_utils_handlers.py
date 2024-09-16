@@ -611,7 +611,7 @@ class SkeletonTest(TestCase):
         ##                {'checksum': 256, 'rounds': 13, 'salt': 128})
 
 
-class dummy_handler_in_registry(object):
+class dummy_handler_in_registry:
     """context manager that inserts dummy handler in registry"""
 
     def __init__(self, name):
@@ -828,7 +828,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
         return cls(salt=hash[5:-40], checksum=hash[-40:])
 
     def to_string(self):
-        hash = "@salt%s%s" % (self.salt, self.checksum)
+        hash = f"@salt{self.salt}{self.checksum}"
         return hash
 
     def _calc_checksum(self, secret):

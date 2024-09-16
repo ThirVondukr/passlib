@@ -249,8 +249,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         salt = bascii_to_str(ab64_encode(self.salt))
         chkmap = self.checksum
         chk_str = ",".join(
-            "%s=%s" % (alg, bascii_to_str(ab64_encode(chkmap[alg])))
-            for alg in self.algs
+            f"{alg}={bascii_to_str(ab64_encode(chkmap[alg]))}" for alg in self.algs
         )
         return "$scram$%d$%s$%s" % (self.rounds, salt, chk_str)
 
@@ -283,7 +282,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             algs = self._norm_algs(digest_map.keys())
         elif self.use_defaults:
             algs = list(self.default_algs)
-            assert self._norm_algs(algs) == algs, "invalid default algs: %r" % (algs,)
+            assert self._norm_algs(algs) == algs, f"invalid default algs: {algs!r}"
         else:
             raise TypeError("no algs list specified")
         self.algs = algs
@@ -293,10 +292,10 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise uh.exc.ExpectedTypeError(checksum, "dict", "checksum")
         for alg, digest in checksum.items():
             if alg != norm_hash_name(alg, "iana"):
-                raise ValueError("malformed algorithm name in scram hash: %r" % (alg,))
+                raise ValueError(f"malformed algorithm name in scram hash: {alg!r}")
             if len(alg) > 9:
                 raise ValueError(
-                    "SCRAM limits algorithm names to " "9 characters: %r" % (alg,)
+                    "SCRAM limits algorithm names to " f"9 characters: {alg!r}"
                 )
             if not isinstance(digest, bytes):
                 raise uh.exc.ExpectedTypeError(digest, "raw bytes", "digests")
@@ -347,7 +346,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         chkmap = self.checksum
         if not chkmap:
             raise ValueError(
-                "expected %s hash, got %s config string instead" % (cls.name, cls.name)
+                f"expected {cls.name} hash, got {cls.name} config string instead"
             )
 
         # NOTE: to make the verify method efficient, we just calculate hash
@@ -363,8 +362,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 # it's fine if we fail here though.
                 if len(digest) != len(other):
                     raise ValueError(
-                        "mis-sized %s digest in scram hash: %r != %r"
-                        % (alg, len(digest), len(other))
+                        f"mis-sized {alg} digest in scram hash: {len(digest)!r} != {len(other)!r}"
                     )
                 if consteq(other, digest):
                     correct = True

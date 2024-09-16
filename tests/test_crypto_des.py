@@ -134,26 +134,22 @@ class DesTest(TestCase):
 
             # test 64-bit key
             result = des_encrypt_block(key, plaintext)
-            assert result == correct, "key=%r plaintext=%r:" % (key, plaintext)
+            assert result == correct, f"key={key!r} plaintext={plaintext!r}:"
 
             # test 56-bit version
             key2 = shrink_des_key(key)
             result = des_encrypt_block(key2, plaintext)
-            assert result == correct, "key=%r shrink(key)=%r plaintext=%r:" % (
-                key,
-                key2,
-                plaintext,
-            )
+            assert (
+                result == correct
+            ), f"key={key!r} shrink(key)={key2!r} plaintext={plaintext!r}:"
 
             # test with random parity bits
             for _ in range(20):
                 key3 = _pack64(self._random_parity(_unpack64(key)))
                 result = des_encrypt_block(key3, plaintext)
-                assert result == correct, "key=%r rndparity(key)=%r plaintext=%r:" % (
-                    key,
-                    key3,
-                    plaintext,
-                )
+                assert (
+                    result == correct
+                ), f"key={key!r} rndparity(key)={key3!r} plaintext={plaintext!r}:"
 
         # check invalid keys
         stub = b"\x00" * 8
@@ -186,17 +182,15 @@ class DesTest(TestCase):
         for key, plaintext, correct in self.des_test_vectors:
             # test 64-bit key
             result = des_encrypt_int_block(key, plaintext)
-            assert result == correct, "key=%r plaintext=%r:" % (key, plaintext)
+            assert result == correct, f"key={key!r} plaintext={plaintext!r}:"
 
             # test with random parity bits
             for _ in range(20):
                 key3 = self._random_parity(key)
                 result = des_encrypt_int_block(key3, plaintext)
-                assert result == correct, "key=%r rndparity(key)=%r plaintext=%r:" % (
-                    key,
-                    key3,
-                    plaintext,
-                )
+                assert (
+                    result == correct
+                ), f"key={key!r} rndparity(key)={key3!r} plaintext={plaintext!r}:"
 
         # check invalid keys
         with pytest.raises(TypeError):

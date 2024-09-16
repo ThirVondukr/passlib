@@ -57,7 +57,7 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
         subcls = super().using(**kwds)
         if marker is not None:
             if not cls.identify(marker):
-                raise ValueError("invalid marker: %r" % marker)
+                raise ValueError(f"invalid marker: {marker!r}")
             subcls.default_marker = marker
         return subcls
 

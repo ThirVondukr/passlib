@@ -128,7 +128,7 @@ def _decode_bytes(key, format):
         return b32decode(key)
     # XXX: add base64 support?
     else:
-        raise ValueError("unknown byte-encoding format: %r" % (format,))
+        raise ValueError(f"unknown byte-encoding format: {format!r}")
 
 
 #: flag for detecting if encrypted totp support is present
@@ -138,7 +138,7 @@ AES_SUPPORT = bool(_cg_ciphers)
 _tag_re = re.compile("(?i)^[a-z0-9][a-z0-9_.-]*$")
 
 
-class AppWallet(object):
+class AppWallet:
     """
     This class stores application-wide secrets that can be used
     to encrypt & decrypt TOTP keys for storage.
@@ -265,7 +265,7 @@ class AppWallet(object):
         if secrets_path is not None:
             if secrets is not None:
                 raise TypeError("'secrets' and 'secrets_path' are mutually exclusive")
-            secrets = open(secrets_path, "rt").read()
+            secrets = open(secrets_path).read()
 
         # parse & store secrets
         secrets = self._secrets = self._parse_secrets(secrets)
@@ -332,13 +332,13 @@ class AppWallet(object):
         elif isinstance(tag, int):
             tag = str(tag)
         else:
-            raise TypeError("tag must be string: %r" % (tag,))
+            raise TypeError(f"tag must be string: {tag!r}")
         if not _tag_re.match(tag):
-            raise ValueError("tag contains invalid characters: %r" % (tag,))
+            raise ValueError(f"tag contains invalid characters: {tag!r}")
         if not isinstance(value, bytes):
-            value = to_bytes(value, param="secret %r" % (tag,))
+            value = to_bytes(value, param=f"secret {tag!r}")
         if not value:
-            raise ValueError("tag contains empty secret: %r" % (tag,))
+            raise ValueError(f"tag contains empty secret: {tag!r}")
         return tag, value
 
     @property
@@ -357,7 +357,7 @@ class AppWallet(object):
         try:
             return secrets[tag]
         except KeyError:
-            raise KeyError("unknown secret tag: %r" % (tag,)) from None
+            raise KeyError(f"unknown secret tag: {tag!r}") from None
 
     @staticmethod
     def _cipher_aes_key(value, secret, salt, cost, decrypt=False):
@@ -463,7 +463,7 @@ class AppWallet(object):
         if version == 1:
             _cipher_key = self._cipher_aes_key
         else:
-            raise ValueError("missing / unrecognized 'enckey' version: %r" % (version,))
+            raise ValueError(f"missing / unrecognized 'enckey' version: {version!r}")
         tag = enckey["t"]
         cost = enckey["c"]
         key = _cipher_key(
@@ -487,7 +487,7 @@ _unpack_uint32 = struct.Struct(">I").unpack
 _DUMMY_KEY = b"\x00" * 16
 
 
-class TOTP(object):
+class TOTP:
     """
     Helper for generating and verifying TOTP codes.
 
@@ -761,7 +761,7 @@ class TOTP(object):
         self.alg = info.name
         digest_size = info.digest_size
         if digest_size < 4:
-            raise RuntimeError("%r hash digest too small" % alg)
+            raise RuntimeError(f"{alg!r} hash digest too small")
 
         # parse or generate new key
         if new:
@@ -804,7 +804,7 @@ class TOTP(object):
         if digits is None:
             digits = self.digits
         if not isinstance(digits, int):
-            raise TypeError("digits must be an integer, not a %r" % type(digits))
+            raise TypeError(f"digits must be an integer, not a {type(digits)!r}")
         if digits < 6 or digits > 10:
             raise ValueError("digits must in range(6,11)")
         self.digits = digits
@@ -947,7 +947,7 @@ class TOTP(object):
         elif format == "base32":
             key = self.base32_key
         else:
-            raise ValueError("unknown byte-encoding format: %r" % (format,))
+            raise ValueError(f"unknown byte-encoding format: {format!r}")
         if sep:
             key = group_string(key, sep)
         return key
@@ -1350,7 +1350,7 @@ class TOTP(object):
             return True
         if type == "hotp":
             raise NotImplementedError("HOTP not supported")
-        raise ValueError("unknown otp type: %r" % type)
+        raise ValueError(f"unknown otp type: {type!r}")
 
     @classmethod
     def _from_parsed_uri(cls, result):
@@ -1388,7 +1388,7 @@ class TOTP(object):
         params = dict(label=label)
         for k, v in parse_qsl(result.query):
             if k in params:
-                raise cls._uri_parse_error("duplicate parameter (%r)" % k)
+                raise cls._uri_parse_error(f"duplicate parameter ({k!r})")
             params[k] = v
 
         # synchronize issuer prefix w/ issuer param
@@ -1430,7 +1430,7 @@ class TOTP(object):
             # malicious uri, deviation from spec, or newer revision of spec?
             # in either case, we issue warning and ignore extra params.
             warn(
-                "%s: unexpected parameters encountered in otp uri: %r" % (cls, extra),
+                f"{cls}: unexpected parameters encountered in otp uri: {extra!r}",
                 exc.PasslibRuntimeWarning,
             )
         return kwds
@@ -1438,7 +1438,7 @@ class TOTP(object):
     @staticmethod
     def _uri_parse_error(reason):
         """uri parsing helper -- creates preformatted error message"""
-        return ValueError("Invalid otpauth uri: %s" % (reason,))
+        return ValueError(f"Invalid otpauth uri: {reason}")
 
     @classmethod
     def _uri_parse_int(cls, source, param):
@@ -1446,7 +1446,7 @@ class TOTP(object):
         try:
             return int(source)
         except ValueError:
-            raise cls._uri_parse_error("Malformed %r parameter" % param)
+            raise cls._uri_parse_error(f"Malformed {param!r} parameter")
 
     def to_uri(self, label=None, issuer=None):
         """
@@ -1516,16 +1516,18 @@ class TOTP(object):
             #       in favor of adding it to query params.  however, some QRCode clients
             #       don't recognize the 'issuer' query parameter, so spec recommends (as of 2018-7)
             #       to include both.
-            label = "%s:%s" % (quote(issuer, "@"), label)
+            label = "{}:{}".format(quote(issuer, "@"), label)
             params.append(("issuer", issuer))
         # NOTE: not using urllib.urlencode() because it encodes ' ' as '+';
         #       but spec says to use '%20', and not sure how fragile
         #       the various totp clients' parsers are.
-        param_str = "&".join("%s=%s" % (key, quote(value, "")) for key, value in params)
+        param_str = "&".join(
+            "{}={}".format(key, quote(value, "")) for key, value in params
+        )
         assert param_str, "param_str should never be empty"
 
         # render uri
-        return "otpauth://totp/%s?%s" % (label, param_str)
+        return f"otpauth://totp/{label}?{param_str}"
 
     def _to_uri_params(self):
         """return list of (key, param) entries for URI"""
@@ -1609,7 +1611,7 @@ class TOTP(object):
         assert cls._check_otp_type(type)
         ver = kwds.pop("v", None)
         if not ver or ver < cls.min_json_version or ver > cls.json_version:
-            raise cls._dict_parse_error("missing/unsupported version (%r)" % (ver,))
+            raise cls._dict_parse_error(f"missing/unsupported version ({ver!r})")
         elif ver != cls.json_version:
             # mark older version as needing re-serializing
             kwds["changed"] = True
@@ -1631,7 +1633,7 @@ class TOTP(object):
     @staticmethod
     def _dict_parse_error(reason):
         """dict parsing helper -- creates preformatted error message"""
-        return ValueError("Invalid totp data: %s" % (reason,))
+        return ValueError(f"Invalid totp data: {reason}")
 
     def to_dict(self, encrypt=None):
         """

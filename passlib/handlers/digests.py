@@ -61,11 +61,10 @@ def create_hex_hash(digest, module=__name__, django_name=None, required=True):
                 info.const
             ),  # sometimes it's a function, sometimes not. so wrap it.
             checksum_size=info.digest_size * 2,
-            __doc__="""This class implements a plain hexadecimal %s hash, and follows the :ref:`password-hash-api`.
+            __doc__=f"""This class implements a plain hexadecimal {info.name} hash, and follows the :ref:`password-hash-api`.
 
 It supports no optional or contextual keywords.
-"""
-            % (info.name,),
+""",
         ),
     )
     if not info.supported:

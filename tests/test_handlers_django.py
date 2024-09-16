@@ -39,17 +39,17 @@ class _DjangoHelper(TestCase):
         # make sure min django version
         if DJANGO_VERSION < self.min_django_version:
             raise self.skipTest(
-                "Django >= %s not installed" % vstr(self.min_django_version)
+                f"Django >= {vstr(self.min_django_version)} not installed"
             )
         if self.max_django_version and DJANGO_VERSION > self.max_django_version:
             raise self.skipTest(
-                "Django <= %s not installed" % vstr(self.max_django_version)
+                f"Django <= {vstr(self.max_django_version)} not installed"
             )
 
         # make sure django has a backend for specified hasher
         name = self.handler.django_name
         if not check_django_hasher_has_backend(name):
-            raise self.skipTest("django hasher %r not available" % name)
+            raise self.skipTest(f"django hasher {name!r} not available")
 
         return True
 
@@ -81,12 +81,12 @@ class _DjangoHelper(TestCase):
 
         assert self.known_correct_hashes
         for secret, hash_ in self.iter_known_hashes():
-            assert check_password(secret, hash_), (
-                "secret=%r hash=%r failed to verify" % (secret, hash_)
-            )
-            assert not check_password("x" + secret, hash_), (
-                "mangled secret=%r hash=%r incorrect verified" % (secret, hash_)
-            )
+            assert check_password(
+                secret, hash_
+            ), f"secret={secret!r} hash={hash_!r} failed to verify"
+            assert not check_password(
+                "x" + secret, hash_
+            ), f"mangled secret={secret!r} hash={hash_!r} incorrect verified"
 
     def test_91_django_generation(self):
         """test against output of Django's make_password()"""

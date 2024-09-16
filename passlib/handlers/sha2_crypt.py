@@ -415,7 +415,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     def to_string(self):
         if self.rounds == 5000 and self.implicit_rounds:
-            hash = "%s%s$%s" % (self.ident, self.salt, self.checksum or "")
+            hash = "{}{}${}".format(self.ident, self.salt, self.checksum or "")
         else:
             hash = "%srounds=%d$%s$%s" % (
                 self.ident,

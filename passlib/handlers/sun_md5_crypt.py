@@ -317,10 +317,10 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         if rounds > 0:
             hash = "$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
         else:
-            hash = "$md5$%s%s" % (self.salt, ss)
+            hash = f"$md5${self.salt}{ss}"
         if _withchk:
             chk = self.checksum
-            hash = "%s$%s" % (hash, chk)
+            hash = f"{hash}${chk}"
         return hash
 
     # TODO: if we're on solaris, check for native crypt() support.

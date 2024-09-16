@@ -127,7 +127,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         chk = self.checksum
-        hash = "S:%s%s" % (chk.upper(), self.salt.upper())
+        hash = f"S:{chk.upper()}{self.salt.upper()}"
         return hash
 
     def _calc_checksum(self, secret):

@@ -162,7 +162,7 @@ class scrypt(
     @classmethod
     def parse(cls, hash):
         ident, suffix = cls._parse_ident(hash)
-        func = getattr(cls, "_parse_%s_string" % ident.strip(_UDOLLAR), None)
+        func = getattr(cls, f"_parse_{ident.strip(_UDOLLAR)}_string", None)
         if func:
             return func(suffix)
         else:

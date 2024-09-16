@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-class ScryptEngine(object):
+class ScryptEngine:
     """
     helper class used to run scrypt kdf, see scrypt() for frontend
 

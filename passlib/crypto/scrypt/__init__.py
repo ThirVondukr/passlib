@@ -39,19 +39,19 @@ def validate(n, r, p):
     :param p: scrypt parallel factor
     """
     if r < 1:
-        raise ValueError("r must be > 0: r=%r" % r)
+        raise ValueError(f"r must be > 0: r={r!r}")
 
     if p < 1:
-        raise ValueError("p must be > 0: p=%r" % p)
+        raise ValueError(f"p must be > 0: p={p!r}")
 
     if r * p > MAX_RP:
         # pbkdf2-hmac-sha256 limitation - it will be requested to generate ``p*(2*r)*64`` bytes,
         # but pbkdf2 can do max of (2**31-1) blocks, and sha-256 has 32 byte block size...
         # so ``(2**31-1)*32 >= p*r*128`` -> ``r*p < 2**30``
-        raise ValueError("r * p must be < 2**30: r=%r, p=%r" % (r, p))
+        raise ValueError(f"r * p must be < 2**30: r={r!r}, p={p!r}")
 
     if n < 2 or n & (n - 1):
-        raise ValueError("n must be > 1, and a power of 2: n=%r" % n)
+        raise ValueError(f"n must be > 1, and a power of 2: n={n!r}")
 
     return True
 
@@ -253,10 +253,10 @@ def _set_backend(name, dryrun=False):
     else:
         loader = _backend_loaders.get(name)
         if not loader:
-            raise ValueError("unknown scrypt backend: %r" % (name,))
+            raise ValueError(f"unknown scrypt backend: {name!r}")
         hash = loader()
         if not hash:
-            raise exc.MissingBackendError("scrypt backend %r not available" % name)
+            raise exc.MissingBackendError(f"scrypt backend {name!r} not available")
         if dryrun:
             return
         global _scrypt, backend

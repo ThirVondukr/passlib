@@ -81,7 +81,7 @@ def get_preset_config(name):
     try:
         attr = _preset_map[name]
     except KeyError:
-        raise ValueError("unknown preset config name: %r" % name)
+        raise ValueError(f"unknown preset config name: {name!r}")
     import passlib.apps
 
     return getattr(passlib.apps, attr).to_string()
@@ -144,7 +144,7 @@ def _wrap_method(method):
     return wrapper
 
 
-class DjangoTranslator(object):
+class DjangoTranslator:
     """
     Object which helps translate passlib hasher objects / names
     to and from django hasher objects / names.
@@ -281,7 +281,7 @@ class DjangoTranslator(object):
 
             return import_string(path)()
 
-        raise ValueError("unknown hasher: %r" % django_name)
+        raise ValueError(f"unknown hasher: {django_name!r}")
 
     def django_to_passlib_name(self, django_name):
         """
@@ -368,7 +368,7 @@ class DjangoTranslator(object):
         #       know the equivalents for. _HasherHandler (below) is work in
         #       progress that would allow us to at least return a wrapper.
         raise ValueError(
-            "can't translate django name to passlib name: %r" % (django_name,)
+            f"can't translate django name to passlib name: {django_name!r}"
         )
 
     def resolve_django_hasher(self, django_name, cached=True):
@@ -671,7 +671,7 @@ class DjangoContextAdapter(DjangoTranslator):
         # version check
         if DJANGO_VERSION < MIN_DJANGO_VERSION:
             raise RuntimeError(
-                "passlib.ext.django requires django >= %s" % (MIN_DJANGO_VERSION,)
+                f"passlib.ext.django requires django >= {MIN_DJANGO_VERSION}"
             )
 
         # log start
@@ -810,7 +810,7 @@ class DjangoContextAdapter(DjangoTranslator):
 _GEN_SALT_SIGNAL = "--!!!generate-new-salt!!!--"
 
 
-class ProxyProperty(object):
+class ProxyProperty:
     """helper that proxies another attribute"""
 
     def __init__(self, attr):
@@ -826,7 +826,7 @@ class ProxyProperty(object):
         delattr(obj, self.attr)
 
 
-class _PasslibHasherWrapper(object):
+class _PasslibHasherWrapper:
     """
     adapter which which wraps a :cls:`passlib.ifc.PasswordHash` class,
     and provides an interface compatible with the Django hasher API.
@@ -847,12 +847,12 @@ class _PasslibHasherWrapper(object):
         if getattr(passlib_handler, "django_name", None):
             raise ValueError(
                 "handlers that reflect an official django "
-                "hasher shouldn't be wrapped: %r" % (passlib_handler.name,)
+                f"hasher shouldn't be wrapped: {passlib_handler.name!r}"
             )
         if passlib_handler.is_disabled:
             # XXX: could this be implemented?
             raise ValueError(
-                "can't wrap disabled-hash handlers: %r" % (passlib_handler.name)
+                f"can't wrap disabled-hash handlers: {passlib_handler.name!r}"
             )
         self.passlib_handler = passlib_handler
 
@@ -862,11 +862,11 @@ class _PasslibHasherWrapper(object):
             self.iterations = ProxyProperty("rounds")
 
     def __repr__(self):
-        return "<PasslibHasherWrapper handler=%r>" % self.passlib_handler
+        return f"<PasslibHasherWrapper handler={self.passlib_handler!r}>"
 
     @memoized_property
     def __name__(self):
-        return "Passlib_%s_PasswordHasher" % self.passlib_handler.name.title()
+        return f"Passlib_{self.passlib_handler.name.title()}_PasswordHasher"
 
     @memoized_property
     def _has_rounds(self):
@@ -908,7 +908,7 @@ class _PasslibHasherWrapper(object):
             else:
                 kwds["rounds"] = self.rounds
         elif rounds is not None or iterations is not None:
-            warn("%s.hash(): 'rounds' and 'iterations' are ignored" % self.__name__)
+            warn(f"{self.__name__}.hash(): 'rounds' and 'iterations' are ignored")
         handler = self.passlib_handler
         if kwds:
             handler = handler.using(**kwds)
@@ -1027,7 +1027,7 @@ class _PasslibHasherWrapper(object):
 _UNSET = object()
 
 
-class _PatchManager(object):
+class _PatchManager:
     """helper to manage monkeypatches and run sanity checks"""
 
     # NOTE: this could easily use a dict interface,
@@ -1082,7 +1082,7 @@ class _PatchManager(object):
         for path, (orig, expected) in self._state.items():
             if same(self._get_path(path), expected):
                 continue
-            msg = "another library has patched resource: %r" % path
+            msg = f"another library has patched resource: {path!r}"
             if strict:
                 raise RuntimeError(msg)
             else:
@@ -1109,7 +1109,7 @@ class _PatchManager(object):
             self.log.debug("modifying resource: %r", path)
             if not self._is_same_value(current, expected):
                 warn(
-                    "overridding resource another library has patched: %r" % path,
+                    f"overridding resource another library has patched: {path!r}",
                     PasslibRuntimeWarning,
                 )
         if wrap:
@@ -1165,12 +1165,12 @@ class _PatchManager(object):
         if not self._is_same_value(current, expected):
             if unpatch_conflicts:
                 warn(
-                    "reverting resource another library has patched: %r" % path,
+                    f"reverting resource another library has patched: {path!r}",
                     PasslibRuntimeWarning,
                 )
             else:
                 warn(
-                    "not reverting resource another library has patched: %r" % path,
+                    f"not reverting resource another library has patched: {path!r}",
                     PasslibRuntimeWarning,
                 )
                 del self._state[path]

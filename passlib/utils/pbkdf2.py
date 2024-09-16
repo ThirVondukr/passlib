@@ -82,7 +82,7 @@ def get_prf(name):
         return _prf_cache[name]
     if isinstance(name, str):
         if not name.startswith(_HMAC_PREFIXES):
-            raise ValueError("unknown prf algorithm: %r" % (name,))
+            raise ValueError(f"unknown prf algorithm: {name!r}")
         digest = lookup_hash(name[5:]).name
 
         def hmac(key, msg):

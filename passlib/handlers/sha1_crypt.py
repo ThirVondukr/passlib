@@ -108,7 +108,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             raise uh.exc.NullPasswordError(self)
         rounds = self.rounds
         # NOTE: this seed value is NOT the same as the config string
-        result = ("%s$sha1$%s" % (self.salt, rounds)).encode("ascii")
+        result = (f"{self.salt}$sha1${rounds}").encode("ascii")
         # NOTE: this algorithm is essentially PBKDF1, modified to use HMAC.
         keyed_hmac = compile_hmac("sha1", secret)
         for _ in range(rounds):

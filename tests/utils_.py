@@ -2,7 +2,7 @@ import contextlib
 import os
 import warnings
 from os import PathLike
-from typing import Iterator
+from collections.abc import Iterator
 
 
 def backdate_file_mtime(path: PathLike, offset: int = 10) -> None:

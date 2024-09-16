@@ -60,9 +60,9 @@ def get_handler_case(scheme):
         except exc.MissingBackendError:
             assert scheme in conditionally_available_hashes
             raise
-        name = "%s_%s_test" % (scheme, backend)
+        name = f"{scheme}_{backend}_test"
     else:
-        name = "%s_test" % scheme
+        name = f"{scheme}_test"
     for module in _handler_test_modules:
         modname = "tests." + module
         __import__(modname)
@@ -73,7 +73,7 @@ def get_handler_case(scheme):
             pass
     # every hasher should have test suite, so if we get here, means test is either missing,
     # misnamed, or _handler_test_modules list is out of date.
-    raise RuntimeError("can't find test case named %r for %r" % (name, scheme))
+    raise RuntimeError(f"can't find test case named {name!r} for {scheme!r}")
 
 
 #: hashes which there may not be a backend available for,

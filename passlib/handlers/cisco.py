@@ -339,7 +339,7 @@ class cisco_type7(uh.GenericHandler):
             salt = self._norm_salt(salt)
         elif self.use_defaults:
             salt = self._generate_salt()
-            assert self._norm_salt(salt) == salt, "generated invalid salt: %r" % (salt,)
+            assert self._norm_salt(salt) == salt, f"generated invalid salt: {salt!r}"
         else:
             raise TypeError("no salt specified")
         self.salt = salt
