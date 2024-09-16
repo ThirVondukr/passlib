@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from passlib.pwd import genphrase, genword, default_charsets
+from passlib.pwd import default_charsets, genphrase, genword
 from tests.utils import TestCase
 
 __all__ = [

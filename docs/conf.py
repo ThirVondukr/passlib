@@ -12,11 +12,13 @@ This honors the following sphinx tags (passed via -t or $SPHINX_BUILD_TAGS):
 
 """
 
-import sys
-import os
-from passlib import __version__ as release
-import cloud_sptheme as csp  # type: ignore[import-untyped]
 import datetime
+import os
+import sys
+
+import cloud_sptheme as csp  # type: ignore[import-untyped]
+
+from passlib import __version__ as release
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

@@ -8,9 +8,8 @@ phpass context - blowfish, bsdi_crypt, phpass
 
 from hashlib import md5
 
-from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
-
+from passlib.utils.binary import h64
 
 __all__ = [
     "phpass",

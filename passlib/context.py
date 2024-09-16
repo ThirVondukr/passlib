@@ -5,11 +5,13 @@ from warnings import warn
 
 from passlib import exc
 from passlib.exc import ExpectedStringError, ExpectedTypeError, PasslibConfigWarning
-from passlib.registry import get_crypt_handler, _validate_handler_name
+from passlib.registry import _validate_handler_name, get_crypt_handler
 from passlib.utils import (
     handlers as uh,
-    to_unicode,
+)
+from passlib.utils import (
     splitcomma,
+    to_unicode,
 )
 from passlib.utils.compat import (
     numeric_types,

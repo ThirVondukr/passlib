@@ -1,10 +1,8 @@
 from binascii import hexlify
 
-
-from passlib.utils import to_unicode, right_pad_string
-from passlib.crypto.digest import lookup_hash
-
 import passlib.utils.handlers as uh
+from passlib.crypto.digest import lookup_hash
+from passlib.utils import right_pad_string, to_unicode
 
 md4 = lookup_hash("md4").const
 

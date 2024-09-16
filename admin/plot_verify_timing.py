@@ -3,12 +3,10 @@
 small helper script used to compare timing of verify() & dummy_verify()
 """
 
-# core
-from argparse import ArgumentParser
 import sys
+from argparse import ArgumentParser
 from timeit import default_timer as tick
 
-# site
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 

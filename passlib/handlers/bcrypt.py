@@ -11,7 +11,6 @@ TODO:
 import logging
 import os
 import re
-
 from base64 import b64encode
 from hashlib import sha256
 from importlib import metadata
@@ -22,13 +21,13 @@ import passlib.utils.handlers as uh
 from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityError
 from passlib.utils import (
-    safe_crypt,
+    crypt_accepts_bytes,
     repeat_string,
+    safe_crypt,
     test_crypt,
     to_unicode,
-    utf8_truncate,
     utf8_repeat_string,
-    crypt_accepts_bytes,
+    utf8_truncate,
 )
 from passlib.utils.binary import bcrypt64
 

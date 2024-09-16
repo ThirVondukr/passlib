@@ -49,10 +49,10 @@ class DesTest(TestCase):
     def test_01_expand(self):
         """expand_des_key()"""
         from passlib.crypto.des import (
-            expand_des_key,
-            shrink_des_key,
             _KDATA_MASK,
             INT_56_MASK,
+            expand_des_key,
+            shrink_des_key,
         )
 
         # make sure test vectors are preserved (sans parity bits)
@@ -81,7 +81,7 @@ class DesTest(TestCase):
 
     def test_02_shrink(self):
         """shrink_des_key()"""
-        from passlib.crypto.des import expand_des_key, shrink_des_key, INT_64_MASK
+        from passlib.crypto.des import INT_64_MASK, expand_des_key, shrink_des_key
 
         rng = self.getRandom()
 
@@ -119,10 +119,10 @@ class DesTest(TestCase):
     def test_03_encrypt_bytes(self):
         """des_encrypt_block()"""
         from passlib.crypto.des import (
-            des_encrypt_block,
-            shrink_des_key,
             _pack64,
             _unpack64,
+            des_encrypt_block,
+            shrink_des_key,
         )
 
         # run through test vectors

@@ -2,11 +2,9 @@
 
 from hashlib import md5
 
-
-from passlib.utils import safe_crypt, test_crypt, repeat_string
-from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
-
+from passlib.utils import repeat_string, safe_crypt, test_crypt
+from passlib.utils.binary import h64
 
 __all__ = [
     "md5_crypt",

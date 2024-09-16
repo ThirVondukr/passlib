@@ -1,13 +1,12 @@
 """PBKDF2 based hashes"""
 
+from base64 import b64decode, b64encode
 from binascii import hexlify, unhexlify
-from base64 import b64encode, b64decode
 
+import passlib.utils.handlers as uh
+from passlib.crypto.digest import pbkdf2_hmac
 from passlib.utils import to_unicode
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.crypto.digest import pbkdf2_hmac
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "pbkdf2_sha1",

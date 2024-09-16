@@ -1,9 +1,8 @@
+import passlib.utils.handlers as uh
+from passlib.crypto.digest import compile_hmac
 from passlib.utils import safe_crypt, test_crypt
 from passlib.utils.binary import h64
-from passlib.crypto.digest import compile_hmac
-import passlib.utils.handlers as uh
 
-# local
 __all__ = []
 _BNULL = b"\x00"
 

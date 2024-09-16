@@ -4,15 +4,17 @@ this module is getting increasingly poorly named.
 maybe rename to "kdf" since it's getting more key derivation functions added.
 """
 
-from passlib.exc import ExpectedTypeError
-from passlib.crypto.digest import (
-    lookup_hash,
-    pbkdf1 as _pbkdf1,
-    pbkdf2_hmac,
-    compile_hmac,
-)
 from warnings import warn
 
+from passlib.crypto.digest import (
+    compile_hmac,
+    lookup_hash,
+    pbkdf2_hmac,
+)
+from passlib.crypto.digest import (
+    pbkdf1 as _pbkdf1,
+)
+from passlib.exc import ExpectedTypeError
 
 __all__ = [
     # prf utils

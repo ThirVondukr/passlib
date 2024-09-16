@@ -2,21 +2,18 @@
 
 # XXX: relocate this to passlib.ext.apache?
 
-from io import BytesIO
 import logging
-
-
 import os
+from io import BytesIO
 from os import PathLike
 from typing import Literal, Optional
 from warnings import warn
-
 
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
-from passlib.utils import render_bytes, to_bytes, is_ascii_codec
+from passlib.utils import is_ascii_codec, render_bytes, to_bytes
 from passlib.utils.compat import join_bytes
 
 # local

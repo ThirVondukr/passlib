@@ -1,11 +1,11 @@
 import logging
-
-import sys
 import re
+import sys
 
 import pytest
 
-from passlib import apps as _apps, exc
+from passlib import apps as _apps
+from passlib import exc
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
 from passlib.ext.django.utils import (
@@ -14,14 +14,11 @@ from passlib.ext.django.utils import (
     DjangoTranslator,
     quirks,
 )
+from passlib.hash import django_pbkdf2_sha256
 from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
-
-
-from tests.utils import TestCase, TEST_MODE, handler_derived_from
 from tests.test_handlers import get_handler_case
-from passlib.hash import django_pbkdf2_sha256
-
+from tests.utils import TEST_MODE, TestCase, handler_derived_from
 
 __all__ = [
     "DjangoBehaviorTest",
@@ -43,7 +40,7 @@ if has_min_django:
     #
     # initialize django settings manually
     #
-    from django.conf import settings, LazySettings
+    from django.conf import LazySettings, settings
 
     if not isinstance(settings, LazySettings):
         # this probably means django globals have been configured already,
@@ -223,7 +220,7 @@ class _ExtensionSupport:
         """
         # XXX: this and assert_unpatched() could probably be refactored to use
         #      the PatchManager class to do the heavy lifting.
-        from django.contrib.auth import models, hashers
+        from django.contrib.auth import hashers, models
 
         user_attrs = ["check_password", "set_password"]
         model_attrs = ["check_password", "make_password"]
@@ -449,6 +446,7 @@ class DjangoBehaviorTest(_ExtensionTest):
 
         # contexts should match
         from django.contrib.auth.hashers import check_password
+
         from passlib.ext.django.models import password_context
 
         assert password_context.to_dict(resolve=True) == ctx.to_dict(resolve=True)
@@ -519,9 +517,9 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
+            is_password_usable,
+            make_password,
         )
 
         # sanity check via user.set_unusable_password()
@@ -695,9 +693,9 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
+            is_password_usable,
+            make_password,
         )
 
         # -------------------------------------------------------
@@ -871,6 +869,7 @@ class DjangoExtensionTest(_ExtensionTest):
 
         # setup helpers
         import django.contrib.auth.models as models
+
         from passlib.ext.django.models import adapter
 
         def dummy():

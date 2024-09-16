@@ -6,6 +6,7 @@ which provides unified handling stdlib implementation (if present).
 """
 
 from warnings import warn
+
 from passlib.crypto.digest import lookup_hash
 
 warn(

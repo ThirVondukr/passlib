@@ -1,7 +1,7 @@
 import sys
 
 import passlib.utils.handlers as uh
-from passlib.utils import to_native_str, consteq
+from passlib.utils import consteq, to_native_str
 from passlib.utils.compat import unicode_or_bytes
 
 __all__ = [

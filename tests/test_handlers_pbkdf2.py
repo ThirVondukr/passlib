@@ -3,8 +3,8 @@ import warnings
 import pytest
 
 from passlib import hash
-from tests.utils import TestCase, HandlerCase
 from tests.test_handlers import UPASS_WAV
+from tests.utils import HandlerCase, TestCase
 
 
 class ldap_pbkdf2_test(TestCase):

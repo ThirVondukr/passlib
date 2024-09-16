@@ -1,5 +1,5 @@
-from passlib.context import LazyCryptContext
 from passlib import registry
+from passlib.context import LazyCryptContext
 
 # local
 __all__ = [

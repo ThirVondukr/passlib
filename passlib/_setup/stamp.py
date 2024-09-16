@@ -1,15 +1,12 @@
 """update version string during build"""
 
-# core
 import datetime
-from distutils.dist import Distribution
 import os
 import re
 import subprocess
 import time
+from distutils.dist import Distribution
 
-# pkg
-# local
 __all__ = [
     "stamp_source",
     "stamp_distutils_output",
@@ -56,7 +53,7 @@ def stamp_source(base_dir, version, dry_run=False):
     path = os.path.join(base_dir, "passlib", "__init__.py")
     content = _get_file(path)
     content, count = re.subn(
-        "(?m)^__version__\s*=.*$", "__version__ = " + repr(version), content
+        r"(?m)^__version__\s*=.*$", "__version__ = " + repr(version), content
     )
     assert count == 1, "failed to replace version string"
     _replace_file(path, content, dry_run=dry_run)
@@ -69,7 +66,7 @@ def stamp_source(base_dir, version, dry_run=False):
     if os.path.exists(path):
         content = _get_file(path)
         content, count = re.subn(
-            "(?m)^stamp_build\s*=.*$", "stamp_build = False", content
+            r"(?m)^stamp_build\s*=.*$", "stamp_build = False", content
         )
         assert count == 1, "failed to update 'stamp_build' flag"
         _replace_file(path, content, dry_run=dry_run)

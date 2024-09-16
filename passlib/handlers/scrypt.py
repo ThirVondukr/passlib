@@ -1,12 +1,11 @@
 """scrypt password hash"""
 
+import passlib.utils.handlers as uh
 from passlib.crypto import scrypt as _scrypt
 from passlib.utils import to_bytes
-from passlib.utils.binary import h64, b64s_decode, b64s_encode
+from passlib.utils.binary import b64s_decode, b64s_encode, h64
 from passlib.utils.compat import bascii_to_str
 from passlib.utils.decor import classproperty
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "scrypt",

@@ -2,10 +2,9 @@
 
 import hashlib
 
-from passlib.utils import to_native_str, to_bytes, render_bytes, consteq
 import passlib.utils.handlers as uh
 from passlib.crypto.digest import lookup_hash
-
+from passlib.utils import consteq, render_bytes, to_bytes, to_native_str
 
 __all__ = [
     "create_hex_hash",

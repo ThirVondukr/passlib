@@ -35,10 +35,9 @@ http://www.theregister.co.uk/2002/07/08/cracking_ms_sql_server_passwords/
 from binascii import hexlify, unhexlify
 from hashlib import sha1
 
+import passlib.utils.handlers as uh
 from passlib.utils import consteq
 from passlib.utils.compat import bascii_to_str
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "mssql2000",

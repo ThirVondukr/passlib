@@ -5,12 +5,15 @@ from warnings import warn
 from passlib import exc
 from passlib.exc import ExpectedTypeError, PasslibWarning
 from passlib.utils import (
-    is_crypt_handler,
     has_crypt as os_crypt_present,
+)
+from passlib.utils import (
+    is_crypt_handler,
+)
+from passlib.utils import (
     unix_crypt_schemes as os_crypt_schemes,
 )
 from passlib.utils.decor import memoize_single_value
-
 
 __all__ = [
     "register_crypt_handler_path",

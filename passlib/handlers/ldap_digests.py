@@ -1,12 +1,12 @@
 """plain hash digests"""
 
 import re
-from base64 import b64encode, b64decode
+from base64 import b64decode, b64encode
 from hashlib import md5, sha1, sha256, sha512
 
 import passlib.utils.handlers as uh
 from passlib.handlers.misc import plaintext
-from passlib.utils import unix_crypt_schemes, to_unicode
+from passlib.utils import to_unicode, unix_crypt_schemes
 from passlib.utils.decor import classproperty
 
 __all__ = [

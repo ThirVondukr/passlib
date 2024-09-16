@@ -1,13 +1,12 @@
 """Oracle DB Password Hashes"""
 
+import re
 from binascii import hexlify, unhexlify
 from hashlib import sha1
-import re
 
-
-from passlib.utils import to_unicode, xor_bytes
-from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
+from passlib.crypto.des import des_encrypt_block
+from passlib.utils import to_unicode, xor_bytes
 
 __all__ = ["oracle10", "oracle11"]
 

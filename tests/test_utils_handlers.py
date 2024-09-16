@@ -1,15 +1,15 @@
 """tests for passlib.hash -- (c) Assurance Technologies 2003-2009"""
 
-import re
 import hashlib
-from logging import getLogger
+import re
 import warnings
+from logging import getLogger
 
 import pytest
 
-from passlib.hash import ldap_md5, sha256_crypt
-from passlib.exc import MissingBackendError
 import passlib.utils.handlers as uh
+from passlib.exc import MissingBackendError
+from passlib.hash import ldap_md5, sha256_crypt
 from tests.utils import HandlerCase, TestCase
 from tests.utils_ import no_warnings
 

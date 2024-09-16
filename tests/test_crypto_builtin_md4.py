@@ -1,14 +1,15 @@
-from binascii import hexlify
 import hashlib
+from binascii import hexlify
 from unittest import skipUnless
 
 import pytest
+
+from passlib.crypto.digest import lookup_hash
 
 # site
 # pkg
 # module
 from passlib.utils.compat import bascii_to_str
-from passlib.crypto.digest import lookup_hash
 from tests.utils import TestCase
 
 # local

@@ -1,4 +1,5 @@
-from passlib import apps, hash as hashmod
+from passlib import apps
+from passlib import hash as hashmod
 from tests.utils import TestCase
 
 

@@ -2,16 +2,12 @@
 
 from binascii import hexlify, unhexlify
 from hashlib import md5
-
-
 from warnings import warn
 
-
-from passlib.utils import right_pad_string, to_unicode, repeat_string
-from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
+from passlib.utils import repeat_string, right_pad_string, to_unicode
+from passlib.utils.binary import h64
 
-# local
 __all__ = [
     "cisco_pix",
     "cisco_asa",

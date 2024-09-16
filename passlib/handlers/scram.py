@@ -1,11 +1,10 @@
 """hash for SCRAM credential storage"""
 
-from passlib.utils import consteq, saslprep, to_native_str, splitcomma
+import passlib.utils.handlers as uh
+from passlib.crypto.digest import norm_hash_name, pbkdf2_hmac
+from passlib.utils import consteq, saslprep, splitcomma, to_native_str
 from passlib.utils.binary import ab64_decode, ab64_encode
 from passlib.utils.compat import bascii_to_str
-from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "scram",

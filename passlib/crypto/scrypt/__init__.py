@@ -2,10 +2,8 @@
 
 from warnings import warn
 
-
 from passlib import exc
 from passlib.utils import to_bytes
-
 
 __all__ = [
     "validate",

@@ -50,9 +50,8 @@ released under the BSD license::
 
 import struct
 
-
-from passlib.utils.binary import bcrypt64
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
+from passlib.utils.binary import bcrypt64
 
 # local
 __all__ = [

@@ -1,10 +1,7 @@
 """passlib.crypto._blowfish._gen_files - meta script that generates unrolled.py"""
 
-# core
 import os
 import textwrap
-# pkg
-# local
 
 
 def varlist(name, count):

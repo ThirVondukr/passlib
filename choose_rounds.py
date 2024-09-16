@@ -1,13 +1,10 @@
 """cli helper for selecting appropriate <rounds> value for a given hash"""
 
 import math
-
-
 import sys
 
 from passlib.registry import get_crypt_handler
 from passlib.utils import tick
-
 
 __all__ = [
     "main",

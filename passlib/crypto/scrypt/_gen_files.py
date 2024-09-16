@@ -79,18 +79,18 @@ def main():
     #=================================================================
     # salsa function
     #=================================================================
-    
+
     def salsa20(input):
         \"""apply the salsa20/8 core to the provided input
-    
+
         :args input: input list containing 16 32-bit integers
         :returns: result list containing 16 32-bit integers
         \"""
-    
+
         {TLIST} = input
         {VLIST} = \\
             {TLIST}
-    
+
         i = 0
         while i < 4:
     '''.format(**kwds)
@@ -102,7 +102,7 @@ def main():
             # salsa op %(idx)d: [%(it)d] ^= ([%(is1)d]+[%(is2)d])<<<%(rot1)d
             t = (%(src1)s + %(src2)s) & 0xffffffff
             %(dst)s ^= ((t & 0x%(rmask)08x) << %(rot1)d) | (t >> %(rot2)d)
-    
+
     """
                 % dict(
                     idx=idx,
@@ -120,7 +120,7 @@ def main():
 
         fh.write("""\
             i += 1
-    
+
     """)
 
         for idx in range(16):
@@ -128,9 +128,9 @@ def main():
 
         fh.write(
             """\
-    
+
         return {TLIST}
-    
+
     #=================================================================
     # eof
     #=================================================================

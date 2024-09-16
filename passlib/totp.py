@@ -5,21 +5,19 @@ import base64
 import calendar
 import json
 import logging
-
-
 import math
+import re
 import struct
 import time as _time
-import re
-from urllib.parse import urlparse, parse_qsl, quote, unquote
+from urllib.parse import parse_qsl, quote, unquote, urlparse
 from warnings import warn
 
 # site
 try:
     # TOTP encrypted keys only supported if cryptography (https://cryptography.io) is installed
-    from cryptography.hazmat.backends import default_backend as _cg_default_backend
     import cryptography.hazmat.primitives.ciphers.algorithms
     import cryptography.hazmat.primitives.ciphers.modes
+    from cryptography.hazmat.backends import default_backend as _cg_default_backend
     from cryptography.hazmat.primitives import ciphers as _cg_ciphers
 
     del cryptography
@@ -28,25 +26,25 @@ except ImportError:
     _cg_ciphers = _cg_default_backend = None
 # pkg
 from passlib import exc
+from passlib.crypto.digest import compile_hmac, lookup_hash, pbkdf2_hmac
 from passlib.exc import (
-    TokenError,
-    MalformedTokenError,
     InvalidTokenError,
+    MalformedTokenError,
+    TokenError,
     UsedTokenError,
 )
 from passlib.utils import (
-    to_unicode,
-    to_bytes,
+    SequenceMixin,
     consteq,
     getrandbytes,
-    rng,
-    SequenceMixin,
     getrandstr,
+    rng,
+    to_bytes,
+    to_unicode,
 )
-from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
+from passlib.utils.binary import BASE64_CHARS, b32decode, b32encode
 from passlib.utils.compat import bascii_to_str, numeric_types
 from passlib.utils.decor import hybrid_method, memoized_property
-from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 
 # local
 __all__ = [

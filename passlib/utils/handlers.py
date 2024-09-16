@@ -7,31 +7,30 @@ import threading
 from typing import Optional, Union
 from warnings import warn
 
-from passlib import exc
-from passlib import ifc
+from passlib import exc, ifc
 from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
 from passlib.utils import (
-    consteq,
-    getrandstr,
-    getrandbytes,
-    rng,
-    to_unicode,
     MAX_PASSWORD_SIZE,
     accepts_keyword,
     as_bool,
-    update_mixin_classes,
+    consteq,
+    getrandbytes,
+    getrandstr,
     join_unicode,
+    rng,
+    to_unicode,
+    update_mixin_classes,
 )
 from passlib.utils.binary import (
+    ALL_BYTE_VALUES,
     BASE64_CHARS,
     HASH64_CHARS,
-    PADDED_BASE64_CHARS,
     HEX_CHARS,
-    UPPER_HEX_CHARS,
     LOWER_HEX_CHARS,
-    ALL_BYTE_VALUES,
+    PADDED_BASE64_CHARS,
+    UPPER_HEX_CHARS,
 )
 from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import classproperty, deprecated_method

@@ -1,4 +1,5 @@
-from passlib import hosts, hash as hashmod
+from passlib import hash as hashmod
+from passlib import hosts
 from passlib.utils import unix_crypt_schemes
 from tests.utils import TestCase
 

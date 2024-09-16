@@ -4,11 +4,14 @@ passlib.utils.binary - binary data encoding/decoding/manipulation
 
 from base64 import (
     b32decode as _b32decode,
+)
+from base64 import (
     b32encode as _b32encode,
 )
-from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
-from typing import Union
+from binascii import Error as _BinAsciiError
+from binascii import a2b_base64, b2a_base64
 from collections.abc import Mapping
+from typing import Union
 
 from passlib import exc
 from passlib.utils.compat import (

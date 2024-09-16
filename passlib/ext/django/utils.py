@@ -4,9 +4,10 @@ import logging
 import sys
 import weakref
 from collections import OrderedDict
-from functools import update_wrapper, wraps, lru_cache
+from functools import lru_cache, update_wrapper, wraps
 from typing import Union
 from warnings import warn
+
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning

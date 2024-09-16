@@ -5,15 +5,12 @@
 
 import hashlib
 import logging
-
-
-import re
 import os
+import re
 from warnings import warn
 
-
 from passlib import exc
-from passlib.utils import to_native_str, to_bytes, SequenceMixin, as_bool
+from passlib.utils import SequenceMixin, as_bool, to_bytes, to_native_str
 from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import memoized_property
 

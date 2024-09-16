@@ -3,11 +3,10 @@
 import re
 from warnings import warn
 
-
+import passlib.utils.handlers as uh
+from passlib.crypto.des import des_encrypt_int_block
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
-from passlib.crypto.des import des_encrypt_int_block
-import passlib.utils.handlers as uh
 
 # local
 __all__ = [

@@ -15,7 +15,7 @@ from passlib.handlers.bcrypt import (
 )
 from passlib.utils import repeat_string, to_bytes
 from tests.test_handlers import UPASS_TABLE
-from tests.utils import HandlerCase, TEST_MODE
+from tests.utils import TEST_MODE, HandlerCase
 from tests.utils_ import no_warnings
 
 
@@ -586,8 +586,8 @@ class _bcrypt_sha256_test(HandlerCase):
         """
         test digest calc v2 matches bcrypt()
         """
-        from passlib.hash import bcrypt
         from passlib.crypto.digest import compile_hmac
+        from passlib.hash import bcrypt
 
         # manually calc intermediary digest
         salt = "nyKYxTAvjmy6lMDYMl11Uu"

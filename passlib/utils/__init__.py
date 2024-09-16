@@ -12,42 +12,41 @@ import sys
 import threading
 import time
 import timeit
-from collections.abc import Sequence, Iterable
-from typing import Optional, AnyStr
-
 import unicodedata
+from collections.abc import Iterable, Sequence
+from typing import AnyStr, Optional
 
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.binary import (
+    AB64_CHARS,
     # [remove these aliases in 2.0]
     BASE64_CHARS,
-    AB64_CHARS,
-    HASH64_CHARS,
     BCRYPT_CHARS,
+    HASH64_CHARS,
     Base64Engine,
     LazyBase64Engine,
+    ab64_decode,
+    ab64_encode,
+    b64s_decode,
+    b64s_encode,
+    bcrypt64,
     h64,
     h64big,
-    bcrypt64,
-    ab64_encode,
-    ab64_decode,
-    b64s_encode,
-    b64s_decode,
 )
 from passlib.utils.compat import (
+    add_doc,
+    get_method_function,
     join_bytes,
     join_unicode,
-    add_doc,
     unicode_or_bytes,
-    get_method_function,
 )
 from passlib.utils.decor import (
+    classproperty,
     # [remove these aliases in 2.0]
     deprecated_function,
     deprecated_method,
-    memoized_property,
-    classproperty,
     hybrid_method,
+    memoized_property,
 )
 
 __all__ = [

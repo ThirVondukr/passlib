@@ -1,27 +1,32 @@
 import datetime
 import hashlib
 import os
+import re
 import time
 import warnings
 from configparser import NoSectionError
 
 import pytest
-import re
+
 import passlib.utils.handlers as uh
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibHashWarning
 from passlib.registry import (
-    register_crypt_handler_path,
     _has_crypt_handler as has_crypt_handler,
+)
+from passlib.registry import (
     _unload_handler_name as unload_handler_name,
+)
+from passlib.registry import (
     get_crypt_handler,
+    register_crypt_handler_path,
 )
 from tests.utils import (
     TestCase,
+    handler_derived_from,
     set_file,
     time_call,
-    handler_derived_from,
 )
 from tests.utils_ import WARN_SETTINGS_ARG
 

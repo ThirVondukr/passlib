@@ -1,22 +1,18 @@
-from binascii import Error as DecodeError
 import datetime
-from datetime import timezone
-from functools import partial
 import logging
-
 import sys
 import time as _time
+from binascii import Error as DecodeError
+from datetime import timezone
+from functools import partial
 
 import pytest
 
 from passlib import exc
-from passlib.exc import InvalidTokenError, UsedTokenError
-from tests.utils import TestCase, time_call
-
-
 from passlib import totp as totp_module
-from passlib.totp import TOTP, AppWallet, AES_SUPPORT
-
+from passlib.exc import InvalidTokenError, UsedTokenError
+from passlib.totp import AES_SUPPORT, TOTP, AppWallet
+from tests.utils import TestCase, time_call
 
 PASS1 = "abcdef"
 PASS2 = b"\x00\xff"

@@ -15,7 +15,7 @@ import warnings
 
 # core
 from binascii import unhexlify
-from functools import wraps, partial
+from functools import partial, wraps
 from typing import Optional, Union
 from unittest import SkipTest
 from warnings import warn
@@ -25,23 +25,25 @@ import pytest
 import passlib.utils.handlers as uh
 from passlib import exc
 from passlib.exc import (
-    PasslibHashWarning,
-    PasslibConfigWarning,
-    MissingBackendError,
     InternalBackendError,
+    MissingBackendError,
+    PasslibConfigWarning,
+    PasslibHashWarning,
 )
 from passlib.ifc import PasswordHash
 from passlib.utils import (
+    batch,
+    getrandstr,
     has_rounds_info,
     has_salt_info,
-    rounds_cost_values,
-    rng as sys_rng,
-    getrandstr,
     is_ascii_safe,
-    to_native_str,
     repeat_string,
+    rounds_cost_values,
     tick,
-    batch,
+    to_native_str,
+)
+from passlib.utils import (
+    rng as sys_rng,
 )
 from passlib.utils.decor import classproperty
 from passlib.utils.handlers import PrefixWrapper
@@ -281,8 +283,8 @@ def time_call(func, setup=None, maxtime=1, bestof=10):
     :returns:
         ``(avg_seconds_per_call, log10_number_of_repetitions)``
     """
-    from timeit import Timer
     from math import log
+    from timeit import Timer
 
     timer = Timer(func, setup=setup or "")
     number = 1
@@ -3284,6 +3286,7 @@ class OsCryptMixin(HandlerCase):
 
         # create a wrapper for fuzzy verified to use
         from legacycrypt import crypt
+
         from passlib.utils import _safe_crypt_lock
 
         encoding = self.FuzzHashGenerator.password_encoding
