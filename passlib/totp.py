@@ -122,11 +122,10 @@ def _decode_bytes(key, format):
     key = _clean_re.sub("", key).encode("utf-8")  # strip whitespace & hypens
     if format == "hex" or format == "base16":
         return base64.b16decode(key.upper())
-    elif format == "base32":
+    if format == "base32":
         return b32decode(key)
     # XXX: add base64 support?
-    else:
-        raise ValueError(f"unknown byte-encoding format: {format!r}")
+    raise ValueError(f"unknown byte-encoding format: {format!r}")
 
 
 #: flag for detecting if encrypted totp support is present
@@ -314,7 +313,7 @@ class AppWallet:
         # ensure we have iterable of (tag, value) pairs
         if source is None:
             return {}
-        elif isinstance(source, dict):
+        if isinstance(source, dict):
             source = source.items()
         # XXX: could support iterable of (tag,value) pairs, but not yet needed...
         # elif check_type and (isinstance(source, str) or not isinstance(source, Iterable)):
@@ -795,8 +794,7 @@ class TOTP:
             )
             if new:
                 raise ValueError(msg)
-            else:
-                warn(msg, exc.PasslibSecurityWarning, stacklevel=1)
+            warn(msg, exc.PasslibSecurityWarning, stacklevel=1)
 
         # validate digits
         if digits is None:
@@ -966,17 +964,16 @@ class TOTP:
         """
         if isinstance(time, int):
             return time
-        elif isinstance(time, float):
+        if isinstance(time, float):
             return int(time)
-        elif time is None:
+        if time is None:
             return int(cls.now())
-        elif hasattr(time, "utctimetuple"):
+        if hasattr(time, "utctimetuple"):
             # coerce datetime to UTC timestamp
             # NOTE: utctimetuple() assumes naive datetimes are in UTC
             # NOTE: we explicitly *don't* want microseconds.
             return calendar.timegm(time.utctimetuple())
-        else:
-            raise exc.ExpectedTypeError(time, "int, float, or datetime", "time")
+        raise exc.ExpectedTypeError(time, "int, float, or datetime", "time")
 
     def _time_to_counter(self, time):
         """
@@ -1312,8 +1309,7 @@ class TOTP:
         source = to_unicode(source, param="totp source")
         if source.startswith("otpauth://"):
             return cls.from_uri(source)
-        else:
-            return cls.from_json(source)
+        return cls.from_json(source)
 
     @classmethod
     def from_uri(cls, uri):
@@ -1610,7 +1606,7 @@ class TOTP:
         ver = kwds.pop("v", None)
         if not ver or ver < cls.min_json_version or ver > cls.json_version:
             raise cls._dict_parse_error(f"missing/unsupported version ({ver!r})")
-        elif ver != cls.json_version:
+        if ver != cls.json_version:
             # mark older version as needing re-serializing
             kwds["changed"] = True
         if "enckey" in kwds:

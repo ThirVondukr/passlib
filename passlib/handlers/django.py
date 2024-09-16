@@ -443,9 +443,8 @@ class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         if self.use_duplicate_salt:
             # filling in salt field, so that we're compatible with django 1.0
             return uh.render_mc2(self.ident, salt, chk)
-        else:
-            # django 1.4+ style hash
-            return uh.render_mc2(self.ident, "", chk)
+        # django 1.4+ style hash
+        return uh.render_mc2(self.ident, "", chk)
 
     def _calc_checksum(self, secret):
         # NOTE: we lazily import des_crypt,

@@ -271,12 +271,11 @@ class SequenceGenerator:
         """
         if returns is None:
             return next(self)
-        elif isinstance(returns, int):
+        if isinstance(returns, int):
             return [next(self) for _ in range(returns)]
-        elif returns is iter:
+        if returns is iter:
             return self
-        else:
-            raise exc.ExpectedTypeError(returns, "<None>, int, or <iter>", "returns")
+        raise exc.ExpectedTypeError(returns, "<None>, int, or <iter>", "returns")
 
     def __iter__(self):
         return self

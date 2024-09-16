@@ -75,8 +75,7 @@ def _bitsize(count, chars):
         import math
 
         return int(count * math.log(len(chars), 2))
-    else:
-        return 0
+    return 0
 
 
 def guess_app_stacklevel(start=1):
@@ -134,7 +133,7 @@ def to_unicode_for_identify(hash):
     """convert hash to unicode for identify method"""
     if isinstance(hash, str):
         return hash
-    elif isinstance(hash, bytes):
+    if isinstance(hash, bytes):
         # try as utf-8, but if it fails, use foolproof latin-1,
         # since we don't really care about non-ascii chars
         # when running identify.
@@ -172,10 +171,9 @@ def parse_mc2(hash, prefix, sep=_UDOLLAR, handler=None):
     if len(parts) == 2:
         salt, chk = parts
         return salt, chk or None
-    elif len(parts) == 1:
+    if len(parts) == 1:
         return parts[0], None
-    else:
-        raise exc.MalformedHashError(handler)
+    raise exc.MalformedHashError(handler)
 
 
 def parse_mc3(
@@ -221,7 +219,7 @@ def parse_mc3(
     # validate & parse rounds portion
     if rounds.startswith(_UZERO) and rounds != _UZERO:
         raise exc.ZeroPaddedRoundsError(handler)
-    elif rounds:
+    if rounds:
         rounds = int(rounds, rounds_base)
     elif default_rounds is None:
         raise exc.MalformedHashError(handler, "empty rounds field")
@@ -268,12 +266,11 @@ def parse_int(source, base=10, default=None, param="value", handler=None):
     """
     if source.startswith(_UZERO) and source != _UZERO:
         raise exc.MalformedHashError(handler, f"zero-padded {param} field")
-    elif source:
+    if source:
         return int(source, base)
-    elif default is None:
+    if default is None:
         raise exc.MalformedHashError(handler, f"empty {param} field")
-    else:
-        return default
+    return default
 
 
 def render_mc2(ident, salt, checksum, sep="$"):
@@ -1616,9 +1613,8 @@ class HasRounds(GenericHandler):
                 msg = f"{subcls.name}: max_desired_rounds ({max_desired_rounds!r}) below min_desired_rounds ({min_desired_rounds!r})"
                 if explicit_min_rounds:
                     raise ValueError(msg)
-                else:
-                    warn(msg, PasslibConfigWarning)
-                    max_desired_rounds = min_desired_rounds
+                warn(msg, PasslibConfigWarning)
+                max_desired_rounds = min_desired_rounds
             subcls.max_desired_rounds = subcls._norm_rounds(
                 max_desired_rounds, param="max_desired_rounds", relaxed=relaxed
             )
@@ -1631,7 +1627,7 @@ class HasRounds(GenericHandler):
                 raise ValueError(
                     f"{subcls.name}: default_rounds ({default_rounds!r}) below min_desired_rounds ({min_desired_rounds!r})"
                 )
-            elif max_desired_rounds and default_rounds > max_desired_rounds:
+            if max_desired_rounds and default_rounds > max_desired_rounds:
                 raise ValueError(
                     f"{subcls.name}: default_rounds ({default_rounds!r}) above max_desired_rounds ({max_desired_rounds!r})"
                 )
@@ -1658,7 +1654,7 @@ class HasRounds(GenericHandler):
                 raise ValueError(
                     f"{subcls.name}: vary_rounds ({vary_rounds!r}) below 0"
                 )
-            elif isinstance(vary_rounds, float):
+            if isinstance(vary_rounds, float):
                 # TODO: deprecate / disallow vary_rounds=1.0
                 if vary_rounds > 1:
                     raise ValueError(
@@ -1725,10 +1721,10 @@ class HasRounds(GenericHandler):
                 def linear_to_native(value, upper):
                     if value <= 0:  # log() undefined for <= 0
                         return 0
-                    elif upper:  # use smallest upper bound for start of range
+                    if upper:  # use smallest upper bound for start of range
                         return int(math.log(value, 2))
-                    else:  # use greatest lower bound for end of range
-                        return int(math.ceil(math.log(value, 2)))
+                    # use greatest lower bound for end of range
+                    return int(math.ceil(math.log(value, 2)))
 
             # calculate integer vary rounds based on current default_rounds
             vary_rounds = int(default_rounds * vary_rounds)
@@ -2136,7 +2132,7 @@ class BackendMixin(PasswordHash):
         ok = loader(**kwds)
         if ok is False:
             raise exc.MissingBackendError(f"{cls.name}: backend not available: {name}")
-        elif ok is not True:
+        if ok is not True:
             raise AssertionError(
                 "backend loaders must return True or False" f": {ok!r}"
             )
@@ -2337,8 +2333,7 @@ class HasManyBackends(BackendMixin, GenericHandler):
             func = getattr(cls, "_calc_checksum_" + name)
             cls._set_calc_checksum_backend(func)
             return True
-        else:
-            return False
+        return False
 
     @classmethod
     def _set_calc_checksum_backend(cls, func):
@@ -2538,7 +2533,7 @@ class PrefixWrapper:
             wrapped = self.wrapped
             if hasattr(wrapped, attr):
                 setattr(wrapped, attr, value)
-                return
+                return None
         return object.__setattr__(self, attr, value)
 
     def _unwrap_hash(self, hash):
@@ -2559,8 +2554,7 @@ class PrefixWrapper:
         orig_prefix = self.orig_prefix
         if not hash.startswith(orig_prefix):
             raise exc.InvalidHashError(self.wrapped)
-        wrapped = self.prefix + hash[len(orig_prefix) :]
-        return wrapped
+        return self.prefix + hash[len(orig_prefix) :]
 
     #: set by _using(), helper for test harness' handler_derived_from()
     _derived_from = None

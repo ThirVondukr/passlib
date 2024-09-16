@@ -181,6 +181,7 @@ def main(*args):
         rounds = clamp_rounds(round(rounds))
         print("target rounds...: %d" % (rounds,))
     print()
+    return None
 
 
 if __name__ == "__main__":

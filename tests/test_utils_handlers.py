@@ -95,8 +95,7 @@ class SkeletonTest(TestCase):
                     hash = hash.decode("ascii")
                 if hash == "a":
                     return cls(checksum=hash)
-                else:
-                    raise ValueError
+                raise ValueError
 
         # check fallback
         with pytest.raises(TypeError):
@@ -328,16 +327,14 @@ class SkeletonTest(TestCase):
                 if cls._enable_a:
                     cls._set_calc_checksum_backend(cls._calc_checksum_a)
                     return True
-                else:
-                    return False
+                return False
 
             @classmethod
             def _load_backend_b(cls):
                 if cls._enable_b:
                     cls._set_calc_checksum_backend(cls._calc_checksum_b)
                     return True
-                else:
-                    return False
+                return False
 
             def _calc_checksum_a(self, secret):
                 return "a"
@@ -828,8 +825,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
         return cls(salt=hash[5:-40], checksum=hash[-40:])
 
     def to_string(self):
-        hash = f"@salt{self.salt}{self.checksum}"
-        return hash
+        return f"@salt{self.salt}{self.checksum}"
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):

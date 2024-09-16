@@ -372,8 +372,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
 
     def to_string(self):
         data = self.salt + self.checksum
-        hash = self.ident + b64encode(data).decode("ascii")
-        return hash
+        return self.ident + b64encode(data).decode("ascii")
 
     def _calc_checksum(self, secret):
         # TODO: find out what crowd's policy is re: unicode

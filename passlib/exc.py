@@ -310,10 +310,9 @@ def type_name(value):
     cls = value.__class__
     if cls.__module__ and cls.__module__ not in ["__builtin__", "builtins"]:
         return f"{cls.__module__}.{cls.__name__}"
-    elif value is None:
+    if value is None:
         return "None"
-    else:
-        return cls.__name__
+    return cls.__name__
 
 
 def ExpectedTypeError(value, expected, param):

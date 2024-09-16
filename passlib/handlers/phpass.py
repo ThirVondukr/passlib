@@ -90,13 +90,12 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
 
     def to_string(self):
-        hash = "{}{}{}{}".format(
+        return "{}{}{}{}".format(
             self.ident,
             h64.encode_int6(self.rounds).decode("ascii"),
             self.salt,
             self.checksum or "",
         )
-        return hash
 
     def _calc_checksum(self, secret):
         # FIXME: can't find definitive policy on how phpass handles non-ascii.

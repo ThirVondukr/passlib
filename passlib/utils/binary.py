@@ -375,12 +375,11 @@ class Base64Engine:
         chunks, tail = divmod(len(source), 3)
         next_value = iter(source).__next__
         gen = self._encode_bytes(next_value, chunks, tail)
-        out = bytes(map(self._encode64, gen))
+        return bytes(map(self._encode64, gen))
         ##if tail:
         ##    padding = self.padding
         ##    if padding:
         ##        out += padding * (3-tail)
-        return out
 
     def _encode_bytes_little(self, next_value, chunks, tail):
         """helper used by encode_bytes() to handle little-endian encoding"""
@@ -711,8 +710,7 @@ class Base64Engine:
         try:
             if self.big:
                 return decode(source[1]) + (decode(source[0]) << 6)
-            else:
-                return decode(source[0]) + (decode(source[1]) << 6)
+            return decode(source[0]) + (decode(source[1]) << 6)
         except KeyError:
             raise ValueError("invalid character")
 
@@ -731,13 +729,12 @@ class Base64Engine:
                     + (decode(source[1]) << 12)
                     + (decode(source[0]) << 18)
                 )
-            else:
-                return (
-                    decode(source[0])
-                    + (decode(source[1]) << 6)
-                    + (decode(source[2]) << 12)
-                    + (decode(source[3]) << 18)
-                )
+            return (
+                decode(source[0])
+                + (decode(source[1]) << 6)
+                + (decode(source[2]) << 12)
+                + (decode(source[3]) << 18)
+            )
         except KeyError:
             raise ValueError("invalid character")
 

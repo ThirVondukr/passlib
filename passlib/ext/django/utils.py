@@ -190,8 +190,7 @@ class DjangoTranslator:
         context = self.context
         if context is None:
             return registry.get_crypt_handler(passlib_name)
-        else:
-            return context.handler(passlib_name)
+        return context.handler(passlib_name)
 
     def passlib_to_django_name(self, passlib_name):
         """
@@ -232,8 +231,7 @@ class DjangoTranslator:
         django_name = getattr(passlib_hasher, "django_name", None)
         if django_name:
             return self._create_django_hasher(django_name)
-        else:
-            return _PasslibHasherWrapper(passlib_hasher)
+        return _PasslibHasherWrapper(passlib_hasher)
 
     _builtin_django_hashers = dict(
         md5="MD5PasswordHasher",
@@ -623,10 +621,9 @@ class DjangoContextAdapter(DjangoTranslator):
         """
         if user.is_superuser:
             return "superuser"
-        elif user.is_staff:
+        if user.is_staff:
             return "staff"
-        else:
-            return None
+        return None
 
     HASHERS_PATH = "django.contrib.auth.hashers"
     MODELS_PATH = "django.contrib.auth.models"
@@ -790,8 +787,7 @@ class DjangoContextAdapter(DjangoTranslator):
         if config == "disabled":
             self.enabled = False
             return
-        else:
-            self.__dict__.pop("enabled", None)
+        self.__dict__.pop("enabled", None)
 
         # resolve any preset aliases
         if isinstance(config, str) and "\n" not in config:
@@ -1086,8 +1082,7 @@ class _PatchManager:
             msg = f"another library has patched resource: {path!r}"
             if strict:
                 raise RuntimeError(msg)
-            else:
-                warn(msg, PasslibRuntimeWarning)
+            warn(msg, PasslibRuntimeWarning)
 
     def _set_path(self, path, value):
         obj, attr = self._import_path(path)

@@ -2032,7 +2032,7 @@ def shrink_des_key(key):
         if len(key) != 8:
             raise ValueError("key must be 8 bytes in size")
         return _pack56(shrink_des_key(_unpack64(key)))
-    elif isinstance(key, int):
+    if isinstance(key, int):
         if key < 0 or key > INT_64_MASK:
             raise ValueError("key must be 64-bit non-negative integer")
     else:
@@ -2147,13 +2147,13 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
     # validate & unpack key
     if not isinstance(key, int):
         raise exc.ExpectedTypeError(key, "int", "key")
-    elif key < 0 or key > INT_64_MASK:
+    if key < 0 or key > INT_64_MASK:
         raise ValueError("key must be 64-bit non-negative integer")
 
     # validate & unpack input
     if not isinstance(input, int):
         raise exc.ExpectedTypeError(input, "int", "input")
-    elif input < 0 or input > INT_64_MASK:
+    if input < 0 or input > INT_64_MASK:
         raise ValueError("input must be 64-bit non-negative integer")
 
     # ---------------------------------------------------------------

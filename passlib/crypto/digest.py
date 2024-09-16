@@ -133,6 +133,7 @@ def _get_hash_aliases(name):
         for row in _known_hash_names:
             if name in row:
                 return row
+        return None
 
     result = check_table(name)
     if result:
@@ -387,10 +388,9 @@ def norm_hash_name(name, format="hashlib"):
         warn("norm_hash_name(): " + info.error_text, exc.PasslibRuntimeWarning)
     if format == "hashlib":
         return info.name
-    elif format == "iana":
+    if format == "iana":
         return info.iana_name
-    else:
-        raise ValueError(f"unknown format: {format!r}")
+    raise ValueError(f"unknown format: {format!r}")
 
 
 class HashInfo(SequenceMixin):

@@ -108,14 +108,13 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
     def genhash(cls, secret, config, marker=None):
         if not cls.identify(config):
             raise uh.exc.InvalidHashError(cls)
-        elif config:
+        if config:
             # preserve the existing str,since it might contain a disabled password hash ("!" + hash)
             uh.validate_secret(secret)
             return to_native_str(config, param="config")
-        else:
-            if marker is not None:
-                cls = cls.using(marker=marker)
-            return cls.hash(secret)
+        if marker is not None:
+            cls = cls.using(marker=marker)
+        return cls.hash(secret)
 
     @classmethod
     def disable(cls, hash=None):
@@ -137,8 +136,7 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
                 orig = hash[len(prefix) :]
                 if orig:
                     return orig
-                else:
-                    raise ValueError("cannot restore original hash")
+                raise ValueError("cannot restore original hash")
         raise uh.exc.InvalidHashError(cls)
 
 
@@ -170,8 +168,7 @@ class plaintext(uh.MinimalHandler):
     def identify(cls, hash):
         if isinstance(hash, unicode_or_bytes):
             return True
-        else:
-            raise uh.exc.ExpectedStringError(hash, "hash")
+        raise uh.exc.ExpectedStringError(hash, "hash")
 
     @classmethod
     def hash(cls, secret, encoding=None):

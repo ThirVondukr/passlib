@@ -343,7 +343,7 @@ class _ExtensionTest(TestCase, _ExtensionSupport):
 
         if not DJANGO_VERSION:
             raise self.skipTest("Django not installed")
-        elif not has_min_django:
+        if not has_min_django:
             raise self.skipTest("Django version too old")
 
         # reset to baseline, and verify it worked

@@ -408,8 +408,7 @@ class _base_argon2_test(HandlerCase):
             self.checksum = self._stub_checksum
             assert self.checksum
             return self.to_string()
-        else:
-            return super().do_stub_encrypt(handler, **settings)
+        return super().do_stub_encrypt(handler, **settings)
 
     def test_03_legacy_hash_workflow(self):
         # override base method
@@ -652,8 +651,7 @@ class _base_argon2_test(HandlerCase):
         def random_memory_cost(self):
             if self.test.backend == "argon2pure":
                 return self.randintgauss(128, 384, 256, 128)
-            else:
-                return self.randintgauss(128, 32767, 16384, 4096)
+            return self.randintgauss(128, 32767, 16384, 4096)
 
         # TODO: fuzz parallelism, digest_size
 

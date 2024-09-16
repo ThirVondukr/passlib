@@ -76,8 +76,7 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
 
     def to_string(self):
         data = self.checksum + self.salt
-        hash = self.ident + b64encode(data).decode("ascii")
-        return hash
+        return self.ident + b64encode(data).decode("ascii")
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):

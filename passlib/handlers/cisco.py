@@ -136,14 +136,13 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
                     self.truncate_size,
                 )
                 raise uh.exc.PasswordSizeError(self.truncate_size, msg=msg)
-            else:
-                # called from verify() --
-                # We don't want to throw error, or return early,
-                # as that would let attacker know too much.  Instead, we set a
-                # flag to add some dummy data into the md5 digest, so that
-                # output won't match truncated version of secret, or anything
-                # else that's fixed and predictable.
-                spoil_digest = secret + _DUMMY_BYTES
+            # called from verify() --
+            # We don't want to throw error, or return early,
+            # as that would let attacker know too much.  Instead, we set a
+            # flag to add some dummy data into the md5 digest, so that
+            # output won't match truncated version of secret, or anything
+            # else that's fixed and predictable.
+            spoil_digest = secret + _DUMMY_BYTES
 
         #
         # append user to secret
@@ -355,8 +354,7 @@ class cisco_type7(uh.GenericHandler):
         if relaxed:
             warn(msg, uh.PasslibHashWarning)
             return 0 if salt < 0 else cls.max_salt_value
-        else:
-            raise ValueError(msg)
+        raise ValueError(msg)
 
     @staticmethod
     def _generate_salt():

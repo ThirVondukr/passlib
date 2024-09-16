@@ -62,7 +62,7 @@ class HostsTest(TestCase):
     def test_host_context(self):
         ctx = getattr(hosts, "host_context", None)
         if not ctx:
-            return self.skipTest("host_context not available on this platform")
+            self.skipTest("host_context not available on this platform")
 
         # validate schemes is non-empty,
         # and contains unix_disabled + at least one real scheme

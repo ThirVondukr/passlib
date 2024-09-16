@@ -175,15 +175,13 @@ class _BcryptCommon(
         )
 
     def to_string(self):
-        hash = "%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum)
-        return hash
+        return "%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum)
 
     # NOTE: this should be kept separate from to_string()
     #       so that bcrypt_sha256() can still use it, while overriding to_string()
     def _get_config(self, ident):
         """internal helper to prepare config string for backends"""
-        config = "%s%02d$%s" % (ident, self.rounds, self.salt)
-        return config
+        return "%s%02d$%s" % (ident, self.rounds, self.salt)
 
     @classmethod
     def needs_update(cls, hash, **kwds):
@@ -205,8 +203,7 @@ class _BcryptCommon(
         """helper to normalize hash, correcting any bcrypt padding bits"""
         if cls.identify(hash):
             return cls.from_string(hash).to_string()
-        else:
-            return hash
+        return hash
 
     @classmethod
     def _generate_salt(cls):
@@ -421,30 +418,29 @@ class _BcryptCommon(
         if result is NotImplemented:
             # 2a support is required, and should always be present
             raise RuntimeError(f"{backend} lacks support for $2a$ hashes")
-        elif not result:
+        if not result:
             raise RuntimeError(f"{backend} incorrectly rejected $2a$ hash")
-        else:
-            assert_lacks_8bit_bug(IDENT_2A)
-            if detect_wrap_bug(IDENT_2A):
-                if backend == "os_crypt":
-                    # don't make this a warning for os crypt (e.g. openbsd);
-                    # they'll have proper 2b implementation which will be used for new hashes.
-                    # so even if we didn't have a workaround, this bug wouldn't be a concern.
-                    log.debug(
-                        "%r backend has $2a$ bsd wraparound bug, enabling workaround",
-                        backend,
-                    )
-                else:
-                    # installed library has the bug -- want to let users know,
-                    # so they can upgrade it to something better (e.g. bcrypt cffi library)
-                    warn(
-                        f"passlib.hash.bcrypt: Your installation of the {backend!r} backend is vulnerable to "
-                        "the bsd wraparound bug, "
-                        "and should be upgraded or replaced with another backend "
-                        "(enabling workaround for now).",
-                        uh.exc.PasslibSecurityWarning,
-                    )
-                mixin_cls._has_2a_wraparound_bug = True
+        assert_lacks_8bit_bug(IDENT_2A)
+        if detect_wrap_bug(IDENT_2A):
+            if backend == "os_crypt":
+                # don't make this a warning for os crypt (e.g. openbsd);
+                # they'll have proper 2b implementation which will be used for new hashes.
+                # so even if we didn't have a workaround, this bug wouldn't be a concern.
+                log.debug(
+                    "%r backend has $2a$ bsd wraparound bug, enabling workaround",
+                    backend,
+                )
+            else:
+                # installed library has the bug -- want to let users know,
+                # so they can upgrade it to something better (e.g. bcrypt cffi library)
+                warn(
+                    f"passlib.hash.bcrypt: Your installation of the {backend!r} backend is vulnerable to "
+                    "the bsd wraparound bug, "
+                    "and should be upgraded or replaced with another backend "
+                    "(enabling workaround for now).",
+                    uh.exc.PasslibSecurityWarning,
+                )
+            mixin_cls._has_2a_wraparound_bug = True
 
         # ----------------------------------------------------------------
         # check for 2y support
@@ -1032,13 +1028,12 @@ class bcrypt_sha256(_wrapped_bcrypt):
             template = self._v1_template
         else:
             template = self._v2_template
-        hash = template % (
+        return template % (
             self.ident.strip(_UDOLLAR),
             self.rounds,
             self.salt,
             self.checksum,
         )
-        return hash
 
     def __init__(self, version=None, **kwds):
         if version is not None:

@@ -126,8 +126,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         chk = self.checksum
-        hash = f"S:{chk.upper()}{self.salt.upper()}"
-        return hash
+        return f"S:{chk.upper()}{self.salt.upper()}"
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):

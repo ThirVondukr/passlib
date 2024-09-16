@@ -150,7 +150,6 @@ ignore = [
     "ARG",
     "TRY",
     "SLF",
-    "RET",
     "ERA",
     "PERF401",
     "C90",

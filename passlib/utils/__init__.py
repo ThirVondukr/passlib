@@ -613,12 +613,10 @@ def to_bytes(
     if isinstance(source, bytes):
         if source_encoding and not is_same_codec(source_encoding, encoding):
             return source.decode(source_encoding).encode(encoding)
-        else:
-            return source
-    elif isinstance(source, str):
+        return source
+    if isinstance(source, str):
         return source.encode(encoding)
-    else:
-        raise ExpectedStringError(source, param)
+    raise ExpectedStringError(source, param)
 
 
 def to_unicode(source: AnyStr, encoding="utf-8", param="value") -> str:
@@ -642,7 +640,7 @@ def to_unicode(source: AnyStr, encoding="utf-8", param="value") -> str:
     assert encoding
     if isinstance(source, str):
         return source
-    elif isinstance(source, bytes):
+    if isinstance(source, bytes):
         return source.decode(encoding)
 
     raise ExpectedStringError(source, param)
@@ -658,7 +656,7 @@ def to_native_str(source: AnyStr, encoding="utf-8", param="value") -> str:
     """
     if isinstance(source, bytes):
         return source.decode(encoding)
-    elif isinstance(source, str):
+    if isinstance(source, str):
         return source
     raise ExpectedStringError(source, param)
 
@@ -689,9 +687,9 @@ def as_bool(value: AnyStr, none: Optional[bool] = None, param="boolean") -> bool
         if clean in _none_set:
             return none
         raise ValueError(f"unrecognized {param} value: {value!r}")
-    elif isinstance(value, bool):
+    if isinstance(value, bool):
         return value
-    elif value is None:
+    if value is None:
         return none
     return bool(value)
 
@@ -930,8 +928,7 @@ def getrandstr(rng, charset, count):
 
     if isinstance(charset, str):
         return "".join(helper())
-    else:
-        return bytes(helper())
+    return bytes(helper())
 
 
 _52charset = "2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz"

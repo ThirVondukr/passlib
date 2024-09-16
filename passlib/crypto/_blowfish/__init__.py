@@ -104,7 +104,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     salt = bcrypt64.decode_bytes(salt)
     if len(salt) < 16:
         raise ValueError("Missing salt bytes")
-    elif len(salt) > 16:
+    if len(salt) > 16:
         salt = salt[:16]
 
     # prepare password

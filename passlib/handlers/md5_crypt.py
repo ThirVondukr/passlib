@@ -251,8 +251,7 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         if test_crypt("test", "$1$test$pi/xDtU5WFVRqYS6BMU8X/"):
             cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
             return True
-        else:
-            return False
+        return False
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.ident + self.salt
