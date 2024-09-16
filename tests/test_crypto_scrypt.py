@@ -309,7 +309,7 @@ class _CommonScryptTest(TestCase):
 
     @classproperty
     def descriptionPrefix(cls):
-        return "passlib.utils.scrypt.scrypt() <%s backend>" % cls.backend
+        return f"passlib.utils.scrypt.scrypt() <{cls.backend} backend>"
 
     backend = None
 
@@ -411,7 +411,7 @@ class _CommonScryptTest(TestCase):
         # maybe this means it should go somewhere else?
         if self._already_tested_others:
             raise self.skipTest(
-                "already run under %r backend test" % self._already_tested_others
+                f"already run under {self._already_tested_others!r} backend test"
             )
         self._already_tested_others = self.backend
         rng = self.getRandom()
@@ -455,8 +455,7 @@ class _CommonScryptTest(TestCase):
                 assert len(result) == 2 * ks
                 if previous is not None:
                     assert result == previous, (
-                        "%r output differs from others %r: %r"
-                        % (name, available, [secret, salt, n, r, p, ks])
+                        f"{name!r} output differs from others {available!r}: {[secret, salt, n, r, p, ks]!r}"
                     )
 
     def test_backend(self):

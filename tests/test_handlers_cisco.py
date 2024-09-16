@@ -125,9 +125,9 @@ class _PixAsaSharedTest(UserHandlerMixin, HandlerCase):
         # observed behaviors include:
         # * ssh cli stripping non-ascii chars entirely
         # * ASDM web iface double-encoding utf-8 strings
-        (("t\xe1ble".encode("utf-8"), "user"), "Og8fB4NyF0m5Ed9c"),
+        (("t\xe1ble".encode(), "user"), "Og8fB4NyF0m5Ed9c"),
         (
-            ("t\xe1ble".encode("utf-8").decode("latin-1").encode("utf-8"), "user"),
+            ("t\xe1ble".encode().decode("latin-1").encode("utf-8"), "user"),
             "cMvFC2XVBmK/68yB",
         ),  # confirmed ASA 9.6 when typed into ASDM
     ]

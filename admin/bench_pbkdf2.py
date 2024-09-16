@@ -64,7 +64,7 @@ def main():
                     print(cell.format("-"), end="")
                     continue
                 else:
-                    raise AssertionError("expected %r / %r to fail" % (name, alg))
+                    raise AssertionError(f"expected {name!r} / {alg!r} to fail")
             rounds_per_sec = rounds / timeit(alg_stmt, setup)
             print(num_cell.format(int(rounds_per_sec / units_per_sec)), end="")
             sys.stdout.flush()
@@ -106,7 +106,7 @@ def main():
 
     if backend:
         benchmark(
-            "hashlib/%s" % backend,
+            f"hashlib/{backend}",
             "from hashlib import pbkdf2_hmac",
             "pbkdf2_hmac({alg!r}, {secret!r}, {salt!r}, {rounds})",
         )
@@ -120,7 +120,7 @@ def main():
     import passlib.crypto.digest as digest_mod
 
     for backend in ["from-bytes", "unpack", "hexlify"]:
-        name = "p/%s" % backend
+        name = f"p/{backend}"
         os.environ["PASSLIB_PBKDF2_BACKEND"] = backend
         reload(digest_mod)
         benchmark(

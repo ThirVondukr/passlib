@@ -122,7 +122,7 @@ _USPACE = " "
 MAX_PASSWORD_SIZE = int(os.environ.get("PASSLIB_MAX_PASSWORD_SIZE") or 4096)
 
 
-class SequenceMixin(object):
+class SequenceMixin:
     """
     helper which lets result object act like a fixed-length sequence.
     subclass just needs to provide :meth:`_as_tuple()`.
@@ -347,7 +347,7 @@ def saslprep(source, param="value"):
     # XXX: support bytes (e.g. run through want_unicode)?
     #      might be easier to just integrate this into cryptcontext.
     if not isinstance(source, str):
-        raise TypeError("input must be string, not %s" % (type(source),))
+        raise TypeError(f"input must be string, not {type(source)}")
 
     # mapping stage
     #   - map non-ascii spaces to U+0020 (stringprep C.1.2)
@@ -689,7 +689,7 @@ def as_bool(value: AnyStr, none: Optional[bool] = None, param="boolean") -> bool
             return False
         if clean in _none_set:
             return none
-        raise ValueError("unrecognized %s value: %r" % (param, value))
+        raise ValueError(f"unrecognized {param} value: {value!r}")
     elif isinstance(value, bool):
         return value
     elif value is None:
@@ -816,7 +816,7 @@ def test_crypt(secret, hash):
     # 'hash' can't be bytes, or "== hash" will never be True.
     # under py2 unicode & str(bytes) will compare fine;
     # so just enforcing "str" limitation
-    assert isinstance(hash, str), "hash must be str, got %s" % type(hash)
+    assert isinstance(hash, str), f"hash must be str, got {type(hash)}"
     assert hash, "hash must be non-empty"
     return safe_crypt(secret, hash) == hash
 
@@ -851,7 +851,7 @@ def genseed(value=None):
             # this method throws error for e.g. SystemRandom instances,
             # so fall back to extracting 4k of state
             value = value.getrandbits(1 << 15)
-    text = "%s %s %s %.15f %.15f %s" % (
+    text = "{} {} {} {:.15f} {:.15f} {}".format(
         # if caller specified a seed value, mix it in
         value,
         # add current process id

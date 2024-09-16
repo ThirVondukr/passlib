@@ -100,7 +100,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         elif self.use_defaults:
             variant = self.default_variant
             assert self._norm_variant(variant) == variant, (
-                "invalid default variant: %r" % (variant,)
+                f"invalid default variant: {variant!r}"
             )
         else:
             raise TypeError("no variant specified")

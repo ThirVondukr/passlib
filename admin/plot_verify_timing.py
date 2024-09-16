@@ -106,7 +106,7 @@ def main(*args):
         plt.xlabel("loop count")
         plt.legend(shadow=True, title="Legend", fancybox=True)
 
-        plt.title("%s verify timing" % ctx.handler().name)
+        plt.title(f"{ctx.handler().name} verify timing")
         pdf.savefig()
         plt.close()
 

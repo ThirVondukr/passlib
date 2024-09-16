@@ -7,7 +7,8 @@ from base64 import (
     b32encode as _b32encode,
 )
 from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
-from typing import Mapping, Union
+from typing import Union
+from collections.abc import Mapping
 
 from passlib import exc
 from passlib.utils.compat import (
@@ -243,7 +244,7 @@ def b32decode(source):
     return _b32decode(source, True)
 
 
-class Base64Engine(object):
+class Base64Engine:
     """Provides routines for encoding/decoding base64 data using
     arbitrary character mappings, selectable endianness, etc.
 
@@ -367,7 +368,7 @@ class Base64Engine(object):
         :returns: byte string containing encoded data.
         """
         if not isinstance(source, bytes):
-            raise TypeError("source must be bytes, not %s" % (type(source),))
+            raise TypeError(f"source must be bytes, not {type(source)}")
         chunks, tail = divmod(len(source), 3)
         next_value = iter(source).__next__
         gen = self._encode_bytes(next_value, chunks, tail)
@@ -463,7 +464,7 @@ class Base64Engine(object):
         :returns: byte string containing decoded data.
         """
         if not isinstance(source, bytes):
-            raise TypeError("source must be bytes, not %s" % (type(source),))
+            raise TypeError(f"source must be bytes, not {type(source)}")
         ##padding = self.padding
         ##if padding:
         ##    # TODO: add padding size check?
@@ -476,7 +477,7 @@ class Base64Engine(object):
         try:
             return bytes(self._decode_bytes(next_value, chunks, tail))
         except KeyError as err:
-            raise ValueError("invalid character: %r" % (err.args[0],))
+            raise ValueError(f"invalid character: {err.args[0]!r}")
 
     def _decode_bytes_little(self, next_value, chunks, tail):
         """helper used by decode_bytes() to handle little-endian encoding"""
@@ -629,7 +630,7 @@ class Base64Engine(object):
     def encode_transposed_bytes(self, source, offsets):
         """encode byte string, first transposing source using offset list"""
         if not isinstance(source, bytes):
-            raise TypeError("source must be bytes, not %s" % (type(source),))
+            raise TypeError(f"source must be bytes, not {type(source)}")
         tmp = bytes(source[off] for off in offsets)
         return self.encode_bytes(tmp)
 
@@ -659,7 +660,7 @@ class Base64Engine(object):
             a integer in the range ``0 <= n < 2**bits``
         """
         if not isinstance(source, bytes):
-            raise TypeError("source must be bytes, not %s" % (type(source),))
+            raise TypeError(f"source must be bytes, not {type(source)}")
         big = self.big
         pad = -bits % 6
         chars = (bits + pad) / 6
@@ -671,7 +672,7 @@ class Base64Engine(object):
             for c in source if big else reversed(source):
                 out = (out << 6) + decode(c)
         except KeyError:
-            raise ValueError("invalid character in string: %r" % (c,))
+            raise ValueError(f"invalid character in string: {c!r}")
         if pad:
             # strip padding bits
             if big:
@@ -687,7 +688,7 @@ class Base64Engine(object):
     def decode_int6(self, source):
         """decode single character -> 6 bit integer"""
         if not isinstance(source, bytes):
-            raise TypeError("source must be bytes, not %s" % (type(source),))
+            raise TypeError(f"source must be bytes, not {type(source)}")
         if len(source) != 1:
             raise ValueError("source must be exactly 1 byte")
         # convert to 8bit int before doing lookup
@@ -700,7 +701,7 @@ class Base64Engine(object):
     def decode_int12(self, source):
         """decodes 2 char string -> 12-bit integer"""
         if not isinstance(source, bytes):
-            raise TypeError("source must be bytes, not %s" % (type(source),))
+            raise TypeError(f"source must be bytes, not {type(source)}")
         if len(source) != 2:
             raise ValueError("source must be exactly 2 bytes")
         decode = self._decode64
@@ -715,7 +716,7 @@ class Base64Engine(object):
     def decode_int24(self, source):
         """decodes 4 char string -> 24-bit integer"""
         if not isinstance(source, bytes):
-            raise TypeError("source must be bytes, not %s" % (type(source),))
+            raise TypeError(f"source must be bytes, not {type(source)}")
         if len(source) != 4:
             raise ValueError("source must be exactly 4 bytes")
         decode = self._decode64

@@ -119,7 +119,7 @@ class _LazyOverlayModule(ModuleType):
             setattr(self, attr, value)
             self.__log.debug("loaded lazy attr %r: %r", attr, value)
             return value
-        raise AttributeError("'module' object has no attribute '%s'" % (attr,))
+        raise AttributeError(f"'module' object has no attribute '{attr}'")
 
     def __repr__(self):
         proxy = self.__proxy

@@ -73,7 +73,7 @@ def _always_needs_update(hash, secret=None):
 _global_settings = set(["truncate_error", "vary_rounds"])
 
 
-class _CryptConfig(object):
+class _CryptConfig:
     """parses, validates, and stores CryptContext config
 
     this is a helper used internally by CryptContext to handle
@@ -137,12 +137,12 @@ class _CryptConfig(object):
                 scheme = handler.name
             else:
                 raise TypeError(
-                    "scheme must be name or CryptHandler, " "not %r" % type(elem)
+                    "scheme must be name or CryptHandler, " f"not {type(elem)!r}"
                 )
 
             # check scheme name isn't already in use
             if scheme in schemes:
-                raise KeyError("multiple handlers with same name: %r" % (scheme,))
+                raise KeyError(f"multiple handlers with same name: {scheme!r}")
 
             # add to handler list
             handlers.append(handler)
@@ -179,9 +179,8 @@ class _CryptConfig(object):
                 # this will be fatal under 2.0.
                 if scheme == "all" and key not in _global_settings:
                     warn(
-                        "The '%s' option should be configured per-algorithm, and not set "
-                        "globally in the context; This will be an error in Passlib 2.0"
-                        % (key,),
+                        f"The '{key}' option should be configured per-algorithm, and not set "
+                        "globally in the context; This will be an error in Passlib 2.0",
                         PasslibConfigWarning,
                     )
 
@@ -233,7 +232,7 @@ class _CryptConfig(object):
         # check for invalid options
         if key in _forbidden_scheme_options:
             raise KeyError(
-                "%r option not allowed in CryptContext " "configuration" % (key,)
+                f"{key!r} option not allowed in CryptContext " "configuration"
             )
         # coerce strings for certain fields (e.g. min_rounds uses ints)
         if isinstance(value, str):
@@ -271,10 +270,10 @@ class _CryptConfig(object):
                         raise ExpectedTypeError(value, "str", "deprecated element")
                     if scheme not in schemes:
                         raise KeyError(
-                            "deprecated scheme not found " "in policy: %r" % (scheme,)
+                            "deprecated scheme not found " f"in policy: {scheme!r}"
                         )
         elif key != "schemes":
-            raise KeyError("unknown CryptContext keyword: %r" % (key,))
+            raise KeyError(f"unknown CryptContext keyword: {key!r}")
         return key, value
 
     # ---------------------------------------------------------------
@@ -410,11 +409,11 @@ class _CryptConfig(object):
                 else:
                     raise ValueError(
                         "must have at least one non-deprecated "
-                        "scheme for %r category" % cat
+                        f"scheme for {cat!r} category"
                     )
             elif cdefault in cdeps:
                 raise ValueError(
-                    "default scheme for %r category " "cannot be deprecated" % cat
+                    f"default scheme for {cat!r} category " "cannot be deprecated"
                 )
 
     def default_scheme(self, category):
@@ -486,7 +485,7 @@ class _CryptConfig(object):
                 # XXX: push this down to GenericHandler.using() implementation?
                 key = m.group(1)
                 raise KeyError(
-                    "keyword not supported by %s handler: %r" % (handler.name, key)
+                    f"keyword not supported by {handler.name} handler: {key!r}"
                 )
             raise
 
@@ -561,7 +560,7 @@ class _CryptConfig(object):
                 pass
 
         # scheme not found in configuration for default category
-        raise KeyError("crypt algorithm not found in policy: %r" % (scheme,))
+        raise KeyError(f"crypt algorithm not found in policy: {scheme!r}")
 
     def _get_record_list(self, category=None):
         """return list of records for category (cached)
@@ -662,7 +661,7 @@ class _CryptConfig(object):
                         yield (cat, scheme, key), kwds[key]
 
 
-class CryptContext(object):
+class CryptContext:
     """Helper for hashing & verifying passwords using multiple algorithms.
 
     Instances of this class allow applications to choose a specific
@@ -846,7 +845,7 @@ class CryptContext(object):
     ##    return self.to_string()
 
     def __repr__(self):
-        return "<CryptContext at 0x%0x>" % id(self)
+        return f"<CryptContext at 0x{id(self):0x}>"
 
     @staticmethod
     def _parse_ini_stream(stream, section, filename):
@@ -870,7 +869,7 @@ class CryptContext(object):
 
         .. versionadded:: 1.6
         """
-        with open(path, "rt", encoding=encoding) as stream:
+        with open(path, encoding=encoding) as stream:
             kwds = self._parse_ini_stream(stream, section, path)
         return self.load(kwds, update=update)
 
@@ -1000,18 +999,18 @@ class CryptContext(object):
         elif count == 3:
             cat, scheme, key = parts
         else:
-            raise TypeError("keys must have less than 3 separators: %r" % (ckey,))
+            raise TypeError(f"keys must have less than 3 separators: {ckey!r}")
         # validate & normalize the parts
         if cat == "default":
             cat = None
         elif not cat and cat is not None:
-            raise TypeError("empty category: %r" % ckey)
+            raise TypeError(f"empty category: {ckey!r}")
         if scheme == "context":
             scheme = None
         elif not scheme and scheme is not None:
-            raise TypeError("empty scheme: %r" % ckey)
+            raise TypeError(f"empty scheme: {ckey!r}")
         if not key:
-            raise TypeError("empty option: %r" % ckey)
+            raise TypeError(f"empty option: {ckey!r}")
         return cat, scheme, key
 
     def update(self, *args, **kwds):
@@ -1209,7 +1208,7 @@ class CryptContext(object):
         if self._config.handlers:
             raise KeyError(
                 "crypt algorithm not found in this "
-                "CryptContext instance: %r" % (scheme,)
+                f"CryptContext instance: {scheme!r}"
             )
         else:
             raise KeyError(
@@ -1239,9 +1238,9 @@ class CryptContext(object):
         """convert 3-part config key to single string"""
         cat, scheme, option = key
         if cat:
-            return "%s__%s__%s" % (cat, scheme or "context", option)
+            return "{}__{}__{}".format(cat, scheme or "context", option)
         elif scheme:
-            return "%s__%s" % (scheme, option)
+            return f"{scheme}__{option}"
         else:
             return option
 
@@ -1256,11 +1255,11 @@ class CryptContext(object):
         # convert numbers to strings
         elif isinstance(value, numeric_types):
             if isinstance(value, float) and key[2] == "vary_rounds":
-                value = ("%.2f" % value).rstrip("0") if value else "0"
+                value = (f"{value:.2f}").rstrip("0") if value else "0"
             else:
                 value = str(value)
 
-        assert isinstance(value, str), "expected string for key: %r %r" % (key, value)
+        assert isinstance(value, str), f"expected string for key: {key!r} {value!r}"
 
         # escape any percent signs.
         return value.replace("%", "%%")
@@ -1345,10 +1344,9 @@ class CryptContext(object):
         if unregistered:
             buf.write(
                 (
-                    "# NOTE: the %s handler(s) are not registered with Passlib,\n"
+                    "# NOTE: the {} handler(s) are not registered with Passlib,\n"
                     "# this string may not correctly reproduce the current configuration.\n\n"
-                )
-                % ", ".join(repr(handler.name) for handler in unregistered)
+                ).format(", ".join(repr(handler.name) for handler in unregistered))
             )
         return buf.getvalue()
 

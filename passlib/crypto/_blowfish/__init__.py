@@ -98,7 +98,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
             "crypt_blowfish's buggy '2x' hashes are not " "currently supported"
         )
     else:
-        raise ValueError("unknown ident: %r" % (ident,))
+        raise ValueError(f"unknown ident: {ident!r}")
 
     # decode & validate salt
     assert isinstance(salt, bytes)

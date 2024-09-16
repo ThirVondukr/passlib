@@ -42,8 +42,7 @@ class benchmark:
     def run(cls, source, **defaults):
         """run benchmark for all tasks in source, yielding result records"""
         for obj in source.values():
-            for record in cls._run_object(obj, defaults):
-                yield record
+            yield from cls._run_object(obj, defaults)
 
     @classmethod
     def _run_object(cls, obj, defaults):
@@ -58,7 +57,7 @@ class benchmark:
             secs, precision = cls.measure(func, None, **kwds)
             yield name, secs, precision
         else:
-            raise ValueError("invalid mode: %r" % (mode,))
+            raise ValueError(f"invalid mode: {mode!r}")
 
     measure = staticmethod(time_call)
 

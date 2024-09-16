@@ -31,7 +31,7 @@ def set_command_options(opts, command, **kwds):
 
 
 def _get_file(path):
-    with open(path, "r") as fh:
+    with open(path) as fh:
         return fh.read()
 
 

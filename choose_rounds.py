@@ -26,7 +26,7 @@ def main(*args):
     args = list(args)
 
     def print_error(msg):
-        print("error: %s\n" % msg)
+        print(f"error: {msg}\n")
 
     # parse hasher
     if args:
@@ -37,10 +37,10 @@ def main(*args):
         try:
             hasher = get_crypt_handler(name)
         except KeyError:
-            print_error("unknown hash %r" % name)
+            print_error(f"unknown hash {name!r}")
             return 1
         if "rounds" not in hasher.setting_kwds:
-            print_error("%s does not support variable rounds" % name)
+            print_error(f"{name} does not support variable rounds")
             return 1
     else:
         print_error("hash name not specified")
@@ -135,13 +135,13 @@ def main(*args):
     # using final estimate, calc desired number of rounds for target time
     # ---------------------------------------------------------------
     if hasattr(hasher, "backends"):
-        name = "%s (using %s backend)" % (name, hasher.get_backend())
-    print("hash............: %s" % name)
+        name = f"{name} (using {hasher.get_backend()} backend)"
+    print(f"hash............: {name}")
     if speed < 1000:
-        speedstr = "%.2f" % speed
+        speedstr = f"{speed:.2f}"
     else:
         speedstr = int(speed)
-    print("speed...........: %s iterations/second" % speedstr)
+    print(f"speed...........: {speedstr} iterations/second")
     print("target time.....: %d ms" % (target * 1000,))
     rounds = cost_to_rounds(speed * target)
     if hasher.rounds_cost == "log2":

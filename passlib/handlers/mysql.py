@@ -66,7 +66,7 @@ class mysql323(uh.StaticHandler):
             nr1 ^= ((((nr1 & 63) + add) * tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2 + ((nr2 << 8) ^ nr1)) & MASK_32
             add = (add + tmp) & MASK_32
-        return "%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
+        return f"{nr1 & MASK_31:08x}{nr2 & MASK_31:08x}"
 
 
 class mysql41(uh.StaticHandler):

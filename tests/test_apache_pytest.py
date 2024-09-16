@@ -3,7 +3,8 @@ import os
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Sequence, Generic, TypeVar
+from typing import Union, Generic, TypeVar
+from collections.abc import Sequence
 
 import pytest
 

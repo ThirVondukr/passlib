@@ -106,7 +106,7 @@ def _open_asset_path(path, encoding=None):
     if not sep:
         raise ValueError(
             "asset path must be absolute file path "
-            "or use 'pkg.name:sub/path' format: %r" % (path,)
+            f"or use 'pkg.name:sub/path' format: {path!r}"
         )
     return resources.files(package).joinpath(subpath).open("rb")
 
@@ -159,10 +159,10 @@ def _ensure_unique(source, param="source"):
         dup_repr += ", ... plus %d others" % (len(dups) - trunc)
 
     # throw error
-    raise ValueError("`%s` cannot contain duplicate elements: %s" % (param, dup_repr))
+    raise ValueError(f"`{param}` cannot contain duplicate elements: {dup_repr}")
 
 
-class SequenceGenerator(object):
+class SequenceGenerator:
     """
     Base class used by word & phrase generators.
 
@@ -242,7 +242,7 @@ class SequenceGenerator(object):
 
         # hand off to parent
         if kwds and _superclasses(self, SequenceGenerator) == (object,):
-            raise TypeError("Unexpected keyword(s): %s" % ", ".join(kwds.keys()))
+            raise TypeError("Unexpected keyword(s): {}".format(", ".join(kwds.keys())))
         super().__init__(**kwds)
 
     @memoized_property
@@ -529,7 +529,7 @@ default_wordsets = WordsetDict()
 
 # register the wordsets built into passlib
 for name in "eff_long eff_short eff_prefixed bip39".split():
-    default_wordsets.set_path(name, "passlib:_data/wordsets/%s.txt" % name)
+    default_wordsets.set_path(name, f"passlib:_data/wordsets/{name}.txt")
 
 
 class PhraseGenerator(SequenceGenerator):

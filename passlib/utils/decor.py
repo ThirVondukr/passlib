@@ -28,7 +28,7 @@ class classproperty:
         return self.__func__(cls)
 
 
-class hybrid_method(object):
+class hybrid_method:
     """
     decorator which invokes function with class if called as class method,
     and with object if called at instance level.
@@ -70,7 +70,7 @@ def memoize_single_value(func):
     return wrapper
 
 
-class memoized_property(object):
+class memoized_property:
     """
     decorator which invokes method once, then replaces attr with result
     """
@@ -150,7 +150,7 @@ def deprecated_function(
         if removed:
             msg += ", and will be removed in Passlib %(removed)s"
         if replacement:
-            msg += ", use %s instead" % replacement
+            msg += f", use {replacement} instead"
         msg += "."
 
     def build(func):
@@ -189,15 +189,15 @@ def deprecated_function(
             if removed or replacement:
                 txt += "\n    "
                 if removed:
-                    txt += "and will be removed in version %s" % (removed,)
+                    txt += f"and will be removed in version {removed}"
                 if replacement:
                     if removed:
                         txt += ", "
-                    txt += "use %s instead" % replacement
+                    txt += f"use {replacement} instead"
                 txt += "."
             if not wrapper.__doc__.strip(" ").endswith("\n"):
                 wrapper.__doc__ += "\n"
-            wrapper.__doc__ += "\n.. deprecated:: %s\n" % (txt,)
+            wrapper.__doc__ += f"\n.. deprecated:: {txt}\n"
         if is_classmethod:
             wrapper = classmethod(wrapper)
         return wrapper

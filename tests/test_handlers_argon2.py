@@ -547,8 +547,7 @@ class _base_argon2_test(HandlerCase):
                 break
         else:
             raise AssertionError(
-                "expected to find alternate type: default=%r values=%r"
-                % (orig_type, handler.type_values)
+                f"expected to find alternate type: default={orig_type!r} values={handler.type_values!r}"
             )
 
         def effective_type(cls):

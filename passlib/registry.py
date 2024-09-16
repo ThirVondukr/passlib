@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-class _PasslibRegistryProxy(object):
+class _PasslibRegistryProxy:
     """proxy module passlib.hash
 
     this module is in fact an object which lazy-loads
@@ -33,12 +33,12 @@ class _PasslibRegistryProxy(object):
 
     def __getattr__(self, attr):
         if attr.startswith("_"):
-            raise AttributeError("missing attribute: %r" % (attr,))
+            raise AttributeError(f"missing attribute: {attr!r}")
         handler = get_crypt_handler(attr, None)
         if handler:
             return handler
         else:
-            raise AttributeError("unknown password hash: %r" % (attr,))
+            raise AttributeError(f"unknown password hash: {attr!r}")
 
     def __setattr__(self, attr, value):
         if attr.startswith("_"):
@@ -176,19 +176,19 @@ def _validate_handler_name(name):
         * if name is reserved (e.g. ``context``, ``all``).
     """
     if not name:
-        raise ValueError("handler name cannot be empty: %r" % (name,))
+        raise ValueError(f"handler name cannot be empty: {name!r}")
     if name.lower() != name:
-        raise ValueError("name must be lower-case: %r" % (name,))
+        raise ValueError(f"name must be lower-case: {name!r}")
     if not _name_re.match(name):
         raise ValueError(
             "invalid name (must be 3+ characters, "
             " begin with a-z, and contain only underscore, a-z, "
-            "0-9): %r" % (name,)
+            f"0-9): {name!r}"
         )
     if "__" in name:
-        raise ValueError("name may not contain double-underscores: %r" % (name,))
+        raise ValueError(f"name may not contain double-underscores: {name!r}")
     if name in _forbidden_names:
-        raise ValueError("that name is not allowed: %r" % (name,))
+        raise ValueError(f"that name is not allowed: {name!r}")
     return True
 
 
@@ -269,8 +269,7 @@ def register_crypt_handler(handler, force=False, _attr=None):
     _validate_handler_name(name)
     if _attr and _attr != name:
         raise ValueError(
-            "handlers must be stored only under their own name (%r != %r)"
-            % (_attr, name)
+            f"handlers must be stored only under their own name ({_attr!r} != {name!r})"
         )
 
     # check for existing handler
@@ -285,7 +284,7 @@ def register_crypt_handler(handler, force=False, _attr=None):
             )
         else:
             raise KeyError(
-                "another %r handler has already been registered: %r" % (name, other)
+                f"another {name!r} handler has already been registered: {other!r}"
             )
 
     # register handler
@@ -311,7 +310,7 @@ def get_crypt_handler(name, default=_UNSET):
     # since it's a module dict, and exposes things like __package__, etc.
     if name.startswith("_"):
         if default is _UNSET:
-            raise KeyError("invalid handler name: %r" % (name,))
+            raise KeyError(f"invalid handler name: {name!r}")
         else:
             return default
 
@@ -327,7 +326,7 @@ def get_crypt_handler(name, default=_UNSET):
     if alt != name:
         warn(
             "handler names should be lower-case, and use underscores instead "
-            "of hyphens: %r => %r" % (name, alt),
+            f"of hyphens: {name!r} => {alt!r}",
             PasslibWarning,
             stacklevel=2,
         )
@@ -357,10 +356,7 @@ def get_crypt_handler(name, default=_UNSET):
         handler = _handlers.get(name)
         if handler:
             # XXX: issue deprecation warning here?
-            assert is_crypt_handler(handler), "unexpected object: name=%r object=%r" % (
-                name,
-                handler,
-            )
+            assert is_crypt_handler(handler), f"unexpected object: name={name!r} object={handler!r}"
             return handler
 
         # then get real handler & register it
@@ -370,7 +366,7 @@ def get_crypt_handler(name, default=_UNSET):
 
     # fail!
     if default is _UNSET:
-        raise KeyError("no crypt handler found for algorithm: %r" % (name,))
+        raise KeyError(f"no crypt handler found for algorithm: {name!r}")
     else:
         return default
 
@@ -530,8 +526,7 @@ def get_supported_os_crypt_schemes():
 
         warn(
             "crypt.crypt() function is present, but doesn't support any "
-            "formats known to passlib! (system=%r release=%r)"
-            % (platform.system(), platform.release()),
+            f"formats known to passlib! (system={platform.system()!r} release={platform.release()!r})",
             exc.PasslibRuntimeWarning,
         )
     return cache

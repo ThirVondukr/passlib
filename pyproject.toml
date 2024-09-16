@@ -124,7 +124,7 @@ known_first_party = ["passlib"]
 target-version = "py39"
 
 [tool.ruff.lint]
-extend-select = ["PT"]
+extend-select = ["PT", "UP"]
 unfixable = ["F401"]
 ignore = ["PT011"]
 

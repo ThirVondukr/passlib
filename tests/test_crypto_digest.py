@@ -68,7 +68,7 @@ class HashInfoTest(TestCase):
                 correct = row[idx]
                 for value in row:
                     result = norm_hash_name(value, format)
-                    assert result == correct, "name=%r, format=%r:" % (value, format)
+                    assert result == correct, f"name={value!r}, format={format!r}:"
 
     def test_lookup_hash_ctor(self):
         """lookup_hash() -- constructor"""
@@ -304,8 +304,7 @@ class Pbkdf2Test(TestCase):
     """test pbkdf2() support"""
 
     descriptionPrefix = (
-        "passlib.crypto.digest.pbkdf2_hmac() <backends: %s>"
-        % ", ".join(PBKDF2_BACKENDS)
+        "passlib.crypto.digest.pbkdf2_hmac() <backends: {}>".format(", ".join(PBKDF2_BACKENDS))
     )
 
     pbkdf2_test_vectors = [

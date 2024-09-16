@@ -91,7 +91,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
 
     def to_string(self):
-        hash = "%s%s%s%s" % (
+        hash = "{}{}{}{}".format(
             self.ident,
             h64.encode_int6(self.rounds).decode("ascii"),
             self.salt,

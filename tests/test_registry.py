@@ -250,7 +250,7 @@ class RegistryTest(TestCase):
         # check system & private names aren't returned
         hash.__dict__["_fake"] = "dummy"
         for name in list_crypt_handlers():
-            assert not name.startswith("_"), "%r: " % name
+            assert not name.startswith("_"), f"{name!r}: "
         unload_handler_name("_fake")
 
     def test_handlers(self):

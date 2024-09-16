@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Sphinx configuration file for the Passlib documentation.
 
@@ -149,7 +148,7 @@ pygments_style = "sphinx"
 modindex_common_prefix = ["passlib."]
 
 # appended to all pages
-rst_epilog = "\n.. |updated| replace:: %s\n" % updated
+rst_epilog = f"\n.. |updated| replace:: {updated}\n"
 
 # Intersphinx
 intersphinx_mapping = {
@@ -201,10 +200,10 @@ if csp.is_cloud_theme(html_theme):
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "%s v%s Documentation" % (project, release)
+html_title = f"{project} v{release} Documentation"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = "%s %s Documentation" % (project, version)
+html_short_title = f"{project} {version} Documentation"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
