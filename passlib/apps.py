@@ -139,6 +139,14 @@ _django21_schemes.remove("django_bcrypt")
 django21_context = LazyCryptContext(schemes=_django21_schemes)
 
 # -----------------------------------------------------------------------
+# 3.1
+# -----------------------------------------------------------------------
+
+_django31_schemes = list(_django21_schemes)
+_django31_schemes.remove("django_pbkdf2_sha1")
+django31_context = LazyCryptContext(schemes=_django31_schemes)
+
+# -----------------------------------------------------------------------
 # latest
 # -----------------------------------------------------------------------
 
