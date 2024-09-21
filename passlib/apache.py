@@ -209,7 +209,8 @@ class _CommonFile:
             #       which seems to match htpasswd source
             if key in records:
                 logging.warning(
-                    f"username occurs multiple times in source file: {key!r}"
+                    "username occurs multiple times in source file: %r",
+                    key,
                 )
                 skipped += line
                 continue

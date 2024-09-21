@@ -175,7 +175,6 @@ ignore = [
     "RSE",
     "PLC",
     "BLE",
-    "G",
     "T",
     "FLY",
     "INP",
