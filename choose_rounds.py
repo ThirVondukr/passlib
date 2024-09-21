@@ -1,13 +1,10 @@
 """cli helper for selecting appropriate <rounds> value for a given hash"""
 
 import math
-
-
 import sys
 
 from passlib.registry import get_crypt_handler
 from passlib.utils import tick
-
 
 __all__ = [
     "main",
@@ -184,6 +181,7 @@ def main(*args):
         rounds = clamp_rounds(round(rounds))
         print("target rounds...: %d" % (rounds,))
     print()
+    return None
 
 
 if __name__ == "__main__":

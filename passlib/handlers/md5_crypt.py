@@ -2,11 +2,9 @@
 
 from hashlib import md5
 
-
-from passlib.utils import safe_crypt, test_crypt, repeat_string
-from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
-
+from passlib.utils import repeat_string, safe_crypt, test_crypt
+from passlib.utils.binary import h64
 
 __all__ = [
     "md5_crypt",
@@ -253,8 +251,7 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         if test_crypt("test", "$1$test$pi/xDtU5WFVRqYS6BMU8X/"):
             cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
             return True
-        else:
-            return False
+        return False
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.ident + self.salt

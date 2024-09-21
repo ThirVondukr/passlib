@@ -1,15 +1,14 @@
-from binascii import hexlify
 import hashlib
-from importlib.util import find_spec
+import re
 import warnings
+from binascii import hexlify
+from importlib.util import find_spec
 
 import pytest
 
+from passlib.crypto.digest import PBKDF2_BACKENDS, pbkdf2_hmac
 from passlib.exc import UnknownHashError
 from tests.utils import TestCase, hb
-
-from passlib.crypto.digest import pbkdf2_hmac, PBKDF2_BACKENDS
-import re
 
 
 class HashInfoTest(TestCase):
@@ -47,7 +46,8 @@ class HashInfoTest(TestCase):
     def test_norm_hash_name(self):
         """norm_hash_name()"""
         from itertools import chain
-        from passlib.crypto.digest import norm_hash_name, _known_hash_names
+
+        from passlib.crypto.digest import _known_hash_names, norm_hash_name
 
         # snapshot warning state, ignore unknown hash warnings
         ctx = warnings.catch_warnings()
@@ -148,7 +148,7 @@ class HashInfoTest(TestCase):
         """
         lookup_hash() -- test set_mock_fips_mode()
         """
-        from passlib.crypto.digest import lookup_hash, _set_mock_fips_mode
+        from passlib.crypto.digest import _set_mock_fips_mode, lookup_hash
 
         # check if md5 is available so we can test mock helper
         if not lookup_hash("md5", required=False).supported:

@@ -2,11 +2,9 @@
 
 import hashlib
 
-
-from passlib.utils import safe_crypt, test_crypt, repeat_string, to_unicode
-from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
-
+from passlib.utils import repeat_string, safe_crypt, test_crypt, to_unicode
+from passlib.utils.binary import h64
 
 __all__ = [
     "sha512_crypt",
@@ -439,8 +437,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if test_crypt(*cls._test_hash):
             cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
             return True
-        else:
-            return False
+        return False
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.to_string()

@@ -1,5 +1,6 @@
-from passlib.utils.decor import deprecated_method
 from abc import ABC, abstractmethod
+
+from passlib.utils.decor import deprecated_method
 
 # local
 __all__ = [

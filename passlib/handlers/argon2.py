@@ -14,20 +14,16 @@ References
 """
 
 import logging
-from importlib import metadata
-
-
 import re
-
+from importlib import metadata
 from warnings import warn
 
-
+import passlib.utils.handlers as uh
 from passlib import exc
 from passlib.crypto.digest import MAX_UINT32
-from passlib.utils import classproperty, to_bytes, render_bytes
-from passlib.utils.binary import b64s_encode, b64s_decode
+from passlib.utils import classproperty, render_bytes, to_bytes
+from passlib.utils.binary import b64s_decode, b64s_encode
 from passlib.utils.compat import bascii_to_str
-import passlib.utils.handlers as uh
 
 _argon2_cffi = None  # loaded below
 _argon2pure = None  # dynamically imported by _load_backend_argon2pure()

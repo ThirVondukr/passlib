@@ -1,13 +1,12 @@
 """PBKDF2 based hashes"""
 
+from base64 import b64decode, b64encode
 from binascii import hexlify, unhexlify
-from base64 import b64encode, b64decode
 
+import passlib.utils.handlers as uh
+from passlib.crypto.digest import pbkdf2_hmac
 from passlib.utils import to_unicode
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.crypto.digest import pbkdf2_hmac
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "pbkdf2_sha1",
@@ -373,8 +372,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
 
     def to_string(self):
         data = self.salt + self.checksum
-        hash = self.ident + b64encode(data).decode("ascii")
-        return hash
+        return self.ident + b64encode(data).decode("ascii")
 
     def _calc_checksum(self, secret):
         # TODO: find out what crowd's policy is re: unicode

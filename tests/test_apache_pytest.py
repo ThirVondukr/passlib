@@ -2,14 +2,14 @@ import dataclasses
 import os
 import subprocess
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Union, Generic, TypeVar
 from collections.abc import Sequence
+from pathlib import Path
+from typing import Generic, TypeVar, Union
 
 import pytest
 
 from passlib import apache
-from passlib.apache import HtpasswdFile, HtdigestFile
+from passlib.apache import HtdigestFile, HtpasswdFile
 from passlib.utils import to_bytes
 from passlib.utils.handlers import to_unicode_for_identify
 from tests.utils_ import backdate_file_mtime

@@ -1,4 +1,5 @@
-from passlib import hosts, hash as hashmod
+from passlib import hash as hashmod
+from passlib import hosts
 from passlib.utils import unix_crypt_schemes
 from tests.utils import TestCase
 
@@ -61,7 +62,7 @@ class HostsTest(TestCase):
     def test_host_context(self):
         ctx = getattr(hosts, "host_context", None)
         if not ctx:
-            return self.skipTest("host_context not available on this platform")
+            self.skipTest("host_context not available on this platform")
 
         # validate schemes is non-empty,
         # and contains unix_disabled + at least one real scheme

@@ -1,11 +1,10 @@
 """hash for SCRAM credential storage"""
 
-from passlib.utils import consteq, saslprep, to_native_str, splitcomma
+import passlib.utils.handlers as uh
+from passlib.crypto.digest import norm_hash_name, pbkdf2_hmac
+from passlib.utils import consteq, saslprep, splitcomma, to_native_str
 from passlib.utils.binary import ab64_decode, ab64_encode
 from passlib.utils.compat import bascii_to_str
-from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "scram",
@@ -165,8 +164,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         algs = cls.from_string(hash).algs
         if format == "iana":
             return algs
-        else:
-            return [norm_hash_name(alg, format) for alg in algs]
+        return [norm_hash_name(alg, format) for alg in algs]
 
     @classmethod
     def derive_digest(cls, password, salt, rounds, alg):
@@ -222,7 +220,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if not chk_str:
             # scram hashes MUST have something here.
             raise uh.exc.MalformedHashError(cls)
-        elif "=" in chk_str:
+        if "=" in chk_str:
             # comma-separated list of 'alg=digest' pairs
             algs = None
             chkmap = {}
@@ -335,9 +333,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if alg:
             # if requested, generate digest for specific alg
             return hash(secret, salt, rounds, alg)
-        else:
-            # by default, return dict containing digests for all algs
-            return dict((alg, hash(secret, salt, rounds, alg)) for alg in self.algs)
+        # by default, return dict containing digests for all algs
+        return dict((alg, hash(secret, salt, rounds, alg)) for alg in self.algs)
 
     @classmethod
     def verify(cls, secret, hash, full=False):
@@ -372,18 +369,16 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 raise ValueError(
                     "scram hash verified inconsistently, " "may be corrupted"
                 )
-            else:
-                return correct
-        else:
-            # XXX: should this just always use sha1 hash? would be faster.
-            # otherwise only verify against one hash, pick one w/ best security.
-            for alg in self._verify_algs:
-                if alg in chkmap:
-                    other = self._calc_checksum(secret, alg)
-                    return consteq(other, chkmap[alg])
-            # there should always be sha-1 at the very least,
-            # or something went wrong inside _norm_algs()
-            raise AssertionError("sha-1 digest not found!")
+            return correct
+        # XXX: should this just always use sha1 hash? would be faster.
+        # otherwise only verify against one hash, pick one w/ best security.
+        for alg in self._verify_algs:
+            if alg in chkmap:
+                other = self._calc_checksum(secret, alg)
+                return consteq(other, chkmap[alg])
+        # there should always be sha-1 at the very least,
+        # or something went wrong inside _norm_algs()
+        raise AssertionError("sha-1 digest not found!")
 
 
 # code used for testing scram against protocol examples during development.

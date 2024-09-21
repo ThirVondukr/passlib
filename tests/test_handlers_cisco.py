@@ -1,8 +1,9 @@
 import pytest
 
-from passlib import hash, exc
-from .utils import UserHandlerMixin, HandlerCase, repeat_string
+from passlib import exc, hash
+
 from .test_handlers import UPASS_TABLE
+from .utils import HandlerCase, UserHandlerMixin, repeat_string
 
 # module
 __all__ = [
@@ -416,7 +417,7 @@ class cisco_type7_test(HandlerCase):
 
     def test_90_decode(self):
         """test cisco_type7.decode()"""
-        from passlib.utils import to_unicode, to_bytes
+        from passlib.utils import to_bytes, to_unicode
 
         handler = self.handler
         for secret, hashed in self.known_correct_hashes:

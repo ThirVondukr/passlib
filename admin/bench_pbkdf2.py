@@ -6,9 +6,6 @@ import os
 import sys
 from timeit import Timer
 
-
-# core
-
 try:
     from importlib import reload  # py34+
 except ImportError:

@@ -1,15 +1,14 @@
 import logging
-import unittest
 import os
 import subprocess
+import unittest
 
 import pytest
 
 from passlib import apache
-from tests.utils import TestCase, get_file, set_file
 from passlib.utils.handlers import to_unicode_for_identify
+from tests.utils import TestCase, get_file, set_file
 from tests.utils_ import backdate_file_mtime
-
 
 htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
 

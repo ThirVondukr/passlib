@@ -4,17 +4,14 @@ this is a *very* rough benchmark script hacked together when the context
 parsing was being sped up. it could definitely be improved.
 """
 
-import re
 import os
+import re
 import sys
-from passlib.context import CryptContext
-
-
 from binascii import hexlify
 
 import passlib.utils.handlers as uh
+from passlib.context import CryptContext
 from tests.utils import time_call
-
 
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
 
@@ -184,8 +181,9 @@ def test_context_calls():
 @benchmark.constructor()
 def test_bcrypt_builtin():
     "test bcrypt 'builtin' backend"
-    from passlib.hash import bcrypt
     import os
+
+    from passlib.hash import bcrypt
 
     os.environ["PASSLIB_BUILTIN_BCRYPT"] = "enabled"
     bcrypt.set_backend("builtin")

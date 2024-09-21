@@ -12,42 +12,41 @@ import sys
 import threading
 import time
 import timeit
-from collections.abc import Sequence, Iterable
-from typing import Optional, AnyStr
-
 import unicodedata
+from collections.abc import Iterable, Sequence
+from typing import AnyStr, Optional
 
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.binary import (
+    AB64_CHARS,
     # [remove these aliases in 2.0]
     BASE64_CHARS,
-    AB64_CHARS,
-    HASH64_CHARS,
     BCRYPT_CHARS,
+    HASH64_CHARS,
     Base64Engine,
     LazyBase64Engine,
+    ab64_decode,
+    ab64_encode,
+    b64s_decode,
+    b64s_encode,
+    bcrypt64,
     h64,
     h64big,
-    bcrypt64,
-    ab64_encode,
-    ab64_decode,
-    b64s_encode,
-    b64s_decode,
 )
 from passlib.utils.compat import (
+    add_doc,
+    get_method_function,
     join_bytes,
     join_unicode,
-    add_doc,
     unicode_or_bytes,
-    get_method_function,
 )
 from passlib.utils.decor import (
+    classproperty,
     # [remove these aliases in 2.0]
     deprecated_function,
     deprecated_method,
-    memoized_property,
-    classproperty,
     hybrid_method,
+    memoized_property,
 )
 
 __all__ = [
@@ -614,12 +613,10 @@ def to_bytes(
     if isinstance(source, bytes):
         if source_encoding and not is_same_codec(source_encoding, encoding):
             return source.decode(source_encoding).encode(encoding)
-        else:
-            return source
-    elif isinstance(source, str):
+        return source
+    if isinstance(source, str):
         return source.encode(encoding)
-    else:
-        raise ExpectedStringError(source, param)
+    raise ExpectedStringError(source, param)
 
 
 def to_unicode(source: AnyStr, encoding="utf-8", param="value") -> str:
@@ -643,7 +640,7 @@ def to_unicode(source: AnyStr, encoding="utf-8", param="value") -> str:
     assert encoding
     if isinstance(source, str):
         return source
-    elif isinstance(source, bytes):
+    if isinstance(source, bytes):
         return source.decode(encoding)
 
     raise ExpectedStringError(source, param)
@@ -659,7 +656,7 @@ def to_native_str(source: AnyStr, encoding="utf-8", param="value") -> str:
     """
     if isinstance(source, bytes):
         return source.decode(encoding)
-    elif isinstance(source, str):
+    if isinstance(source, str):
         return source
     raise ExpectedStringError(source, param)
 
@@ -690,9 +687,9 @@ def as_bool(value: AnyStr, none: Optional[bool] = None, param="boolean") -> bool
         if clean in _none_set:
             return none
         raise ValueError(f"unrecognized {param} value: {value!r}")
-    elif isinstance(value, bool):
+    if isinstance(value, bool):
         return value
-    elif value is None:
+    if value is None:
         return none
     return bool(value)
 
@@ -931,8 +928,7 @@ def getrandstr(rng, charset, count):
 
     if isinstance(charset, str):
         return "".join(helper())
-    else:
-        return bytes(helper())
+    return bytes(helper())
 
 
 _52charset = "2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz"

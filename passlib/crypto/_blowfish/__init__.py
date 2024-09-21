@@ -50,9 +50,8 @@ released under the BSD license::
 
 import struct
 
-
-from passlib.utils.binary import bcrypt64
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
+from passlib.utils.binary import bcrypt64
 
 # local
 __all__ = [
@@ -105,7 +104,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     salt = bcrypt64.decode_bytes(salt)
     if len(salt) < 16:
         raise ValueError("Missing salt bytes")
-    elif len(salt) > 16:
+    if len(salt) > 16:
         salt = salt[:16]
 
     # prepare password

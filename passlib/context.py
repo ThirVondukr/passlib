@@ -5,11 +5,13 @@ from warnings import warn
 
 from passlib import exc
 from passlib.exc import ExpectedStringError, ExpectedTypeError, PasslibConfigWarning
-from passlib.registry import get_crypt_handler, _validate_handler_name
+from passlib.registry import _validate_handler_name, get_crypt_handler
 from passlib.utils import (
     handlers as uh,
-    to_unicode,
+)
+from passlib.utils import (
     splitcomma,
+    to_unicode,
 )
 from passlib.utils.compat import (
     numeric_types,
@@ -437,10 +439,9 @@ class _CryptConfig:
             source = depmap.get(cat, depmap.get(None))
             if source is None:
                 return None
-            elif "auto" in source:
+            if "auto" in source:
                 return scheme != self.default_scheme(cat)
-            else:
-                return scheme in source
+            return scheme in source
 
         value = test(None) or False
         if category:
@@ -598,10 +599,9 @@ class _CryptConfig:
                 return record
         if not required:
             return None
-        elif not self.schemes:
+        if not self.schemes:
             raise KeyError("no crypt algorithms supported")
-        else:
-            raise exc.UnknownHashError("hash could not be identified")
+        raise exc.UnknownHashError("hash could not be identified")
 
     @memoized_property
     def disabled_record(self):
@@ -702,12 +702,11 @@ class CryptContext:
         """internal helper - accepts string, dict, or context"""
         if isinstance(source, dict):
             return cls(**source)
-        elif isinstance(source, cls):
+        if isinstance(source, cls):
             return source
-        else:
-            self = cls()
-            self.load(source)
-            return self
+        self = cls()
+        self.load(source)
+        return self
 
     @classmethod
     def from_string(cls, source, section="passlib", encoding="utf-8"):
@@ -1107,8 +1106,7 @@ class CryptContext:
                 self.handler(scheme, category, unconfigured=unconfigured)
                 for scheme in schemes
             )
-        else:
-            return schemes
+        return schemes
 
     def default_scheme(self, category=None, resolve=False, unconfigured=False):
         """return name of scheme that :meth:`hash` will use by default.
@@ -1201,8 +1199,7 @@ class CryptContext:
             hasher = self._get_record(scheme, category)
             if unconfigured:
                 return hasher._Context__orig_handler
-            else:
-                return hasher
+            return hasher
         except KeyError:
             pass
         if self._config.handlers:
@@ -1210,10 +1207,7 @@ class CryptContext:
                 "crypt algorithm not found in this "
                 f"CryptContext instance: {scheme!r}"
             )
-        else:
-            raise KeyError(
-                "no crypt algorithms loaded in this " "CryptContext instance"
-            )
+        raise KeyError("no crypt algorithms loaded in this " "CryptContext instance")
 
     def _get_unregistered_handlers(self):
         """check if any handlers in this context aren't in the global registry"""
@@ -1239,10 +1233,9 @@ class CryptContext:
         cat, scheme, option = key
         if cat:
             return "{}__{}__{}".format(cat, scheme or "context", option)
-        elif scheme:
+        if scheme:
             return f"{scheme}__{option}"
-        else:
-            return option
+        return option
 
     @staticmethod
     def _render_ini_value(key, value):
@@ -1382,9 +1375,8 @@ class CryptContext:
             if not isinstance(hash, unicode_or_bytes):
                 raise ExpectedStringError(hash, "hash")
             return self._get_record(scheme, category)
-        else:
-            # hash typecheck handled by identify_record()
-            return self._identify_record(hash, category)
+        # hash typecheck handled by identify_record()
+        return self._identify_record(hash, category)
 
     def _strip_unused_context_kwds(self, kwds, record):
         """
@@ -1554,13 +1546,11 @@ class CryptContext:
         record = self._identify_record(hash, category, required)
         if record is None:
             return None
-        elif resolve:
+        if resolve:
             if unconfigured:
                 return record._Context__orig_handler
-            else:
-                return record
-        else:
-            return record.name
+            return record
+        return record.name
 
     def hash(self, secret, scheme=None, category=None, **kwds):
         """run secret through selected algorithm, returning resulting hash.
@@ -1801,11 +1791,10 @@ class CryptContext:
         #      but might make these codepaths more complex...
         if not record.verify(secret, hash, **clean_kwds):
             return False, None
-        elif record.deprecated or record.needs_update(hash, secret=secret):
+        if record.deprecated or record.needs_update(hash, secret=secret):
             # NOTE: we re-hash with default scheme, not current one.
             return True, self.hash(secret, category=category, **kwds)
-        else:
-            return True, None
+        return True, None
 
     #: secret used for dummy_verify()
     _dummy_secret = "too many secrets"
@@ -1890,9 +1879,8 @@ class CryptContext:
         if record.is_disabled:
             # XXX: should we throw error if result can't be identified by context?
             return record.enable(hash)
-        else:
-            # hash wasn't a disabled hash, so return unchanged
-            return hash
+        # hash wasn't a disabled hash, so return unchanged
+        return hash
 
 
 class LazyCryptContext(CryptContext):

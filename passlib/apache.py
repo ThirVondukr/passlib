@@ -2,21 +2,18 @@
 
 # XXX: relocate this to passlib.ext.apache?
 
-from io import BytesIO
 import logging
-
-
 import os
+from io import BytesIO
 from os import PathLike
 from typing import Literal, Optional
 from warnings import warn
-
 
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
-from passlib.utils import render_bytes, to_bytes, is_ascii_codec
+from passlib.utils import is_ascii_codec, render_bytes, to_bytes
 from passlib.utils.compat import join_bytes
 
 # local
@@ -108,7 +105,7 @@ class _CommonFile:
         # set encoding
         if not encoding:
             raise TypeError("'encoding' is required")
-        elif not is_ascii_codec(encoding):
+        if not is_ascii_codec(encoding):
             # htpasswd/htdigest files assumes 1-byte chars, and use ":" separator,
             # so only ascii-compatible encodings are allowed.
             raise ValueError("encoding must be 7-bit ascii compatible")
@@ -364,8 +361,7 @@ class _CommonFile:
         assert isinstance(value, bytes), "expected value to be bytes"
         if self.return_unicode:
             return value.decode(self.encoding)
-        else:
-            return value
+        return value
 
     # FIXME: htpasswd doc says passwords limited to 255 chars under Windows & MPE,
     # and that longer ones are truncated. this may be side-effect of those
@@ -1015,8 +1011,7 @@ class HtdigestFile(_CommonFile):
         hash = self._records.get(key)
         if hash is None:
             return None
-        hash = hash.decode(self.encoding)
-        return hash
+        return hash.decode(self.encoding)
 
     def set_hash(self, user, realm=None, hash=_UNSET):
         """

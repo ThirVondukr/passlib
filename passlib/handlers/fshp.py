@@ -1,11 +1,10 @@
-from base64 import b64encode, b64decode
 import re
+from base64 import b64decode, b64encode
 
-
-from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
-from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import pbkdf1
+from passlib.utils import to_unicode
+from passlib.utils.compat import bascii_to_str
 
 __all__ = [
     "fshp",

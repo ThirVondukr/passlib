@@ -5,12 +5,15 @@ from warnings import warn
 from passlib import exc
 from passlib.exc import ExpectedTypeError, PasslibWarning
 from passlib.utils import (
-    is_crypt_handler,
     has_crypt as os_crypt_present,
+)
+from passlib.utils import (
+    is_crypt_handler,
+)
+from passlib.utils import (
     unix_crypt_schemes as os_crypt_schemes,
 )
 from passlib.utils.decor import memoize_single_value
-
 
 __all__ = [
     "register_crypt_handler_path",
@@ -37,8 +40,7 @@ class _PasslibRegistryProxy:
         handler = get_crypt_handler(attr, None)
         if handler:
             return handler
-        else:
-            raise AttributeError(f"unknown password hash: {attr!r}")
+        raise AttributeError(f"unknown password hash: {attr!r}")
 
     def __setattr__(self, attr, value):
         if attr.startswith("_"):
@@ -278,7 +280,7 @@ def register_crypt_handler(handler, force=False, _attr=None):
         if other is handler:
             logging.debug("same %r handler already registered: %r", name, handler)
             return
-        elif force:
+        if force:
             logging.warning(
                 "overriding previously registered %r handler: %r", name, other
             )
@@ -311,8 +313,7 @@ def get_crypt_handler(name, default=_UNSET):
     if name.startswith("_"):
         if default is _UNSET:
             raise KeyError(f"invalid handler name: {name!r}")
-        else:
-            return default
+        return default
 
     # check if handler is already loaded
     try:
@@ -369,8 +370,7 @@ def get_crypt_handler(name, default=_UNSET):
     # fail!
     if default is _UNSET:
         raise KeyError(f"no crypt handler found for algorithm: {name!r}")
-    else:
-        return default
+    return default
 
 
 def list_crypt_handlers(loaded_only=False):
@@ -434,10 +434,9 @@ def _resolve(hasher, param="value"):
     """
     if is_crypt_handler(hasher):
         return hasher
-    elif isinstance(hasher, str):
+    if isinstance(hasher, str):
         return get_crypt_handler(hasher)
-    else:
-        raise exc.ExpectedTypeError(hasher, str, param)
+    raise exc.ExpectedTypeError(hasher, str, param)
 
 
 #: backend aliases
@@ -495,10 +494,9 @@ def has_backend(hasher, backend=ANY, safe=False):
     # single builtin backend
     if backend == BUILTIN:
         return True
-    elif safe:
+    if safe:
         return None
-    else:
-        raise exc.UnknownBackendError(hasher, backend)
+    raise exc.UnknownBackendError(hasher, backend)
 
 
 # ------------------------------------------------------------------

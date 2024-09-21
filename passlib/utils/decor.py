@@ -2,10 +2,9 @@
 passlib.utils.decor -- helper decorators & properties
 """
 
-from functools import wraps, update_wrapper
 import types
+from functools import update_wrapper, wraps
 from warnings import warn
-
 
 __all__ = [
     "classproperty",

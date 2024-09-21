@@ -5,11 +5,11 @@ import pytest
 
 from passlib import exc, hash
 from tests.utils import (
-    TestCase,
-    HandlerCase,
     TEST_MODE,
-    UserHandlerMixin,
     EncodingHandlerMixin,
+    HandlerCase,
+    TestCase,
+    UserHandlerMixin,
 )
 
 # some common unicode passwords which used as test cases
@@ -393,8 +393,8 @@ class hex_md5_test(HandlerCase):
         if md5 isn't available, a dummy instance should be created.
         (helps on FIPS systems).
         """
+        from passlib.crypto.digest import _set_mock_fips_mode, lookup_hash
         from passlib.exc import UnknownHashError
-        from passlib.crypto.digest import lookup_hash, _set_mock_fips_mode
 
         # check if md5 is available so we can test mock helper
         supported = lookup_hash("md5", required=False).supported
@@ -769,6 +769,7 @@ class lmhash_test(EncodingHandlerMixin, HandlerCase):
     def test_90_raw(self):
         """test lmhash.raw() method"""
         from binascii import unhexlify
+
         from passlib.utils.compat import str_to_bascii
 
         lmhash = self.handler

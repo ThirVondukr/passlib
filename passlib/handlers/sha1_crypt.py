@@ -1,9 +1,8 @@
+import passlib.utils.handlers as uh
+from passlib.crypto.digest import compile_hmac
 from passlib.utils import safe_crypt, test_crypt
 from passlib.utils.binary import h64
-from passlib.crypto.digest import compile_hmac
-import passlib.utils.handlers as uh
 
-# local
 __all__ = []
 _BNULL = b"\x00"
 
@@ -79,8 +78,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         if test_crypt("test", "$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim" "ExLaiSFlGkAe"):
             cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
             return True
-        else:
-            return False
+        return False
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.to_string(config=True)

@@ -13,7 +13,7 @@ from passlib.crypto import scrypt as scrypt_mod
 from passlib.utils import getrandbytes
 from passlib.utils.compat import bascii_to_str
 from passlib.utils.decor import classproperty
-from tests.utils import TestCase, TEST_MODE, hb
+from tests.utils import TEST_MODE, TestCase, hb
 
 warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 

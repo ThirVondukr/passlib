@@ -13,11 +13,9 @@ Implementated based on rfc at http://www.faqs.org/rfcs/rfc1320.html
     by ``passlib.crypto.lookup_hash()`` when a native implementation can't be found.
 """
 
-# core
-from binascii import hexlify
 import struct
+from binascii import hexlify
 
-# site
 from passlib.utils.compat import bascii_to_str
 
 # local

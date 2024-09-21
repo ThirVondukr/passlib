@@ -1,7 +1,7 @@
 """helper for method in test_registry.py"""
 
-from passlib.registry import register_crypt_handler
 import passlib.utils.handlers as uh
+from passlib.registry import register_crypt_handler
 
 
 class dummy_bad(uh.StaticHandler):

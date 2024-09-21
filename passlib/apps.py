@@ -1,10 +1,8 @@
 from itertools import chain
 
-
 from passlib import hash
 from passlib.context import LazyCryptContext
 from passlib.utils import sys_bits
-
 
 __all__ = [
     "custom_app_context",

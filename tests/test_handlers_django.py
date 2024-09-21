@@ -1,17 +1,18 @@
-from typing import Optional
-from unittest import skipUnless, SkipTest
 import warnings
-from tests.test_handlers_argon2 import _base_argon2_test
+from typing import Optional
+from unittest import SkipTest, skipUnless
 
 from passlib import hash
 from passlib.utils import repeat_string
-from tests.utils import TestCase, HandlerCase
-from tests.test_handlers import UPASS_USD, UPASS_TABLE
 from tests.test_ext_django import (
     DJANGO_VERSION,
     MIN_DJANGO_VERSION,
     check_django_hasher_has_backend,
 )
+from tests.test_handlers import UPASS_TABLE, UPASS_USD
+from tests.test_handlers_argon2 import _base_argon2_test
+from tests.utils import HandlerCase, TestCase
+
 # module
 
 
@@ -93,8 +94,9 @@ class _DjangoHelper(TestCase):
         self._require_django_support()
         # XXX: esp. when it's no longer supported by django,
         #      should verify it's *NOT* recognized
-        from passlib.utils import tick
         from django.contrib.auth.hashers import make_password
+
+        from passlib.utils import tick
 
         name = self.handler.django_name  # set for all the django_* handlers
         end = tick() + self.max_fuzz_time / 2

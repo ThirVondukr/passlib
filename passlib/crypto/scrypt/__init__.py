@@ -2,10 +2,8 @@
 
 from warnings import warn
 
-
 from passlib import exc
 from passlib.utils import to_bytes
-
 
 __all__ = [
     "validate",
@@ -78,8 +76,7 @@ def estimate_maxmem(n, r, p, fudge=1.05):
     #     total_bytes = Blen + Vlen
     maxmem = r * (128 * p + 32 * (n + 2) * UINT32_SIZE)
     # add fudge factor so we don't have off-by-one mismatch w/ openssl
-    maxmem = int(maxmem * fudge)
-    return maxmem
+    return int(maxmem * fudge)
 
 
 # TODO: configuration picker (may need psutil for full effect)
@@ -243,25 +240,25 @@ def _set_backend(name, dryrun=False):
     """
     if name == "any":
         return
-    elif name == "default":
+    if name == "default":
         for name in backend_values:
             try:
-                return _set_backend(name, dryrun=dryrun)
+                _set_backend(name, dryrun=dryrun)
+                return
             except exc.MissingBackendError:
                 continue
         raise exc.MissingBackendError("no scrypt backends available")
-    else:
-        loader = _backend_loaders.get(name)
-        if not loader:
-            raise ValueError(f"unknown scrypt backend: {name!r}")
-        hash = loader()
-        if not hash:
-            raise exc.MissingBackendError(f"scrypt backend {name!r} not available")
-        if dryrun:
-            return
-        global _scrypt, backend
-        backend = name
-        _scrypt = hash
+    loader = _backend_loaders.get(name)
+    if not loader:
+        raise ValueError(f"unknown scrypt backend: {name!r}")
+    hash = loader()
+    if not hash:
+        raise exc.MissingBackendError(f"scrypt backend {name!r} not available")
+    if dryrun:
+        return
+    global _scrypt, backend
+    backend = name
+    _scrypt = hash
 
 
 # initialize backend

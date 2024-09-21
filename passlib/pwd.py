@@ -1,16 +1,14 @@
 import codecs
-from collections import defaultdict
-from importlib import resources
-
-from collections.abc import MutableMapping
-
-from math import ceil, log as logf
 import logging
-
 import os
+from collections import defaultdict
+from collections.abc import MutableMapping
+from importlib import resources
+from math import ceil
+from math import log as logf
 
 from passlib import exc
-from passlib.utils import rng, getrandstr, to_unicode
+from passlib.utils import getrandstr, rng, to_unicode
 from passlib.utils.decor import memoized_property
 
 # local
@@ -273,12 +271,11 @@ class SequenceGenerator:
         """
         if returns is None:
             return next(self)
-        elif isinstance(returns, int):
+        if isinstance(returns, int):
             return [next(self) for _ in range(returns)]
-        elif returns is iter:
+        if returns is iter:
             return self
-        else:
-            raise exc.ExpectedTypeError(returns, "<None>, int, or <iter>", "returns")
+        raise exc.ExpectedTypeError(returns, "<None>, int, or <iter>", "returns")
 
     def __iter__(self):
         return self

@@ -125,8 +125,7 @@ class _LazyOverlayModule(ModuleType):
         proxy = self.__proxy
         if proxy:
             return repr(proxy)
-        else:
-            return ModuleType.__repr__(self)
+        return ModuleType.__repr__(self)
 
     def __dir__(self):
         attrs = set(dir(self.__class__))

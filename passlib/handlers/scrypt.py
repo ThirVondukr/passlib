@@ -1,12 +1,11 @@
 """scrypt password hash"""
 
+import passlib.utils.handlers as uh
 from passlib.crypto import scrypt as _scrypt
 from passlib.utils import to_bytes
-from passlib.utils.binary import h64, b64s_decode, b64s_encode
+from passlib.utils.binary import b64s_decode, b64s_encode, h64
 from passlib.utils.compat import bascii_to_str
 from passlib.utils.decor import classproperty
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "scrypt",
@@ -165,8 +164,7 @@ class scrypt(
         func = getattr(cls, f"_parse_{ident.strip(_UDOLLAR)}_string", None)
         if func:
             return func(suffix)
-        else:
-            raise uh.exc.InvalidHashError(cls)
+        raise uh.exc.InvalidHashError(cls)
 
     #
     # passlib's format:
@@ -262,28 +260,27 @@ class scrypt(
                 bascii_to_str(b64s_encode(self.salt)),
                 bascii_to_str(b64s_encode(self.checksum)),
             )
-        else:
-            assert ident == IDENT_7
-            salt = self.salt
-            try:
-                salt.decode("ascii")
-            except UnicodeDecodeError:
-                raise NotImplementedError(
-                    "scrypt $7$ hashes dont support non-ascii salts"
-                ) from None
-            return bascii_to_str(
-                b"".join(
-                    [
-                        b"$7$",
-                        h64.encode_int6(self.rounds),
-                        h64.encode_int30(self.block_size),
-                        h64.encode_int30(self.parallelism),
-                        self.salt,
-                        b"$",
-                        h64.encode_bytes(self.checksum),
-                    ]
-                )
+        assert ident == IDENT_7
+        salt = self.salt
+        try:
+            salt.decode("ascii")
+        except UnicodeDecodeError:
+            raise NotImplementedError(
+                "scrypt $7$ hashes dont support non-ascii salts"
+            ) from None
+        return bascii_to_str(
+            b"".join(
+                [
+                    b"$7$",
+                    h64.encode_int6(self.rounds),
+                    h64.encode_int30(self.block_size),
+                    h64.encode_int30(self.parallelism),
+                    self.salt,
+                    b"$",
+                    h64.encode_bytes(self.checksum),
+                ]
             )
+        )
 
     def __init__(self, block_size=None, **kwds):
         super().__init__(**kwds)

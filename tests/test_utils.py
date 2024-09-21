@@ -1,16 +1,15 @@
 """tests for passlib.util"""
 
 import re
-from functools import partial
 import warnings
+from functools import partial
 
 import pytest
 
 from passlib.utils import is_ascii_safe, to_bytes
+from passlib.utils.binary import h64, h64big
 from passlib.utils.compat import join_bytes
 from tests.utils import TestCase, hb, run_with_fixed_seeds
-
-from passlib.utils.binary import h64, h64big
 
 
 class MiscTest(TestCase):
@@ -147,8 +146,8 @@ class MiscTest(TestCase):
 
     def test_is_crypt_context(self):
         """test is_crypt_context()"""
-        from passlib.utils import is_crypt_context
         from passlib.context import CryptContext
+        from passlib.utils import is_crypt_context
 
         cc = CryptContext(["des_crypt"])
         assert is_crypt_context(cc)
@@ -157,6 +156,7 @@ class MiscTest(TestCase):
     def test_genseed(self):
         """test genseed()"""
         import random
+
         from passlib.utils import genseed
 
         rng = random.Random(genseed())
@@ -171,8 +171,8 @@ class MiscTest(TestCase):
 
     def test_crypt(self):
         """test crypt.crypt() wrappers"""
+        from passlib.registry import get_crypt_handler, get_supported_os_crypt_schemes
         from passlib.utils import has_crypt, safe_crypt, test_crypt
-        from passlib.registry import get_supported_os_crypt_schemes, get_crypt_handler
 
         # test everything is disabled
         supported = get_supported_os_crypt_schemes()
@@ -692,7 +692,7 @@ class Base64EngineTest(TestCase):
     # NOTE: most Base64Engine testing done via _Base64Test subclasses below.
 
     def test_constructor(self):
-        from passlib.utils.binary import Base64Engine, AB64_CHARS
+        from passlib.utils.binary import AB64_CHARS, Base64Engine
 
         # bad charmap type
         with pytest.raises(TypeError):

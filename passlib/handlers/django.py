@@ -4,13 +4,12 @@ from base64 import b64encode
 from binascii import hexlify
 from hashlib import md5, sha1, sha256
 
+import passlib.utils.handlers as uh
+from passlib.crypto.digest import pbkdf2_hmac
 from passlib.handlers.bcrypt import _wrapped_bcrypt
 from passlib.hash import argon2, bcrypt, pbkdf2_sha1, pbkdf2_sha256
-from passlib.utils import to_unicode, rng, getrandstr
+from passlib.utils import getrandstr, rng, to_unicode
 from passlib.utils.binary import BASE64_CHARS
-from passlib.crypto.digest import pbkdf2_hmac
-import passlib.utils.handlers as uh
-
 
 __all__ = [
     "django_salted_sha1",
@@ -444,9 +443,8 @@ class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         if self.use_duplicate_salt:
             # filling in salt field, so that we're compatible with django 1.0
             return uh.render_mc2(self.ident, salt, chk)
-        else:
-            # django 1.4+ style hash
-            return uh.render_mc2(self.ident, "", chk)
+        # django 1.4+ style hash
+        return uh.render_mc2(self.ident, "", chk)
 
     def _calc_checksum(self, secret):
         # NOTE: we lazily import des_crypt,

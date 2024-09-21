@@ -1,23 +1,26 @@
 """tests for passlib.hash -- (c) Assurance Technologies 2003-2009"""
 
 # core
-from logging import getLogger
-import warnings
 import sys
+import warnings
+from logging import getLogger
 
 import pytest
 
+import passlib.utils.handlers as uh
+
 # site
 # pkg
-from passlib import hash, registry, exc
+from passlib import exc, hash, registry
 from passlib.registry import (
-    register_crypt_handler,
-    register_crypt_handler_path,
-    get_crypt_handler,
-    list_crypt_handlers,
     _unload_handler_name as unload_handler_name,
 )
-import passlib.utils.handlers as uh
+from passlib.registry import (
+    get_crypt_handler,
+    list_crypt_handlers,
+    register_crypt_handler,
+    register_crypt_handler_path,
+)
 from tests.utils import TestCase
 
 # module
@@ -257,8 +260,8 @@ class RegistryTest(TestCase):
         """verify we have tests for all builtin handlers"""
         from passlib.registry import list_crypt_handlers
         from tests.test_handlers import (
-            get_handler_case,
             conditionally_available_hashes,
+            get_handler_case,
         )
 
         for name in list_crypt_handlers():

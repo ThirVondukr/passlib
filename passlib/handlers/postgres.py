@@ -2,8 +2,8 @@
 
 from hashlib import md5
 
-from passlib.utils import to_bytes
 import passlib.utils.handlers as uh
+from passlib.utils import to_bytes
 
 __all__ = [
     "postgres_md5",

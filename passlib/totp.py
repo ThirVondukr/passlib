@@ -5,21 +5,19 @@ import base64
 import calendar
 import json
 import logging
-
-
 import math
+import re
 import struct
 import time as _time
-import re
-from urllib.parse import urlparse, parse_qsl, quote, unquote
+from urllib.parse import parse_qsl, quote, unquote, urlparse
 from warnings import warn
 
 # site
 try:
     # TOTP encrypted keys only supported if cryptography (https://cryptography.io) is installed
-    from cryptography.hazmat.backends import default_backend as _cg_default_backend
     import cryptography.hazmat.primitives.ciphers.algorithms
     import cryptography.hazmat.primitives.ciphers.modes
+    from cryptography.hazmat.backends import default_backend as _cg_default_backend
     from cryptography.hazmat.primitives import ciphers as _cg_ciphers
 
     del cryptography
@@ -28,25 +26,25 @@ except ImportError:
     _cg_ciphers = _cg_default_backend = None
 # pkg
 from passlib import exc
+from passlib.crypto.digest import compile_hmac, lookup_hash, pbkdf2_hmac
 from passlib.exc import (
-    TokenError,
-    MalformedTokenError,
     InvalidTokenError,
+    MalformedTokenError,
+    TokenError,
     UsedTokenError,
 )
 from passlib.utils import (
-    to_unicode,
-    to_bytes,
+    SequenceMixin,
     consteq,
     getrandbytes,
-    rng,
-    SequenceMixin,
     getrandstr,
+    rng,
+    to_bytes,
+    to_unicode,
 )
-from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
+from passlib.utils.binary import BASE64_CHARS, b32decode, b32encode
 from passlib.utils.compat import bascii_to_str, numeric_types
 from passlib.utils.decor import hybrid_method, memoized_property
-from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 
 # local
 __all__ = [
@@ -124,11 +122,10 @@ def _decode_bytes(key, format):
     key = _clean_re.sub("", key).encode("utf-8")  # strip whitespace & hypens
     if format == "hex" or format == "base16":
         return base64.b16decode(key.upper())
-    elif format == "base32":
+    if format == "base32":
         return b32decode(key)
     # XXX: add base64 support?
-    else:
-        raise ValueError(f"unknown byte-encoding format: {format!r}")
+    raise ValueError(f"unknown byte-encoding format: {format!r}")
 
 
 #: flag for detecting if encrypted totp support is present
@@ -316,7 +313,7 @@ class AppWallet:
         # ensure we have iterable of (tag, value) pairs
         if source is None:
             return {}
-        elif isinstance(source, dict):
+        if isinstance(source, dict):
             source = source.items()
         # XXX: could support iterable of (tag,value) pairs, but not yet needed...
         # elif check_type and (isinstance(source, str) or not isinstance(source, Iterable)):
@@ -797,8 +794,7 @@ class TOTP:
             )
             if new:
                 raise ValueError(msg)
-            else:
-                warn(msg, exc.PasslibSecurityWarning, stacklevel=1)
+            warn(msg, exc.PasslibSecurityWarning, stacklevel=1)
 
         # validate digits
         if digits is None:
@@ -968,17 +964,16 @@ class TOTP:
         """
         if isinstance(time, int):
             return time
-        elif isinstance(time, float):
+        if isinstance(time, float):
             return int(time)
-        elif time is None:
+        if time is None:
             return int(cls.now())
-        elif hasattr(time, "utctimetuple"):
+        if hasattr(time, "utctimetuple"):
             # coerce datetime to UTC timestamp
             # NOTE: utctimetuple() assumes naive datetimes are in UTC
             # NOTE: we explicitly *don't* want microseconds.
             return calendar.timegm(time.utctimetuple())
-        else:
-            raise exc.ExpectedTypeError(time, "int, float, or datetime", "time")
+        raise exc.ExpectedTypeError(time, "int, float, or datetime", "time")
 
     def _time_to_counter(self, time):
         """
@@ -1314,8 +1309,7 @@ class TOTP:
         source = to_unicode(source, param="totp source")
         if source.startswith("otpauth://"):
             return cls.from_uri(source)
-        else:
-            return cls.from_json(source)
+        return cls.from_json(source)
 
     @classmethod
     def from_uri(cls, uri):
@@ -1612,7 +1606,7 @@ class TOTP:
         ver = kwds.pop("v", None)
         if not ver or ver < cls.min_json_version or ver > cls.json_version:
             raise cls._dict_parse_error(f"missing/unsupported version ({ver!r})")
-        elif ver != cls.json_version:
+        if ver != cls.json_version:
             # mark older version as needing re-serializing
             kwds["changed"] = True
         if "enckey" in kwds:

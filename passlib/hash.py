@@ -19,8 +19,9 @@ mainly in the submodules of the ``passlib.handlers`` subpackage.
 # XXX: if any platform has problem w/ lazy modules, could support 'non-lazy'
 #      version which just imports all schemes known to list_crypt_handlers()
 
-from passlib.registry import _proxy
 import sys
+
+from passlib.registry import _proxy
 
 sys.modules[__name__] = _proxy
 
@@ -47,6 +48,7 @@ if False:
         htdigest,
     )
     from passlib.handlers.django import (
+        django_argon2,
         django_bcrypt,
         django_bcrypt_sha256,
         django_des_crypt,
@@ -55,9 +57,7 @@ if False:
         django_pbkdf2_sha256,
         django_salted_md5,
         django_salted_sha1,
-        django_argon2,
     )
-
     from passlib.handlers.fshp import fshp
     from passlib.handlers.ldap_digests import (
         ldap_bcrypt,
@@ -78,7 +78,7 @@ if False:
     from passlib.handlers.md5_crypt import apr_md5_crypt, md5_crypt
     from passlib.handlers.misc import plaintext, unix_disabled
     from passlib.handlers.mssql import mssql2000, mssql2005
-    from passlib.handlers.mysql import mysql323, mysql41
+    from passlib.handlers.mysql import mysql41, mysql323
     from passlib.handlers.oracle import oracle10, oracle11
     from passlib.handlers.pbkdf2 import (
         atlassian_pbkdf2_sha1,

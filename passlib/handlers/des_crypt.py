@@ -3,11 +3,10 @@
 import re
 from warnings import warn
 
-
+import passlib.utils.handlers as uh
+from passlib.crypto.des import des_encrypt_int_block
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
-from passlib.crypto.des import des_encrypt_int_block
-import passlib.utils.handlers as uh
 
 # local
 __all__ = [
@@ -174,8 +173,7 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
         return cls(salt=salt, checksum=chk or None)
 
     def to_string(self):
-        hash = f"{self.salt}{self.checksum}"
-        return hash
+        return f"{self.salt}{self.checksum}"
 
     def _calc_checksum(self, secret):
         # check for truncation (during .hash() calls only)
@@ -194,8 +192,7 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
         if test_crypt("test", "abgOeLfPimXQo"):
             cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
             return True
-        else:
-            return False
+        return False
 
     def _calc_checksum_os_crypt(self, secret):
         # NOTE: we let safe_crypt() encode unicode secret -> utf8;
@@ -297,12 +294,11 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         )
 
     def to_string(self):
-        hash = "_{}{}{}".format(
+        return "_{}{}{}".format(
             h64.encode_int24(self.rounds).decode("ascii"),
             self.salt,
             self.checksum,
         )
-        return hash
 
     # NOTE: keeping this flag for admin/choose_rounds.py script.
     #       want to eventually expose rounds logic to that script in better way.
@@ -346,8 +342,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         if test_crypt("test", "_/...lLDAxARksGCHin."):
             cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
             return True
-        else:
-            return False
+        return False
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.to_string()
@@ -426,8 +421,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        hash = f"{self.salt}{self.checksum}"
-        return hash
+        return f"{self.salt}{self.checksum}"
 
     def _norm_checksum(self, checksum, relaxed=False):
         checksum = super()._norm_checksum(checksum, relaxed=relaxed)
@@ -520,8 +514,7 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        hash = f"{self.salt}{self.checksum}"
-        return hash
+        return f"{self.salt}{self.checksum}"
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):

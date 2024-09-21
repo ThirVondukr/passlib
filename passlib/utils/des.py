@@ -6,8 +6,8 @@ This has been moved to :mod:`passlib.crypto.des`.
 
 from warnings import warn
 
+from passlib.crypto.des import des_encrypt_block, des_encrypt_int_block, expand_des_key
 from passlib.utils.decor import deprecated_function
-from passlib.crypto.des import expand_des_key, des_encrypt_block, des_encrypt_int_block
 
 warn(
     "the 'passlib.utils.des' module has been relocated to 'passlib.crypto.des' "

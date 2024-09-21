@@ -124,9 +124,50 @@ known_first_party = ["passlib"]
 target-version = "py39"
 
 [tool.ruff.lint]
-extend-select = ["PT", "UP"]
+select = ["ALL"]
 unfixable = ["F401"]
-ignore = ["PT011"]
+ignore = [
+    "PT011",
+    "E501",
+    # Disabled categories
+    "N",
+    "ANN",
+    "S",
+    "FBT",
+    "B",
+    "A",
+    "COM",
+    "C4",
+    "DTZ",
+    "EM",
+    "FA",
+    "D",  # docstrings
+    "PTH", # Pathlib
+    "RUF",
+    "PLR",
+    "FIX",
+    "TD",
+    "ARG",
+    "TRY",
+    "SLF",
+    "ERA",
+    "PERF401",
+    "C90",
+    "SIM",
+    "ISC",
+    "PD", # Pandas
+    "PLW",
+    "FURB",
+    "PIE",
+    "PERF",
+    "RSE",
+    "PLC",
+    "BLE",
+    "G",
+    "T",
+    "FLY",
+    "INP",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "passlib/hash.py" = ["F401"]

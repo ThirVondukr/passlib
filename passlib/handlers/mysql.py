@@ -24,7 +24,6 @@ from hashlib import sha1
 
 import passlib.utils.handlers as uh
 
-
 __all__ = [
     "mysql323",
     "mysql41",
