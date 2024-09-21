@@ -865,7 +865,7 @@ class _Base64Test(TestCase):
 
         # length == 2 mod 4: 4 bits of padding
         assert decode(m(0, 0)) == BNULL
-        for i in range(0, 6):
+        for i in range(6):
             if engine.big:  # 4 lsb padding
                 correct = BNULL if i < 4 else bchr(1 << (i - 4))
             else:  # 4 msb padding
@@ -874,7 +874,7 @@ class _Base64Test(TestCase):
 
         # length == 3 mod 4: 2 bits of padding
         assert decode(m(0, 0, 0)) == BNULL * 2
-        for i in range(0, 6):
+        for i in range(6):
             if engine.big:  # 2 lsb are padding
                 correct = BNULL if i < 2 else bchr(1 << (i - 2))
             else:  # 2 msg are padding

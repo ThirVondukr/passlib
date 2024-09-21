@@ -53,7 +53,6 @@ class PasswordValueError(ValueError):
     .. versionadded:: 1.7.3
     """
 
-    pass
 
 
 class PasswordSizeError(PasswordValueError):
