@@ -1,0 +1,55 @@
+version: "3"
+
+vars:
+  RUNNER:
+    sh: 'echo {{ .RUNNER | default "" }}'
+  SOURCES: passlib tests
+  SOURCES_ROOT: .
+
+tasks:
+  default:
+    cmd:
+      task: all
+
+  lint:
+    desc: Lint python source files
+    cmds:
+      - "{{.RUNNER}} ruff check {{.SOURCES}}"
+      - "{{.RUNNER}} ruff format --check --diff {{.SOURCES}}"
+
+  format:
+    desc: Format python source files
+    aliases: ["fmt"]
+    cmds:
+      - "{{.RUNNER}} ruff format {{ .SOURCES }}"
+      - "{{.RUNNER}} ruff check --fix {{.SOURCES}}"
+
+  deptry:
+    desc: Check used dependencies with deptry
+    silent: true
+    cmd: "{{.RUNNER}} deptry {{.SOURCES_ROOT}}"
+
+  typecheck:
+    desc: Perform type-checking
+    silent: true
+    cmd: "{{.RUNNER}} mypy {{.SOURCES}}"
+
+  test:
+    desc: Run tests
+    cmd: "{{.RUNNER}} coverage run"
+
+  testcov:
+    desc: Run tests and generate a coverage report
+    silent: true
+    cmds:
+      - task: test
+      - "{{.RUNNER}} coverage report -m"
+      - "{{.RUNNER}} coverage xml"
+
+  all:
+    desc: Run the standard set of checks performed in CI
+    cmds:
+      - task: format
+      - task: deptry
+      - task: typecheck
+      - task: testcov
