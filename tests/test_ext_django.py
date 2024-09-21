@@ -187,7 +187,7 @@ salt_size = 12
 if DJANGO_VERSION >= (3, 1):
     stock_config = _modify_django_config(_apps.django31_context)
     if DJANGO_VERSION >= (3, 2):
-        salt_size=22
+        salt_size = 22
 elif DJANGO_VERSION >= (2, 1):
     stock_config = _modify_django_config(_apps.django21_context)
 elif DJANGO_VERSION >= (1, 10):
@@ -201,7 +201,7 @@ sample_hashes = dict(
         "not a password",
         django_pbkdf2_sha256.using(
             rounds=stock_config.get("django_pbkdf2_sha256__default_rounds"),
-            salt_size=salt_size
+            salt_size=salt_size,
         ).hash("not a password"),
     )
 )

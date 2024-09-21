@@ -124,8 +124,8 @@ django21_context = LazyCryptContext(schemes=_django21_schemes)
 # Django >=3.1
 _django31_schemes = list(_django21_schemes)
 django31_context = LazyCryptContext(
-    schemes=_django31_schemes, 
-    deprecated=["django_pbkdf2_sha1"]
+    schemes=_django31_schemes,
+    deprecated=["django_pbkdf2_sha1"],
 )
 
 # Django latest
