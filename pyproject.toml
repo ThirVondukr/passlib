@@ -119,6 +119,18 @@ fail_under = 0
 [tool.deptry]
 known_first_party = ["passlib"]
 
+[tool.deptry.per_rule_ignores]
+DEP001 = [
+    "argon2pure",
+    "fastpbkdf2",
+    "scrypt",
+    "matplotlib",
+]
+DEP004 = [
+    "django",
+    "cloud_sptheme",
+]
+
 
 [tool.ruff]
 target-version = "py39"
