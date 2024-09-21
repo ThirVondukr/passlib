@@ -151,7 +151,7 @@ class MiscTest(TestCase):
 
         cc = CryptContext(["des_crypt"])
         assert is_crypt_context(cc)
-        assert not not is_crypt_context(cc)
+        assert is_crypt_context(cc)
 
     def test_genseed(self):
         """test genseed()"""

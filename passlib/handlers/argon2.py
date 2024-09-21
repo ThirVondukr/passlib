@@ -443,13 +443,13 @@ class _Argon2Common(
 
     def to_string(self):
         version = self.version
-        if version == 0x10:
+        if version == 0x10:  # noqa: SIM108
             vstr = ""
         else:
             vstr = "v=%d$" % version
 
         data = self.data
-        if data:
+        if data:  # noqa: SIM108
             kdstr = ",data=" + bascii_to_str(b64s_encode(self.data))
         else:
             kdstr = ""

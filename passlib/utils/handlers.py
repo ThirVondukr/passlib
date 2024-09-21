@@ -287,7 +287,7 @@ def render_mc2(ident, salt, checksum, sep="$"):
     :returns:
         config or hash (native str)
     """
-    if checksum:
+    if checksum:  # noqa: SIM108
         parts = [ident, salt, sep, checksum]
     else:
         parts = [ident, salt]

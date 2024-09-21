@@ -1024,7 +1024,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
     _v1_template = "$bcrypt-sha256$%s,%d$%s$%s"
 
     def to_string(self):
-        if self.version == 1:
+        if self.version == 1:  # noqa: SIM108
             template = self._v1_template
         else:
             template = self._v2_template

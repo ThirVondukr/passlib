@@ -54,7 +54,6 @@ class PasswordValueError(ValueError):
     """
 
 
-
 class PasswordSizeError(PasswordValueError):
     """
     Error raised if a password exceeds the maximum size allowed

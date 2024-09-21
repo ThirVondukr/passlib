@@ -180,7 +180,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         # where secret size in range(13,16), and user is present --
         # PIX will truncate to 16, ASA will truncate to 32.
         #
-        if asa and len(secret) > 16:
+        if asa and len(secret) > 16:  # noqa: SIM108
             pad_size = 32
         else:
             pad_size = 16

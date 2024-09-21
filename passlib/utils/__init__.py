@@ -867,7 +867,7 @@ def genseed(value=None):
     return int(sha512(text.encode("utf-8")).hexdigest(), 16)
 
 
-if has_urandom:
+if has_urandom:  # noqa: SIM108
     rng = random.SystemRandom()
 else:  # pragma: no cover -- runtime detection
     # NOTE: to reseed use ``rng.seed(genseed(rng))``

@@ -38,11 +38,11 @@ class _DjangoHelper(TestCase):
 
     def _require_django_support(self):
         # make sure min django version
-        if DJANGO_VERSION < self.min_django_version:
+        if self.min_django_version > DJANGO_VERSION:
             raise self.skipTest(
                 f"Django >= {vstr(self.min_django_version)} not installed"
             )
-        if self.max_django_version and DJANGO_VERSION > self.max_django_version:
+        if self.max_django_version and self.max_django_version < DJANGO_VERSION:
             raise self.skipTest(
                 f"Django <= {vstr(self.max_django_version)} not installed"
             )

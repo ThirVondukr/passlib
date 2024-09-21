@@ -111,7 +111,7 @@ def TEST_MODE(min=None, max=None):
     """
     if min and _test_mode < _TEST_MODES.index(min):
         return False
-    if max and _test_mode > _TEST_MODES.index(max):
+    if max and _test_mode > _TEST_MODES.index(max):  # noqa: SIM103
         return False
     return True
 
@@ -575,10 +575,8 @@ class TestCase(unittest.TestCase):
                 raise
 
             def cleanup():
-                try:
+                with contextlib.suppress(AttributeError):
                     delattr(obj, attr)
-                except AttributeError:
-                    pass
 
             self.addCleanup(cleanup)
         else:
@@ -1433,10 +1431,7 @@ class HandlerCase(TestCase):
             assert handler.default_salt_size == df
 
         # accept strings
-        if mn == mx:
-            ref = mn
-        else:
-            ref = mn + 1
+        ref = mn if mn == mx else mn + 1
         temp = handler.using(default_salt_size=str(ref))
         assert temp.default_salt_size == ref
 
@@ -2607,10 +2602,7 @@ class HandlerCase(TestCase):
         # init rng -- using separate one for each thread
         # so things are predictable for given RANDOM_TEST_SEED
         # (relies on test_78_fuzz_threading() to give threads unique names)
-        if threaded:
-            thread_name = threading.current_thread().name
-        else:
-            thread_name = "fuzz test"
+        thread_name = threading.current_thread().name if threaded else "fuzz test"
         rng = self.getRandom(name=thread_name)
         generator = self.FuzzHashGenerator(self, rng)
 

@@ -165,7 +165,6 @@ ignore = [
     "ERA",
     "PERF401",
     "C90",
-    "SIM",
     "ISC",
     "PD", # Pandas
     "PLW",
