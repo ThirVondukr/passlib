@@ -262,7 +262,8 @@ class AppWallet:
         if secrets_path is not None:
             if secrets is not None:
                 raise TypeError("'secrets' and 'secrets_path' are mutually exclusive")
-            secrets = open(secrets_path).read()
+            with open(secrets_path) as f:
+                secrets = f.read()
 
         # parse & store secrets
         secrets = self._secrets = self._parse_secrets(secrets)
@@ -772,7 +773,7 @@ class TOTP:
                 # not forbidden by spec, but would just be wasted bytes.
                 # maybe just warn about this?
                 raise ValueError(
-                    "'size' should be less than digest size " "(%d)" % digest_size
+                    "'size' should be less than digest size (%d)" % digest_size
                 )
             self.key = getrandbytes(rng, size)
         elif not key:

@@ -94,7 +94,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
         add_null_padding = False
     elif ident == "2x":
         raise ValueError(
-            "crypt_blowfish's buggy '2x' hashes are not " "currently supported"
+            "crypt_blowfish's buggy '2x' hashes are not currently supported"
         )
     else:
         raise ValueError(f"unknown ident: {ident!r}")

@@ -287,7 +287,7 @@ def render_mc2(ident, salt, checksum, sep="$"):
     :returns:
         config or hash (native str)
     """
-    if checksum:
+    if checksum:  # noqa: SIM108
         parts = [ident, salt, sep, checksum]
     else:
         parts = [ident, salt]
@@ -2133,9 +2133,7 @@ class BackendMixin(PasswordHash):
         if ok is False:
             raise exc.MissingBackendError(f"{cls.name}: backend not available: {name}")
         if ok is not True:
-            raise AssertionError(
-                "backend loaders must return True or False" f": {ok!r}"
-            )
+            raise AssertionError(f"backend loaders must return True or False: {ok!r}")
 
     @classmethod
     def _get_backend_loader(cls, name):
@@ -2285,7 +2283,7 @@ class HasManyBackends(BackendMixin, GenericHandler):
     """
 
     def _calc_checksum(self, secret):
-        "wrapper for backend, for common code" ""
+        "wrapper for backend, for common code"
         # NOTE: not overwriting _calc_checksum() directly, so that classes can provide
         #       common behavior in that method,
         #       and then invoke _calc_checksum_backend() to do the work.

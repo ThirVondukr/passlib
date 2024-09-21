@@ -90,7 +90,7 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     # taken care of by the handler class.
 
     # load APR specific constants
-    if use_apr:
+    if use_apr:  # noqa: SIM108
         magic = _APR_MAGIC
     else:
         magic = _MD5_MAGIC

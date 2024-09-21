@@ -75,7 +75,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     # ---------------------------------------------------------------
     @classmethod
     def _load_backend_os_crypt(cls):
-        if test_crypt("test", "$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim" "ExLaiSFlGkAe"):
+        if test_crypt("test", "$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe"):
             cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
             return True
         return False

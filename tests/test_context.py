@@ -1381,9 +1381,8 @@ sha512_crypt__min_rounds = 45000
         assert cc1.verify_and_update("stub", des_hash) == (True, None)
 
         # des_crypt should throw error due to unknown context keyword
-        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            with pytest.raises(TypeError):
-                cc1.hash("stub", user="root")
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG), pytest.raises(TypeError):
+            cc1.hash("stub", user="root")
         with pytest.raises(TypeError):
             cc1.verify("stub", des_hash, user="root")
         with pytest.raises(TypeError):
@@ -1406,9 +1405,8 @@ sha512_crypt__min_rounds = 45000
         assert cc2.verify_and_update("stub", des_hash, user="root") == (True, None)
 
         # verify error with unknown kwd
-        with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            with pytest.raises(TypeError):
-                cc2.hash("stub", badkwd="root")
+        with pytest.deprecated_call(match=WARN_SETTINGS_ARG), pytest.raises(TypeError):
+            cc2.hash("stub", badkwd="root")
         with pytest.raises(TypeError):
             cc2.verify("stub", des_hash, badkwd="root")
         with pytest.raises(TypeError):

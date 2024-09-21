@@ -3,6 +3,7 @@
 .. versionadded:: 1.7
 """
 
+import contextlib
 import hashlib
 import logging
 import os
@@ -471,10 +472,8 @@ class HashInfo(SequenceMixin):
                 assert "shouldn't get here"
             self.error_text = msg
             self.const = const
-            try:
+            with contextlib.suppress(KeyError):
                 self.digest_size, self.block_size = _fallback_info[name]
-            except KeyError:
-                pass
 
         # handle "constructor not available" case
         if const is None:

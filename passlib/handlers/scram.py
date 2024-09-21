@@ -293,7 +293,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 raise ValueError(f"malformed algorithm name in scram hash: {alg!r}")
             if len(alg) > 9:
                 raise ValueError(
-                    "SCRAM limits algorithm names to " f"9 characters: {alg!r}"
+                    f"SCRAM limits algorithm names to 9 characters: {alg!r}"
                 )
             if not isinstance(digest, bytes):
                 raise uh.exc.ExpectedTypeError(digest, "raw bytes", "digests")
@@ -366,9 +366,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 else:
                     failed = True
             if correct and failed:
-                raise ValueError(
-                    "scram hash verified inconsistently, " "may be corrupted"
-                )
+                raise ValueError("scram hash verified inconsistently, may be corrupted")
             return correct
         # XXX: should this just always use sha1 hash? would be faster.
         # otherwise only verify against one hash, pick one w/ best security.

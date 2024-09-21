@@ -160,7 +160,7 @@ class _BcryptCommon(
         ident, tail = cls._parse_ident(hash)
         if ident == IDENT_2X:
             raise ValueError(
-                "crypt_blowfish's buggy '2x' hashes are not " "currently supported"
+                "crypt_blowfish's buggy '2x' hashes are not currently supported"
             )
         rounds_str, data = tail.split("$")
         rounds = int(rounds_str)
@@ -1024,7 +1024,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
     _v1_template = "$bcrypt-sha256$%s,%d$%s$%s"
 
     def to_string(self):
-        if self.version == 1:
+        if self.version == 1:  # noqa: SIM108
             template = self._v1_template
         else:
             template = self._v2_template

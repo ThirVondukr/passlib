@@ -141,6 +141,7 @@ unfixable = ["F401"]
 ignore = [
     "PT011",
     "E501",
+    "ISC001", # Conflicts with ruff format
     # Disabled categories
     "N",
     "ANN",
@@ -165,17 +166,13 @@ ignore = [
     "ERA",
     "PERF401",
     "C90",
-    "SIM",
-    "ISC",
     "PD", # Pandas
     "PLW",
     "FURB",
-    "PIE",
     "PERF",
     "RSE",
     "PLC",
     "BLE",
-    "G",
     "T",
     "FLY",
     "INP",

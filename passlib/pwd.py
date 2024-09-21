@@ -1,4 +1,5 @@
 import codecs
+import contextlib
 import logging
 import os
 from collections import defaultdict
@@ -18,7 +19,6 @@ __all__ = [
     "genphrase",
     "default_wordsets",
 ]
-
 
 # XXX: rename / publically document this map?
 entropy_aliases = dict(
@@ -99,7 +99,7 @@ def _open_asset_path(path, encoding=None):
     if encoding:
         return codecs.getreader(encoding)(_open_asset_path(path))
     if os.path.isabs(path):
-        return open(path, "rb")
+        return open(path, "rb")  # noqa: SIM115
     package, sep, subpath = path.partition(":")
     if not sep:
         raise ValueError(
@@ -135,12 +135,10 @@ def _ensure_unique(source, param="source"):
     # check if it has dup elements
     if isinstance(source, _set_types) or len(set(source)) == len(source):
         if hashable:
-            try:
-                cache.add(source)
-            except TypeError:
+            with contextlib.suppress(TypeError):
                 # XXX: under pypy, "list() in set()" above doesn't throw TypeError,
                 #      but trying to add unhashable it to a set *does*.
-                pass
+                cache.add(source)
         return True
 
     # build list of duplicate values

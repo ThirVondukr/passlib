@@ -172,7 +172,7 @@ class scram_test(HandlerCase):
         #
         # taken from example in SCRAM specification (rfc 5802)
         #
-        ("pencil", "$scram$4096$QSXCR.Q6sek8bf92$" "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30"),
+        ("pencil", "$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30"),
         #
         # custom
         #
@@ -189,15 +189,15 @@ class scram_test(HandlerCase):
         # should normalize to the same value: 'IX \xE0')
         (
             "IX \xe0",
-            "$scram$6400$0BojBCBE6P2/N4bQ$" "sha-1=YniLes.b8WFMvBhtSACZyyvxeCc",
+            "$scram$6400$0BojBCBE6P2/N4bQ$sha-1=YniLes.b8WFMvBhtSACZyyvxeCc",
         ),
         (
             "\u2168\u3000a\u0300",
-            "$scram$6400$0BojBCBE6P2/N4bQ$" "sha-1=YniLes.b8WFMvBhtSACZyyvxeCc",
+            "$scram$6400$0BojBCBE6P2/N4bQ$sha-1=YniLes.b8WFMvBhtSACZyyvxeCc",
         ),
         (
             "\u00adIX \xe0",
-            "$scram$6400$0BojBCBE6P2/N4bQ$" "sha-1=YniLes.b8WFMvBhtSACZyyvxeCc",
+            "$scram$6400$0BojBCBE6P2/N4bQ$sha-1=YniLes.b8WFMvBhtSACZyyvxeCc",
         ),
     ]
 
@@ -310,11 +310,11 @@ class scram_test(HandlerCase):
         eda = self.handler.extract_digest_algs
 
         assert eda(
-            "$scram$4096$QSXCR.Q6sek8bf92$" "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30"
+            "$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30"
         ) == ["sha-1"]
 
         assert eda(
-            "$scram$4096$QSXCR.Q6sek8bf92$" "sha-1=HZbuOlKbWl.eR8AfIposuKbhX30",
+            "$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30",
             format="hashlib",
         ) == ["sha1"]
 

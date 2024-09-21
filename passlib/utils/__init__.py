@@ -394,7 +394,7 @@ def saslprep(source, param="value"):
         (stringprep.in_table_c7, "non-canonical chars forbidden in "),
         (
             stringprep.in_table_c8,
-            "display-modifying / deprecated chars " "forbidden in",
+            "display-modifying / deprecated chars forbidden in",
         ),
         (stringprep.in_table_c9, "tagged characters forbidden in "),
         # do bidi constraint check chosen by bidi init, above
@@ -867,7 +867,7 @@ def genseed(value=None):
     return int(sha512(text.encode("utf-8")).hexdigest(), 16)
 
 
-if has_urandom:
+if has_urandom:  # noqa: SIM108
     rng = random.SystemRandom()
 else:  # pragma: no cover -- runtime detection
     # NOTE: to reseed use ``rng.seed(genseed(rng))``

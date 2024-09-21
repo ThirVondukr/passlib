@@ -139,7 +139,7 @@ class _CryptConfig:
                 scheme = handler.name
             else:
                 raise TypeError(
-                    "scheme must be name or CryptHandler, " f"not {type(elem)!r}"
+                    f"scheme must be name or CryptHandler, not {type(elem)!r}"
                 )
 
             # check scheme name isn't already in use
@@ -213,7 +213,7 @@ class _CryptConfig:
                 # normalize context option
                 if cat and key == "schemes":
                     raise KeyError(
-                        "'schemes' context option is not allowed " "per category"
+                        "'schemes' context option is not allowed per category"
                     )
                 key, value = norm_context_option(cat, key, value)
 
@@ -233,9 +233,7 @@ class _CryptConfig:
     def _norm_scheme_option(self, key, value):
         # check for invalid options
         if key in _forbidden_scheme_options:
-            raise KeyError(
-                f"{key!r} option not allowed in CryptContext " "configuration"
-            )
+            raise KeyError(f"{key!r} option not allowed in CryptContext configuration")
         # coerce strings for certain fields (e.g. min_rounds uses ints)
         if isinstance(value, str):
             func = _coerce_scheme_options.get(key)
@@ -272,7 +270,7 @@ class _CryptConfig:
                         raise ExpectedTypeError(value, "str", "deprecated element")
                     if scheme not in schemes:
                         raise KeyError(
-                            "deprecated scheme not found " f"in policy: {scheme!r}"
+                            f"deprecated scheme not found in policy: {scheme!r}"
                         )
         elif key != "schemes":
             raise KeyError(f"unknown CryptContext keyword: {key!r}")
@@ -415,7 +413,7 @@ class _CryptConfig:
                     )
             elif cdefault in cdeps:
                 raise ValueError(
-                    f"default scheme for {cat!r} category " "cannot be deprecated"
+                    f"default scheme for {cat!r} category cannot be deprecated"
                 )
 
     def default_scheme(self, category):
@@ -426,9 +424,7 @@ class _CryptConfig:
         except KeyError:
             pass
         if not self.schemes:
-            raise KeyError(
-                "no hash schemes configured for this " "CryptContext instance"
-            )
+            raise KeyError("no hash schemes configured for this CryptContext instance")
         return defaults[None]
 
     def is_deprecated_with_flag(self, scheme, category):
@@ -1207,7 +1203,7 @@ class CryptContext:
                 "crypt algorithm not found in this "
                 f"CryptContext instance: {scheme!r}"
             )
-        raise KeyError("no crypt algorithms loaded in this " "CryptContext instance")
+        raise KeyError("no crypt algorithms loaded in this CryptContext instance")
 
     def _get_unregistered_handlers(self):
         """check if any handlers in this context aren't in the global registry"""

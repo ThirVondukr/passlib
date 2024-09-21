@@ -112,7 +112,7 @@ class _LazyOverlayModule(ModuleType):
         attrmap = self.__attrmap
         if attr in attrmap:
             source = attrmap[attr]
-            if callable(source):
+            if callable(source):  # noqa: SIM108
                 value = source()
             else:
                 value = _import_object(source)
