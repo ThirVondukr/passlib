@@ -134,7 +134,7 @@ def main(*args):
     if hasattr(hasher, "backends"):
         name = f"{name} (using {hasher.get_backend()} backend)"
     print(f"hash............: {name}")
-    if speed < 1000:
+    if speed < 1000:  # noqa: SIM108
         speedstr = f"{speed:.2f}"
     else:
         speedstr = int(speed)

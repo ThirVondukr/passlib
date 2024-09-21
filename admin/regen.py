@@ -97,9 +97,11 @@ def main():
         content += row
 
     hash_path = os.path.join(source_dir, "passlib", "hash.py")
-    data = open(hash_path).read()
+    with open(hash_path) as f:
+        data = f.read()
     data = replace_section(data, "autocomplete hack", content)
-    open(hash_path, "w").write(data)
+    with open(hash_path, "w") as f:
+        f.write(data)
 
 
 if __name__ == "__main__":

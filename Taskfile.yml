@@ -3,7 +3,7 @@ version: "3"
 vars:
   RUNNER:
     sh: 'echo {{ .RUNNER | default "" }}'
-  SOURCES: passlib tests
+  SOURCES: .
   SOURCES_ROOT: .
 
 tasks:

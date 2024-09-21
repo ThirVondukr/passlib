@@ -26,7 +26,7 @@ class benchmark:
         """
 
         def marker(func):
-            if func.__doc__:
+            if func.__doc__:  # noqa: SIM108
                 name = func.__doc__.splitlines()[0]
             else:
                 name = func.__name__
