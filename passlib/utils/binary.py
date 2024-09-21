@@ -2,6 +2,8 @@
 passlib.utils.binary - binary data encoding/decoding/manipulation
 """
 
+from __future__ import annotations
+
 from base64 import (
     b32decode as _b32decode,
 )
@@ -10,8 +12,7 @@ from base64 import (
 )
 from binascii import Error as _BinAsciiError
 from binascii import a2b_base64, b2a_base64
-from collections.abc import Mapping
-from typing import Union
+from typing import TYPE_CHECKING, AnyStr
 
 from passlib import exc
 from passlib.utils.compat import (
@@ -20,6 +21,9 @@ from passlib.utils.compat import (
     unicode_or_bytes,
 )
 from passlib.utils.decor import memoized_property
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 # from passlib.utils import BASE64_CHARS, HASH64_CHARS
 # local
@@ -100,7 +104,7 @@ _TRANSLATE_SOURCE = list(iter_byte_chars(ALL_BYTE_VALUES))
 
 
 def compile_byte_translation(
-    mapping: Mapping[Union[int, str, bytes], Union[int, str, bytes]],
+    mapping: Mapping[int | AnyStr, int | AnyStr],
     source=None,
 ) -> bytes:
     """

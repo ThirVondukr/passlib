@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import dataclasses
 import os
 import subprocess
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from pathlib import Path
-from typing import Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pytest
 
@@ -15,6 +15,9 @@ from passlib.utils.handlers import to_unicode_for_identify
 from tests.utils_ import backdate_file_mtime
 
 htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
 
 
 def _call_htpasswd(args, stdin=None):
@@ -198,9 +201,7 @@ class _BaseTest(ABC, Generic[TApacheFile]):
         assert sorted(self._users(ht)) == [f"user{i}" for i in range(1, 5 + 1)]
 
     @pytest.fixture
-    def ht_from_path(
-        self, password_file_path: Path
-    ) -> Union[HtpasswdFile, HtdigestFile]:
+    def ht_from_path(self, password_file_path: Path) -> HtpasswdFile | HtdigestFile:
         password_file_path.touch()
         backdate_file_mtime(password_file_path, 5)
 

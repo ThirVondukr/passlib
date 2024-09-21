@@ -1,5 +1,7 @@
 """helpers for passlib unittests"""
 
+from __future__ import annotations
+
 import contextlib
 import hashlib
 import logging
@@ -16,7 +18,7 @@ import warnings
 # core
 from binascii import unhexlify
 from functools import partial, wraps
-from typing import Optional, Union
+from typing import TYPE_CHECKING
 from unittest import SkipTest
 from warnings import warn
 
@@ -30,7 +32,6 @@ from passlib.exc import (
     PasslibConfigWarning,
     PasslibHashWarning,
 )
-from passlib.ifc import PasswordHash
 from passlib.utils import (
     batch,
     getrandstr,
@@ -46,8 +47,11 @@ from passlib.utils import (
     rng as sys_rng,
 )
 from passlib.utils.decor import classproperty
-from passlib.utils.handlers import PrefixWrapper
 from tests.utils_ import no_warnings
+
+if TYPE_CHECKING:
+    from passlib.ifc import PasswordHash
+    from passlib.utils.handlers import PrefixWrapper
 
 log = logging.getLogger(__name__)
 # local
@@ -328,7 +332,7 @@ class TestCase(unittest.TestCase):
     # ---------------------------------------------------------------
 
     # string prepended to all tests in TestCase
-    descriptionPrefix: Optional[str] = None
+    descriptionPrefix: str | None = None
 
     def shortDescription(self):
         """wrap shortDescription() method to prepend descriptionPrefix"""
@@ -635,7 +639,7 @@ class HandlerCase(TestCase):
     # ---------------------------------------------------------------
 
     # handler class to test [required]
-    handler: Union[type[PasswordHash], PrefixWrapper] = None
+    handler: type[PasswordHash] | PrefixWrapper = None
 
     # if set, run tests against specified backend
     backend = None

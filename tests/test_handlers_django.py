@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import warnings
-from typing import Optional
 from unittest import SkipTest, skipUnless
 
 from passlib import hash
@@ -34,7 +35,7 @@ class _DjangoHelper(TestCase):
 
     #: minimum django version where hash alg is present / that we support testing against
     min_django_version = MIN_DJANGO_VERSION
-    max_django_version: Optional[tuple[int, int]] = None
+    max_django_version: tuple[int, int] | None = None
 
     def _require_django_support(self):
         # make sure min django version

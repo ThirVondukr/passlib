@@ -1,5 +1,7 @@
 """passlib.utils -- helpers for writing password hashes"""
 
+from __future__ import annotations
+
 import codecs
 import hmac
 import inspect
@@ -14,7 +16,7 @@ import time
 import timeit
 import unicodedata
 from collections.abc import Iterable, Sequence
-from typing import AnyStr, Optional
+from typing import AnyStr
 
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.binary import (
@@ -475,7 +477,7 @@ _BNULL = b"\x00"
 _UNULL = "\x00"
 
 
-def right_pad_string(source: AnyStr, size: int, pad: Optional[AnyStr] = None) -> AnyStr:
+def right_pad_string(source: AnyStr, size: int, pad: AnyStr | None = None) -> AnyStr:
     """right-pad or truncate <source> string, so it has length <size>"""
     if pad is None:
         pad = _UNULL if isinstance(source, str) else _BNULL
@@ -582,7 +584,7 @@ def to_bytes(
     source: AnyStr,
     encoding: str = "utf-8",
     param: str = "value",
-    source_encoding: Optional[str] = None,
+    source_encoding: str | None = None,
 ) -> bytes:
     """Helper to normalize input to bytes.
 
@@ -672,7 +674,7 @@ _false_set = set("false f no n off 0 disable disabled".split())
 _none_set = set(["", "none"])
 
 
-def as_bool(value: AnyStr, none: Optional[bool] = None, param="boolean") -> bool:
+def as_bool(value: AnyStr, none: bool | None = None, param="boolean") -> bool:
     """
     helper to convert value to boolean.
     recognizes strings such as "true", "false"

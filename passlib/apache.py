@@ -1,12 +1,13 @@
 """Apache password support"""
 
 # XXX: relocate this to passlib.ext.apache?
+from __future__ import annotations
 
 import logging
 import os
 from io import BytesIO
 from os import PathLike
-from typing import Literal, Optional
+from typing import Literal
 from warnings import warn
 
 from passlib import exc, registry
@@ -160,7 +161,7 @@ class _CommonFile:
         self.load()
         return True
 
-    def load(self, path: Optional[PathLike] = None) -> Literal[True]:
+    def load(self, path: PathLike | None = None) -> Literal[True]:
         """Load state from local file.
         If no path is specified, attempts to load from ``self.path``.
 

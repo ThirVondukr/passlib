@@ -1,11 +1,12 @@
 """helper functions used by this plugin"""
 
+from __future__ import annotations
+
 import logging
 import sys
 import weakref
 from collections import OrderedDict
 from functools import lru_cache, update_wrapper, wraps
-from typing import Union
 from warnings import warn
 
 from passlib import exc, registry
@@ -14,7 +15,7 @@ from passlib.exc import PasslibRuntimeWarning
 from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
 
-DJANGO_VERSION: tuple[Union[int, str], ...]
+DJANGO_VERSION: tuple[int | str, ...]
 try:
     from django import VERSION as DJANGO_VERSION
 
