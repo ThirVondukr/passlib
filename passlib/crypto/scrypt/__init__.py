@@ -244,6 +244,7 @@ def _set_backend(name, dryrun=False):
         for name in backend_values:
             try:
                 _set_backend(name, dryrun=dryrun)
+                return
             except exc.MissingBackendError:
                 continue
         raise exc.MissingBackendError("no scrypt backends available")
