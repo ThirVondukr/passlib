@@ -183,7 +183,12 @@ def _modify_django_config(kwds, sha_rounds=None):
 #      could then separate out "validation of djangoXX_context objects"
 #      and "validation that individual hashers match django".
 #      or maybe add a "get_django_context(django_version)" helper to passlib.apps?
-if DJANGO_VERSION >= (2, 1):
+salt_size = 12
+if DJANGO_VERSION >= (3, 1):
+    stock_config = _modify_django_config(_apps.django31_context)
+    if DJANGO_VERSION >= (3, 2):
+        salt_size=22
+elif DJANGO_VERSION >= (2, 1):
     stock_config = _modify_django_config(_apps.django21_context)
 elif DJANGO_VERSION >= (1, 10):
     stock_config = _modify_django_config(_apps.django110_context)
@@ -191,12 +196,12 @@ else:
     # assert DJANGO_VERSION >= (1, 8)
     stock_config = _modify_django_config(_apps.django16_context)
 
-
 sample_hashes = dict(
     django_pbkdf2_sha256=(
         "not a password",
         django_pbkdf2_sha256.using(
-            rounds=stock_config.get("django_pbkdf2_sha256__default_rounds")
+            rounds=stock_config.get("django_pbkdf2_sha256__default_rounds"),
+            salt_size=salt_size
         ).hash("not a password"),
     )
 )
@@ -748,6 +753,7 @@ class DjangoBehaviorTest(_ExtensionTest):
 
         # check against invalid password
         assert not user.check_password(None)
+
         ##self.assertFalse(user.check_password(''))
         assert not user.check_password(other)
         self.assert_valid_password(user, hash)
