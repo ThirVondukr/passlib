@@ -70,8 +70,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     assert isinstance(salt, bytes)
 
     # validate rounds
-    if rounds <= 0:
-        rounds = 0
+    rounds = max(0, rounds)
     real_rounds = 4096 + rounds
     # NOTE: spec seems to imply max 'rounds' is 2**32-1
 

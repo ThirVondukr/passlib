@@ -138,7 +138,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             (\d+)\} # rounds
             ([a-zA-Z0-9+/]+={0,3}) # digest
             $""",
-        re.X,
+        re.VERBOSE,
     )
 
     @classmethod

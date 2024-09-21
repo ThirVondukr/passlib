@@ -74,7 +74,7 @@ def _bitsize(count, chars):
     if chars and count:
         import math
 
-        return int(count * math.log(len(chars), 2))
+        return int(count * math.log2(len(chars)))
     return 0
 
 
@@ -1722,9 +1722,9 @@ class HasRounds(GenericHandler):
                     if value <= 0:  # log() undefined for <= 0
                         return 0
                     if upper:  # use smallest upper bound for start of range
-                        return int(math.log(value, 2))
+                        return int(math.log2(value))
                     # use greatest lower bound for end of range
-                    return int(math.ceil(math.log(value, 2)))
+                    return int(math.ceil(math.log2(value)))
 
             # calculate integer vary rounds based on current default_rounds
             vary_rounds = int(default_rounds * vary_rounds)
@@ -1838,7 +1838,7 @@ class HasRounds(GenericHandler):
 
             if rounds is None:
                 rounds = cls.default_rounds
-            info["rounds"] = max(0, int(1 + math.log(rounds * vary_rounds, 2)))
+            info["rounds"] = max(0, int(1 + math.log2(rounds * vary_rounds)))
         ## else: # log2 rounds
         # all bits of the rounds value are critical to choosing
         # the time-cost, and can't be randomized.

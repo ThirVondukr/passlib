@@ -169,7 +169,6 @@ ignore = [
     "C90",
     "PD", # Pandas
     "PLW",
-    "FURB",
     "PLC",
     "BLE",
     "T",

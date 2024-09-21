@@ -791,7 +791,7 @@ class Base64Engine:
             raise ValueError("value out of range")
         raw = [value & 0x3F, (value >> 6) & 0x3F]
         if self.big:
-            raw = reversed(raw)
+            raw.reverse()
         return bytes(map(self._encode64, raw))
 
     def encode_int24(self, value):
@@ -805,7 +805,7 @@ class Base64Engine:
             (value >> 18) & 0x3F,
         ]
         if self.big:
-            raw = reversed(raw)
+            raw.reverse()
         return bytes(map(self._encode64, raw))
 
     def encode_int30(self, value):

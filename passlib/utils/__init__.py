@@ -98,7 +98,7 @@ __all__ = [
 ]
 
 # bitsize of system architecture (32 or 64)
-sys_bits = int(math.log(sys.maxsize, 2) + 1.5)
+sys_bits = int(math.log2(sys.maxsize) + 1.5)
 
 # list of hashes algs supported by crypt() on at least one OS.
 # XXX: move to .registry for passlib 2.0?

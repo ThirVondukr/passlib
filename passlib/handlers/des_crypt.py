@@ -163,7 +163,7 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{11})?
         $""",
-        re.X | re.I,
+        re.VERBOSE | re.IGNORECASE,
     )
 
     @classmethod
@@ -277,7 +277,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         (?P<salt>[./a-z0-9]{4})
         (?P<chk>[./a-z0-9]{11})?
         $""",
-        re.X | re.I,
+        re.VERBOSE | re.IGNORECASE,
     )
 
     @classmethod
@@ -408,7 +408,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>([./a-z0-9]{11})+)?
         $""",
-        re.X | re.I,
+        re.VERBOSE | re.IGNORECASE,
     )
 
     @classmethod
@@ -501,7 +501,7 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{22})?
         $""",
-        re.X | re.I,
+        re.VERBOSE | re.IGNORECASE,
     )
 
     @classmethod

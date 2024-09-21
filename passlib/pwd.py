@@ -5,8 +5,7 @@ import os
 from collections import defaultdict
 from collections.abc import MutableMapping
 from importlib import resources
-from math import ceil
-from math import log as logf
+from math import ceil, log2
 
 from passlib import exc
 from passlib.utils import getrandstr, rng, to_unicode
@@ -74,7 +73,7 @@ def _self_info_rate(source):
         return 0
     # NOTE: the following performs ``- sum(value / size * logf(value / size, 2) for value in values)``,
     #       it just does so with as much pulled out of the sum() loop as possible...
-    return logf(size, 2) - sum(value * logf(value, 2) for value in values) / size
+    return log2(size) - sum(value * log2(value) for value in values) / size
 
 
 # def _total_self_info(source):
@@ -246,7 +245,7 @@ class SequenceGenerator:
         """
         Average entropy per symbol (assuming all symbols have equal probability)
         """
-        return logf(self.symbol_count, 2)
+        return log2(self.symbol_count)
 
     @memoized_property
     def entropy(self):

@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import logging
+import math
 import os
 import random
 import re
@@ -285,7 +286,6 @@ def time_call(func, setup=None, maxtime=1, bestof=10):
     :returns:
         ``(avg_seconds_per_call, log10_number_of_repetitions)``
     """
-    from math import log
     from timeit import Timer
 
     timer = Timer(func, setup=setup or "")
@@ -294,7 +294,7 @@ def time_call(func, setup=None, maxtime=1, bestof=10):
     while True:
         delta = min(timer.repeat(bestof, number))
         if tick() >= end:
-            return delta / number, int(log(number, 10))
+            return delta / number, int(math.log10(number))
         number *= 10
 
 
@@ -1205,11 +1205,10 @@ class HandlerCase(TestCase):
                     raise AssertionError(
                         f"default_salt_chars must be subset of salt_chars: {c!r} not in salt_chars"
                     )
-        else:
-            if not cls.default_salt_chars:
-                raise AssertionError(
-                    "default_salt_chars MUST be specified if salt_chars is empty"
-                )
+        elif not cls.default_salt_chars:
+            raise AssertionError(
+                "default_salt_chars MUST be specified if salt_chars is empty"
+            )
 
     @property
     def salt_bits(self):
@@ -1217,11 +1216,12 @@ class HandlerCase(TestCase):
         # XXX: replace this with bitsize() method?
         handler = self.handler
         assert has_salt_info(handler), "need explicit bit-size for " + handler.name
-        from math import log
 
         # FIXME: this may be off for case-insensitive hashes, but that accounts
         # for ~1 bit difference, which is good enough for test_11()
-        return int(handler.default_salt_size * log(len(handler.default_salt_chars), 2))
+        return int(
+            handler.default_salt_size * math.log2(len(handler.default_salt_chars))
+        )
 
     def test_11_unique_salt(self):
         """test hash() / genconfig() creates new salt each time"""

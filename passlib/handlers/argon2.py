@@ -393,7 +393,7 @@ class _Argon2Common(
         )?
         $
     """,
-        re.X,
+        re.VERBOSE,
     )
 
     @classmethod

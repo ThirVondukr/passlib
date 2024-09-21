@@ -67,7 +67,7 @@ __all__ = [
 # -----------------------------------------------------------------------------
 
 #: regex used to clean whitespace from tokens & keys
-_clean_re = re.compile(r"\s|[-=]", re.U)
+_clean_re = re.compile(r"\s|[-=]", re.UNICODE)
 
 _chunk_sizes = [4, 6, 5]
 
@@ -1247,8 +1247,7 @@ class TOTP:
             counter value that matched
         """
         token = self.normalize_token(token)
-        if start < 0:
-            start = 0
+        start = max(start, 0)
         if end <= start:
             raise InvalidTokenError
         generate = self._generate

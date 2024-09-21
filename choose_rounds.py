@@ -75,7 +75,7 @@ def main(*args):
             return 2**rounds
 
         def cost_to_rounds(cost):
-            return math.log(cost, 2)
+            return math.log2(cost)
     else:
         # time cost varies linearly with rounds parameter,
         # so speed = rounds / elapsed

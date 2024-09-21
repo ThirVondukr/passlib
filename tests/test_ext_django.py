@@ -874,7 +874,7 @@ class DjangoExtensionTest(_ExtensionTest):
         self.load_extension(PASSLIB_CONFIG=config)
 
         # setup helpers
-        import django.contrib.auth.models as models
+        from django.contrib.auth import models
 
         from passlib.ext.django.models import adapter
 

@@ -113,7 +113,9 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     # --HasSalt--
     min_salt_size = max_salt_size = 20
     salt_chars = uh.UPPER_HEX_CHARS
-    _hash_regex = re.compile("^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
+    _hash_regex = re.compile(
+        "^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.IGNORECASE
+    )
 
     @classmethod
     def from_string(cls, hash):
