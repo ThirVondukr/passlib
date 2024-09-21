@@ -15,24 +15,24 @@ requires-python = ">=3.9"
 readme = "README.md"
 license = { text = "BSD" }
 keywords = [
+    "2fa",
+    "apache",
+    "argon2",
+    "bcrypt",
+    "crypt",
+    "hash",
+    "htdigest",
+    "htpasswd",
+    "md5-crypt",
     "passlib",
     "password",
+    "pbkdf2",
+    "scrypt",
     "secret",
-    "hash",
     "security",
-    "crypt",
-    "md5-crypt",
     "sha256-crypt",
     "sha512-crypt",
-    "pbkdf2",
-    "argon2",
-    "scrypt",
-    "bcrypt",
-    "apache",
-    "htpasswd",
-    "htdigest",
     "totp",
-    "2fa",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -45,14 +45,18 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Security :: Cryptography",
     "Topic :: Software Development :: Libraries",
 ]
 
 [project.urls]
+Homepage = "https://github.com/ThirVondukr/passlib"
 Repository = "https://github.com/ThirVondukr/passlib"
 Docs = "https://passlib.readthedocs.io"
+Issues = "https://github.com/ThirVondukr/passlib/issues"
+Changelog = "https://github.com/ThirVondukr/passlib/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 argon2 = [
