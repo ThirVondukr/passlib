@@ -83,6 +83,7 @@ testing = [
     "coverage>=7.6.1",
     "pytest>=8.3.3",
     "typeguard>=4.3.0",
+    "pytest-xdist>=3.6.1",
 ]
 django = [
     "django>=4.2.16",
@@ -96,7 +97,6 @@ sphinx-docs = [
     "sphinxcontrib-fulltoc>=1.2.0",
 ]
 dev = [
-    "pytest-xdist>=3.6.1",
 ]
 
 [tool.coverage.run]
