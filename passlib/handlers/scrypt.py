@@ -236,7 +236,7 @@ class scrypt(
             (params,) = parts
             digest = None
         else:
-            raise uh.exc.MalformedHashError()
+            raise uh.exc.MalformedHashError
 
         # parse params & return
         if len(params) < 11:

@@ -36,13 +36,13 @@ tasks:
 
   test:
     desc: Run tests
-    cmd: "{{.RUNNER}} coverage run"
+    cmd: "{{.RUNNER}} pytest -n auto"
 
   testcov:
     desc: Run tests and generate a coverage report
     silent: true
     cmds:
-      - task: test
+      - "{{.RUNNER}} coverage run"
       - "{{.RUNNER}} coverage report -m"
       - "{{.RUNNER}} coverage xml"
 

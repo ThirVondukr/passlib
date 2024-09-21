@@ -1250,7 +1250,7 @@ class TOTP:
         if start < 0:
             start = 0
         if end <= start:
-            raise InvalidTokenError()
+            raise InvalidTokenError
         generate = self._generate
         if not (expected is None or expected < start) and consteq(
             token, generate(expected)
@@ -1266,7 +1266,7 @@ class TOTP:
             if consteq(token, generate(counter)):
                 return counter
             counter += 1
-        raise InvalidTokenError()
+        raise InvalidTokenError
 
     # -------------------------------------------------------------------------
     # TODO: resync(self, tokens, time=None, min_tokens=10, window=100)

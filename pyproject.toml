@@ -95,6 +95,9 @@ sphinx-docs = [
     "cloud-sptheme>=1.10.1.post20200504175005",
     "sphinxcontrib-fulltoc>=1.2.0",
 ]
+dev = [
+    "pytest-xdist>=3.6.1",
+]
 
 [tool.coverage.run]
 source = ["passlib"]
@@ -169,7 +172,6 @@ ignore = [
     "PLW",
     "FURB",
     "PERF",
-    "RSE",
     "PLC",
     "BLE",
     "T",
