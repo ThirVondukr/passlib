@@ -114,23 +114,29 @@ _django_110_schemes = [
     "django_bcrypt_sha256",
     "django_disabled",
 ]
-django110_context = LazyCryptContext(schemes=_django_110_schemes)
+django110_context = LazyCryptContext(
+    schemes=_django_110_schemes,
+    deprecated="auto",
+)
 
 # Django >=2.1
 _django21_schemes = list(_django_110_schemes)
 _django21_schemes.remove("django_bcrypt")
-django21_context = LazyCryptContext(schemes=_django21_schemes)
+django21_context = LazyCryptContext(
+    schemes=_django21_schemes,
+    deprecated="auto",
+)
 
 # Django >=3.1
 _django31_schemes = list(_django21_schemes)
 django31_context = LazyCryptContext(
     schemes=_django31_schemes,
-    deprecated=["django_pbkdf2_sha1"],
+    deprecated="auto",
 )
 
 # Django latest
 # this will always point to latest version in passlib
-django_context = django21_context
+django_context = django31_context
 
 
 #: standard ldap schemes
