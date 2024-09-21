@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 small helper script used to compare timing of verify() & dummy_verify()
 """
