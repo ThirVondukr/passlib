@@ -639,7 +639,7 @@ class _CryptConfig:
             for key in context_keys:
                 try:
                     value = context_options[key][cat]
-                except KeyError:
+                except KeyError:  # noqa: PERF203
                     pass
                 else:
                     if isinstance(value, list):
@@ -650,7 +650,7 @@ class _CryptConfig:
             for scheme in scheme_keys:
                 try:
                     kwds = scheme_options[scheme][cat]
-                except KeyError:
+                except KeyError:  # noqa: PERF203
                     pass
                 else:
                     for key in sorted(kwds):

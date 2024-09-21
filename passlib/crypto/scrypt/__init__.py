@@ -245,7 +245,7 @@ def _set_backend(name, dryrun=False):
             try:
                 _set_backend(name, dryrun=dryrun)
                 return
-            except exc.MissingBackendError:
+            except exc.MissingBackendError:  # noqa: PERF203
                 continue
         raise exc.MissingBackendError("no scrypt backends available")
     loader = _backend_loaders.get(name)

@@ -730,7 +730,7 @@ class _CffiBackend(_Argon2Common):
         for type in ALL_TYPES:
             try:
                 type_map[type] = getattr(TypeEnum, type.upper())
-            except AttributeError:
+            except AttributeError:  # noqa: PERF203
                 # TYPE_ID support not added until v18.2
                 assert type not in (
                     TYPE_I,
@@ -867,7 +867,7 @@ class _PureBackend(_Argon2Common):
         for type in ALL_TYPES:
             try:
                 type_map[type] = getattr(_argon2pure, "ARGON2" + type.upper())
-            except AttributeError:
+            except AttributeError:  # noqa: PERF203
                 # TYPE_ID support not added until v1.3
                 assert type not in (
                     TYPE_I,

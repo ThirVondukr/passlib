@@ -2073,7 +2073,7 @@ class BackendMixin(PasswordHash):
             for name in cls.backends:
                 try:
                     return cls.set_backend(name, dryrun=dryrun)
-                except exc.MissingBackendError:
+                except exc.MissingBackendError:  # noqa: PERF203
                     continue
                 except exc.PasslibSecurityError as err:
                     # backend is available, but refuses to load due to security issue.

@@ -2811,7 +2811,7 @@ class HandlerCase(TestCase):
                 return func
 
             for backend in iter_alt_backends(handler):
-                verifiers.append(maker(backend))
+                verifiers.append(maker(backend))  # noqa: PERF401
 
         return verifiers
 

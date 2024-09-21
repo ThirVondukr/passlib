@@ -166,12 +166,10 @@ ignore = [
     "TRY",
     "SLF",
     "ERA",
-    "PERF401",
     "C90",
     "PD", # Pandas
     "PLW",
     "FURB",
-    "PERF",
     "PLC",
     "BLE",
     "T",
