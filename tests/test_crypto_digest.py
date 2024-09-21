@@ -607,6 +607,9 @@ class Pbkdf2Test(TestCase):
         for row in self.pbkdf2_test_vectors:
             correct, secret, salt, rounds, keylen = row[:5]
             digest = row[5] if len(row) == 6 else "sha1"
+            if digest not in hashlib.algorithms_available:
+                continue
+
             result = pbkdf2_hmac(digest, secret, salt, rounds, keylen)
             assert result == correct
 
