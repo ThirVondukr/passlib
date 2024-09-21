@@ -72,10 +72,7 @@ custom_app_context = LazyCryptContext(
 )
 
 
-# -----------------------------------------------------------------------
-# 1.0
-# -----------------------------------------------------------------------
-
+# Django >= 1.0
 _django10_schemes = [
     "django_salted_sha1",
     "django_salted_md5",
@@ -90,10 +87,7 @@ django10_context = LazyCryptContext(
     deprecated=["hex_md5"],
 )
 
-# -----------------------------------------------------------------------
-# 1.4
-# -----------------------------------------------------------------------
-
+# Django >= 1.4
 _django14_schemes = [
     "django_pbkdf2_sha256",
     "django_pbkdf2_sha1",
@@ -105,10 +99,7 @@ django14_context = LazyCryptContext(
     deprecated=_django10_schemes,
 )
 
-# -----------------------------------------------------------------------
-# 1.6
-# -----------------------------------------------------------------------
-
+# Django >= 1.6
 _django16_schemes = list(_django14_schemes)
 _django16_schemes.insert(1, "django_bcrypt_sha256")
 django16_context = LazyCryptContext(
@@ -116,10 +107,7 @@ django16_context = LazyCryptContext(
     deprecated=_django10_schemes,
 )
 
-# -----------------------------------------------------------------------
-# 1.10
-# -----------------------------------------------------------------------
-
+# Django >=1.10
 _django_110_schemes = [
     "django_pbkdf2_sha256",
     "django_pbkdf2_sha1",
@@ -130,26 +118,19 @@ _django_110_schemes = [
 ]
 django110_context = LazyCryptContext(schemes=_django_110_schemes)
 
-# -----------------------------------------------------------------------
-# 2.1
-# -----------------------------------------------------------------------
-
+# Django >=2.1
 _django21_schemes = list(_django_110_schemes)
 _django21_schemes.remove("django_bcrypt")
 django21_context = LazyCryptContext(schemes=_django21_schemes)
 
-# -----------------------------------------------------------------------
-# 3.1
-# -----------------------------------------------------------------------
-
+# Django >=3.1
 _django31_schemes = list(_django21_schemes)
-_django31_schemes.remove("django_pbkdf2_sha1")
-django31_context = LazyCryptContext(schemes=_django31_schemes)
+django31_context = LazyCryptContext(
+    schemes=_django31_schemes, 
+    deprecated=["django_pbkdf2_sha1"]
+)
 
-# -----------------------------------------------------------------------
-# latest
-# -----------------------------------------------------------------------
-
+# Django latest
 # this will always point to latest version in passlib
 django_context = django21_context
 
