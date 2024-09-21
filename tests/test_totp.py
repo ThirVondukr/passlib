@@ -1297,7 +1297,7 @@ class TotpTest(TestCase):
 
         with pytest.raises(DecodeError):
             from_uri(
-                "otpauth://totp/Example:alice@google.com?" "secret=JBSWY3DPEHP@3PXP",
+                "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHP@3PXP",
             )
 
         # --------------------------------------------------------------------------------

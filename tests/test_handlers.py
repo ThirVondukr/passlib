@@ -302,11 +302,11 @@ class fshp_test(HandlerCase):
         ("test", "{FSHP0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M="),
         (
             "test",
-            "{FSHP1|8|4096}MTIzNDU2NzjTdHcmoXwNc0f" "f9+ArUHoN0CvlbPZpxFi1C6RDM/MHSA==",
+            "{FSHP1|8|4096}MTIzNDU2NzjTdHcmoXwNc0ff9+ArUHoN0CvlbPZpxFi1C6RDM/MHSA==",
         ),
         (
             "OrpheanBeholderScryDoubt",
-            "{FSHP1|8|4096}GVSUFDAjdh0vBosn1GUhz" "GLHP7BmkbCZVH/3TQqGIjADXpc+6NCg3g==",
+            "{FSHP1|8|4096}GVSUFDAjdh0vBosn1GUhzGLHP7BmkbCZVH/3TQqGIjADXpc+6NCg3g==",
         ),
         (
             "ExecuteOrder66",

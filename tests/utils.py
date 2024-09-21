@@ -1146,7 +1146,7 @@ class HandlerCase(TestCase):
                 # didn't return boolean object. commonly fails due to
                 # use of 'classmethod' decorator instead of 'classproperty'
                 raise TypeError(
-                    f"has_backend({backend!r}) returned invalid " f"value: {ret!r}"
+                    f"has_backend({backend!r}) returned invalid value: {ret!r}"
                 )
 
     def require_salt(self):
@@ -1236,7 +1236,7 @@ class HandlerCase(TestCase):
                 if value1 != value2:
                     return
             raise self.failureException(
-                "failed to find different salt after " "%d samples" % (samples,)
+                "failed to find different salt after %d samples" % (samples,)
             )
 
         sampler(self.do_genconfig)
@@ -2400,9 +2400,9 @@ class HandlerCase(TestCase):
             raise self.skipTest("no malformed hashes provided")
         for hash in self.known_malformed_hashes:
             # identify() should accept these
-            assert self.do_identify(hash), (
-                "identify() failed to identify known malformed " f"hash: {hash!r}"
-            )
+            assert self.do_identify(
+                hash
+            ), f"identify() failed to identify known malformed hash: {hash!r}"
 
             with pytest.raises(ValueError):
                 self.do_verify("stub", hash)

@@ -160,7 +160,7 @@ class _BcryptCommon(
         ident, tail = cls._parse_ident(hash)
         if ident == IDENT_2X:
             raise ValueError(
-                "crypt_blowfish's buggy '2x' hashes are not " "currently supported"
+                "crypt_blowfish's buggy '2x' hashes are not currently supported"
             )
         rounds_str, data = tail.split("$")
         rounds = int(rounds_str)

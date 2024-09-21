@@ -773,7 +773,7 @@ class TOTP:
                 # not forbidden by spec, but would just be wasted bytes.
                 # maybe just warn about this?
                 raise ValueError(
-                    "'size' should be less than digest size " "(%d)" % digest_size
+                    "'size' should be less than digest size (%d)" % digest_size
                 )
             self.key = getrandbytes(rng, size)
         elif not key:

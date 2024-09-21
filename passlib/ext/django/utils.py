@@ -74,7 +74,7 @@ def get_preset_config(name):
     if name == "django-default":
         if not DJANGO_VERSION:
             raise ValueError(
-                "can't resolve django-default preset, " "django not installed"
+                "can't resolve django-default preset, django not installed"
             )
         name = "django-1.6"
     if name == "passlib-default":

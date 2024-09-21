@@ -517,7 +517,7 @@ class sha256_crypt(_SHA2_Common):
     default_rounds = 535000
     _test_hash = (
         "test",
-        "$5$rounds=1000$test$QmQADEXMG8POI5W" "Dsaeho0P36yK3Tcrgboabng6bkb/",
+        "$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/",
     )
 
 

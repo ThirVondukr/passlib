@@ -394,7 +394,7 @@ def saslprep(source, param="value"):
         (stringprep.in_table_c7, "non-canonical chars forbidden in "),
         (
             stringprep.in_table_c8,
-            "display-modifying / deprecated chars " "forbidden in",
+            "display-modifying / deprecated chars forbidden in",
         ),
         (stringprep.in_table_c9, "tagged characters forbidden in "),
         # do bidi constraint check chosen by bidi init, above
