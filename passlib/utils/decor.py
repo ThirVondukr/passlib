@@ -4,6 +4,7 @@ passlib.utils.decor -- helper decorators & properties
 
 import types
 from functools import update_wrapper, wraps
+from typing import Any
 from warnings import warn
 
 __all__ = [
@@ -19,11 +20,10 @@ __all__ = [
 class classproperty:
     """Function decorator which acts like a combination of classmethod+property (limited to read-only properties)"""
 
-    def __init__(self, func):
-        # XXX: rename to .fget to match property?
+    def __init__(self, func) -> None:
         self.__func__ = func
 
-    def __get__(self, obj, cls):
+    def __get__(self, obj: Any, cls: Any) -> Any:
         return self.__func__(cls)
 
 

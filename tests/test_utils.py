@@ -1,5 +1,7 @@
 """tests for passlib.util"""
 
+from __future__ import annotations
+
 import re
 import warnings
 from functools import partial
@@ -817,10 +819,10 @@ class _Base64Test(TestCase):
     engine = None
 
     # pairs of (raw, encoded) bytes to test - should encode/decode correctly
-    encoded_data = None
+    encoded_data: list[tuple[bytes, bytes]] | None = None
 
     # tuples of (encoded, value, bits) for known integer encodings
-    encoded_ints = None
+    encoded_ints: list[tuple[bytes, int, int]] | None = None
 
     # invalid encoded byte
     bad_byte = b"?"

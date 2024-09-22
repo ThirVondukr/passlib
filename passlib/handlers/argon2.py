@@ -13,6 +13,8 @@ References
     - home: https://github.com/bwesterb/argon2pure
 """
 
+from __future__ import annotations
+
 import logging
 import re
 from importlib import metadata
@@ -209,7 +211,7 @@ class _Argon2Common(
     #: internal helper used to store mapping of TYPE_XXX constants -> backend-specific type constants;
     #: this is populated by _load_backend_mixin(); and used to detect which types are supported.
     #: XXX: could expose keys as class-level .supported_types property?
-    _backend_type_map = {}
+    _backend_type_map: dict[str | None, type[uh.BackendMixin]] = {}
 
     @classproperty
     def type_values(cls):

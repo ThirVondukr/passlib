@@ -5,7 +5,10 @@ from __future__ import annotations
 import inspect
 import math
 import threading
+from typing import TYPE_CHECKING, Any
 from warnings import warn
+
+from typing_extensions import Self
 
 from passlib import exc, ifc
 from passlib.exc import PasslibConfigWarning, PasslibHashWarning
@@ -34,6 +37,11 @@ from passlib.utils.binary import (
 )
 from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import classproperty, deprecated_method
+
+if TYPE_CHECKING:
+    import re
+    from collections.abc import Mapping
+
 
 # local
 __all__ = [
@@ -603,7 +611,7 @@ class GenericHandler(MinimalHandler):
 
     # optional regexp for recognizing hashes,
     # used by default identify() if .ident isn't specified.
-    _hash_regex = None
+    _hash_regex: re.Pattern[str] | None = None
 
     # if specified, _norm_checksum will require this length
     checksum_size: int | None = None
@@ -613,7 +621,7 @@ class GenericHandler(MinimalHandler):
 
     # private flag used by HasRawChecksum
     _checksum_is_bytes = False
-    checksum = None  # stores checksum
+    checksum: str | bytes | None = None  # stores checksum
 
     #    use_defaults = False # whether _norm_xxx() funcs should fill in defaults.
     #    relaxed = False # when _norm_xxx() funcs should be strict about inputs
@@ -626,7 +634,7 @@ class GenericHandler(MinimalHandler):
 
     # NOTE: would like to make this classmethod, but fshp checksum size
     #       is dependant on .variant, so leaving this as instance method.
-    def _norm_checksum(self, checksum, relaxed=False):
+    def _norm_checksum(self, checksum, relaxed=False) -> bytes | str:
         """validates checksum keyword against class requirements,
         returns normalized version of checksum.
         """
@@ -663,7 +671,7 @@ class GenericHandler(MinimalHandler):
         return checksum
 
     @classmethod
-    def identify(cls, hash):
+    def identify(cls, hash: str) -> bool:
         # NOTE: subclasses may wish to use faster / simpler identify,
         # and raise value errors only when an invalid (but identifiable)
         # string is parsed
@@ -690,7 +698,7 @@ class GenericHandler(MinimalHandler):
             return False
 
     @classmethod
-    def from_string(cls, hash, **context):  # pragma: no cover
+    def from_string(cls, hash: str, **context: Any) -> Self:  # pragma: no cover
         r"""
         return parsed instance from hash/configuration string
 
@@ -705,7 +713,7 @@ class GenericHandler(MinimalHandler):
         """
         raise NotImplementedError(f"{cls} must implement from_string()")
 
-    def to_string(self):  # pragma: no cover
+    def to_string(self) -> str:  # pragma: no cover
         """render instance to hash or configuration string
 
         :returns:
@@ -750,7 +758,7 @@ class GenericHandler(MinimalHandler):
         raise NotImplementedError(f"{self.__class__} must implement _calc_checksum()")
 
     @classmethod
-    def hash(cls, secret, **kwds):
+    def hash(cls, secret, **kwds) -> str:
         if kwds:
             # Deprecating passing any settings keywords via .hash() as of passlib 1.7; everything
             # should use .using().hash() instead.  If any keywords are specified, presume they're
@@ -768,7 +776,7 @@ class GenericHandler(MinimalHandler):
         return self.to_string()
 
     @classmethod
-    def verify(cls, secret, hash, **context):
+    def verify(cls, secret, hash, **context) -> bool:
         # NOTE: classes with multiple checksum encodings should either
         # override this method, or ensure that from_string() / _norm_checksum()
         # ensures .checksum always uses a single canonical representation.
@@ -794,7 +802,7 @@ class GenericHandler(MinimalHandler):
 
     @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
-    def genhash(cls, secret, config, **context):
+    def genhash(cls, secret, config, **context) -> str:
         if config is None:
             raise TypeError("config must be string")
         validate_secret(secret)
@@ -803,14 +811,14 @@ class GenericHandler(MinimalHandler):
         return self.to_string()
 
     @classmethod
-    def needs_update(cls, hash, secret=None, **kwds):
+    def needs_update(cls, hash, secret=None, **kwds) -> bool:
         # NOTE: subclasses should generally just wrap _calc_needs_update()
         #       to check their particular keywords.
         self = cls.from_string(hash)
         assert isinstance(self, cls)
         return self._calc_needs_update(secret=secret, **kwds)
 
-    def _calc_needs_update(self, secret=None):
+    def _calc_needs_update(self, secret=None) -> bool:
         """
         internal helper for :meth:`needs_update`.
         """
@@ -824,16 +832,16 @@ class GenericHandler(MinimalHandler):
     # ===================================================================
 
     #: internal helper for forcing settings to be included, even if default matches
-    _always_parse_settings = ()
+    _always_parse_settings: tuple[str, ...] = ()
 
     #: internal helper for excluding certain setting_kwds from parsehash() result
-    _unparsed_settings = ("salt_size", "relaxed")
+    _unparsed_settings: tuple[str, ...] = ("salt_size", "relaxed")
 
     #: parsehash() keys that need to be sanitized
     _unsafe_settings = ("salt", "checksum")
 
     @classproperty
-    def _parsed_settings(cls):
+    def _parsed_settings(cls) -> tuple[str, ...]:
         """
         helper for :meth:`parsehash` --
         returns list of attributes which should be extracted by parse_hash() from hasher object.
@@ -841,11 +849,11 @@ class GenericHandler(MinimalHandler):
         default implementation just takes setting_kwds, and excludes _unparsed_settings
         """
         return tuple(
-            key for key in cls.setting_kwds if key not in cls._unparsed_settings
+            key for key in cls.setting_kwds or [] if key not in cls._unparsed_settings
         )
 
     @classmethod
-    def parsehash(cls, hash, checksum=True, sanitize=False):
+    def parsehash(cls, hash, checksum=True, sanitize=False) -> Mapping[str, Any]:
         """[experimental method] parse hash into dictionary of settings.
 
         this essentially acts as the inverse of :meth:`hash`: for most
@@ -888,7 +896,7 @@ class GenericHandler(MinimalHandler):
         return kwds
 
     @classmethod
-    def bitsize(cls, **kwds):
+    def bitsize(cls, **kwds) -> Mapping[str, Any]:
         """[experimental method] return info about bitsizes of hash"""
         try:
             info = super().bitsize(**kwds)
@@ -920,13 +928,13 @@ class StaticHandler(GenericHandler):
 
     # TODO: document _norm_hash()
 
-    setting_kwds = ()
+    setting_kwds: tuple[str, ...] | None = ()
 
     # optional constant prefix subclasses can specify
     _hash_prefix = ""
 
     @classmethod
-    def from_string(cls, hash, **context):
+    def from_string(cls, hash: str, **context: Any) -> Self:
         # default from_string() which strips optional prefix,
         # and passes rest unchanged as checksum value.
         hash = to_unicode(hash, "ascii", "hash")
@@ -944,11 +952,13 @@ class StaticHandler(GenericHandler):
         return cls(checksum=hash, **context)
 
     @classmethod
-    def _norm_hash(cls, hash):
+    def _norm_hash(cls, hash: str) -> str:
         """helper for subclasses to normalize case if needed"""
         return hash
 
-    def to_string(self):
+    def to_string(self) -> str:
+        if not isinstance(self.checksum, str):
+            raise ValueError
         return self._hash_prefix + self.checksum
 
 
@@ -977,11 +987,11 @@ class HasUserContext(GenericHandler):
 
     # wrap funcs to accept 'user' as positional arg for ease of use.
     @classmethod
-    def hash(cls, secret, user=None, **context):
+    def hash(cls, secret, user=None, **context) -> str:
         return super().hash(secret, user=user, **context)
 
     @classmethod
-    def verify(cls, secret, hash, user=None, **context):
+    def verify(cls, secret, hash, user=None, **context) -> bool:
         return super().verify(secret, hash, user=user, **context)
 
     @deprecated_method(deprecated="1.7", removed="2.0")
@@ -1036,9 +1046,9 @@ class HasManyIdents(GenericHandler):
     .. todo:: document using() and needs_update() options
     """
 
-    default_ident = None  # should be str
-    ident_values = None  # should be list of unicode strings
-    ident_aliases = None  # should be dict of unicode -> unicode
+    default_ident: str | None = None  # should be str
+    ident_values: tuple[str, ...] | None = None  # should be list of unicode strings
+    ident_aliases: dict[str, str] | None = None  # should be dict of unicode -> unicode
     # NOTE: any aliases provided to norm_ident() as bytes
     #       will have been converted to unicode before
     #       comparing against this dictionary.
@@ -1218,15 +1228,20 @@ class HasSalt(GenericHandler):
     max_salt_size: int | None = None
     salt_chars: str | None = None
 
-    @classproperty
-    def default_salt_size(cls):
-        """default salt size (defaults to *max_salt_size*)"""
-        return cls.max_salt_size
+    if TYPE_CHECKING:
+        default_salt_size: int | None
+        default_salt_chars: str | None
+    else:
 
-    @classproperty
-    def default_salt_chars(cls):
-        """charset used to generate new salt strings (defaults to *salt_chars*)"""
-        return cls.salt_chars
+        @classproperty
+        def default_salt_size(cls) -> int | None:
+            """default salt size (defaults to *max_salt_size*)"""
+            return cls.max_salt_size
+
+        @classproperty
+        def default_salt_chars(cls) -> str | None:
+            """charset used to generate new salt strings (defaults to *salt_chars*)"""
+            return cls.salt_chars
 
     # private helpers for HasRawSalt, shouldn't be used by subclasses
     _salt_is_bytes = False
@@ -1967,14 +1982,14 @@ class BackendMixin(PasswordHash):
     """
 
     #: list of backend names, provided by subclass.
-    backends = None
+    backends: tuple[str, ...] | None = None
 
     #: private attr mixin uses to hold currently loaded backend (or ``None``)
     __backend = None
 
     #: optional class-specific text containing suggestion about what to do
     #: when no backends are available.
-    _no_backend_suggestion = None
+    _no_backend_suggestion: str | None = None
 
     #: shared attr used by set_backend() to indicate what backend it's loaded;
     #: meaningless while not in set_backend().
@@ -2187,7 +2202,7 @@ class SubclassBackendMixin(BackendMixin):
     _backend_mixin_target = False
 
     #: map of backend name -> mixin class
-    _backend_mixin_map = None
+    _backend_mixin_map: dict[str | None, type[BackendMixin]] | None = None
 
     @classmethod
     def _get_backend_owner(cls):

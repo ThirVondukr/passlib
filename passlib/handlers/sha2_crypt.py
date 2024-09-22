@@ -1,5 +1,7 @@
 """SHA256-Crypt / SHA512-Crypt"""
 
+from __future__ import annotations
+
 import hashlib
 
 import passlib.utils.handlers as uh
@@ -430,7 +432,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     # ---------------------------------------------------------------
 
     #: test hash for OS detection -- provided by subclass
-    _test_hash = None
+    _test_hash: tuple[str, ...] | None = None
 
     @classmethod
     def _load_backend_os_crypt(cls):

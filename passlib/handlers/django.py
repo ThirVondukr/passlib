@@ -43,7 +43,7 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
 
     # name, ident, checksum_size must be set by subclass.
     # ident must include "$" suffix.
-    setting_kwds = ("salt", "salt_size")
+    setting_kwds: tuple[str, ...] = ("salt", "salt_size")
 
     # NOTE: django 1.0-1.3 would accept empty salt strings.
     #       django 1.4 won't, but this appears to be regression

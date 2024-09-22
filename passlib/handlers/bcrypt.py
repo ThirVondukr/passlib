@@ -104,7 +104,7 @@ class _BcryptCommon(
     # PasswordHash
     # --------------------
     name = "bcrypt"
-    setting_kwds = ("salt", "rounds", "ident", "truncate_error")
+    setting_kwds: tuple[str, ...] = ("salt", "rounds", "ident", "truncate_error")
 
     # --------------------
     # GenericHandler
@@ -116,7 +116,7 @@ class _BcryptCommon(
     # HasManyIdents
     # --------------------
     default_ident = IDENT_2B
-    ident_values = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
+    ident_values: tuple[str, ...] = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
     ident_aliases = {"2": IDENT_2, "2a": IDENT_2A, "2y": IDENT_2Y, "2b": IDENT_2B}
 
     # --------------------

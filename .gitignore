@@ -1,5 +1,5 @@
 .idea
-
+.DS_Store
 .pdm-python
 
 __pycache__

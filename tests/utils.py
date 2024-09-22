@@ -642,7 +642,7 @@ class HandlerCase(TestCase):
     handler: type[PasswordHash] | PrefixWrapper = None
 
     # if set, run tests against specified backend
-    backend = None
+    backend: str | None = None
 
     # ---------------------------------------------------------------
     # test vectors
@@ -691,7 +691,7 @@ class HandlerCase(TestCase):
     # whether hash is case insensitive
     # True, False, or special value "verify-only" (which indicates
     # hash contains case-sensitive portion, but verifies is case-insensitive)
-    secret_case_insensitive = False
+    secret_case_insensitive: str | bool = False
 
     # flag if scheme accepts ALL hash strings (e.g. plaintext)
     accepts_all_hashes = False

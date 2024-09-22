@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import codecs
 import contextlib
 import logging
 import os
 from collections import defaultdict
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from importlib import resources
 from math import ceil, log2
+from typing import IO, Any, Literal
 
 from passlib import exc
 from passlib.utils import getrandstr, rng, to_unicode
@@ -34,13 +37,13 @@ entropy_aliases = dict(
 )
 
 
-def _superclasses(obj, cls):
+def _superclasses(obj, cls) -> tuple[type, ...]:
     """return remaining classes in object's MRO after cls"""
     mro = type(obj).__mro__
     return mro[mro.index(cls) + 1 :]
 
 
-def _self_info_rate(source):
+def _self_info_rate(source) -> float:
     """
     returns 'rate of self-information' --
     i.e. average (per-symbol) entropy of the sequence **source**,
@@ -61,7 +64,7 @@ def _self_info_rate(source):
     except TypeError:
         # if len() doesn't work, calculate size by summing counts later
         size = None
-    counts = defaultdict(int)
+    counts: defaultdict[str, int] = defaultdict(int)
     for char in source:
         counts[char] += 1
     if size is None:
@@ -70,8 +73,8 @@ def _self_info_rate(source):
     else:
         values = counts.values()
     if not size:
-        return 0
-    # NOTE: the following performs ``- sum(value / size * logf(value / size, 2) for value in values)``,
+        return 0.0
+    # NOTE: the following performs ``- sum(value / size * log2(value / size, 2) for value in values)``,
     #       it just does so with as much pulled out of the sum() loop as possible...
     return log2(size) - sum(value * log2(value) for value in values) / size
 
@@ -84,7 +87,7 @@ def _self_info_rate(source):
 #     return _self_info_rate(source) * len(source)
 
 
-def _open_asset_path(path, encoding=None):
+def _open_asset_path(path, encoding=None) -> IO[bytes]:
     """
     :param asset_path:
         string containing absolute path to file,
@@ -116,7 +119,7 @@ _set_types = (set, frozenset)
 _ensure_unique_cache = set()
 
 
-def _ensure_unique(source, param="source"):
+def _ensure_unique(source: str | tuple[bytes], param="source") -> Literal[True]:
     """
     helper for generators --
     Throws ValueError if source elements aren't unique.
@@ -199,7 +202,7 @@ class SequenceGenerator:
     """
 
     #: requested size of final password
-    length = None
+    length: int | None = None
 
     #: requested entropy of final password
     requested_entropy = "strong"
@@ -208,7 +211,7 @@ class SequenceGenerator:
     rng = rng
 
     #: number of potential symbols (must be filled in by subclass)
-    symbol_count = None
+    symbol_count: int | None = None
 
     def __init__(self, entropy=None, length=None, rng=None, **kwds):
         # make sure subclass set things up correctly
@@ -241,14 +244,16 @@ class SequenceGenerator:
         super().__init__(**kwds)
 
     @memoized_property
-    def entropy_per_symbol(self):
+    def entropy_per_symbol(self) -> float:
         """
         Average entropy per symbol (assuming all symbols have equal probability)
         """
+        if self.symbol_count is None:
+            raise ValueError
         return log2(self.symbol_count)
 
     @memoized_property
-    def entropy(self):
+    def entropy(self) -> float:
         """
         Effective entropy of generated passwords.
 
@@ -262,7 +267,7 @@ class SequenceGenerator:
         """main generation function, should create one password/phrase"""
         raise NotImplementedError("implement in subclass")
 
-    def __call__(self, returns=None):
+    def __call__(self, returns=None) -> Iterator[Any]:
         """
         frontend used by genword() / genphrase() to create passwords
         """
@@ -339,16 +344,18 @@ class WordGenerator(SequenceGenerator):
         # log.debug("WordGenerator(): entropy/char=%r", self.entropy_per_symbol)
 
     @memoized_property
-    def symbol_count(self):
+    def symbol_count(self) -> int:
+        if self.chars is None:
+            return 0
         return len(self.chars)
 
-    def __next__(self):
+    def __next__(self) -> str | bytes:
         # XXX: could do things like optionally ensure certain character groups
         #      (e.g. letters & punctuation) are included
         return getrandstr(self.rng, self.chars, self.length)
 
 
-def genword(entropy=None, length=None, returns=None, **kwds):
+def genword(entropy=None, length=None, returns=None, **kwds) -> str | bytes:
     """Generate one or more random passwords.
 
     This function uses :mod:`random.SystemRandom` to generate
@@ -422,7 +429,7 @@ def genword(entropy=None, length=None, returns=None, **kwds):
     return gen(returns)
 
 
-def _load_wordset(asset_path):
+def _load_wordset(asset_path) -> tuple[bytes, ...]:
     """
     load wordset from compressed datafile within package data.
     file should be utf-8 encoded
@@ -468,14 +475,14 @@ class WordsetDict(MutableMapping):
     paths = None
 
     #: dict of key -> value
-    _loaded = None
+    _loaded: dict[str, tuple[bytes, ...]] | None = None
 
     def __init__(self, *args, **kwds):
         self.paths = {}
         self._loaded = {}
         super().__init__(*args, **kwds)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> tuple[bytes, ...]:
         try:
             return self._loaded[key]
         except KeyError:
@@ -490,10 +497,10 @@ class WordsetDict(MutableMapping):
         """
         self.paths[key] = path
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         self._loaded[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         if key in self:
             del self._loaded[key]
             self.paths.pop(key, None)
@@ -501,19 +508,19 @@ class WordsetDict(MutableMapping):
             del self.paths[key]
 
     @property
-    def _keyset(self):
+    def _keyset(self) -> set[str]:
         keys = set(self._loaded)
         keys.update(self.paths)
         return keys
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self._keyset)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._keyset)
 
     # NOTE: speeds things up, and prevents contains from lazy-loading
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         return key in self._loaded or key in self.paths
 
 
@@ -581,15 +588,17 @@ class PhraseGenerator(SequenceGenerator):
         ##          self.entropy_per_symbol, self.entropy_per_char, self.min_chars)
 
     @memoized_property
-    def symbol_count(self):
+    def symbol_count(self) -> int:
         return len(self.words)
 
-    def __next__(self):
+    def __next__(self) -> str:
+        if self.length is None:
+            raise StopIteration
         words = (self.rng.choice(self.words) for _ in range(self.length))
         return self.sep.join(words)
 
 
-def genphrase(entropy=None, length=None, returns=None, **kwds):
+def genphrase(entropy=None, length=None, returns=None, **kwds) -> Iterator[str]:
     """Generate one or more random password / passphrases.
 
     This function uses :mod:`random.SystemRandom` to generate

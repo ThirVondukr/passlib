@@ -1,5 +1,7 @@
 """tests for passlib.utils.scrypt"""
 
+from __future__ import annotations
+
 import hashlib
 import logging
 import struct
@@ -311,7 +313,7 @@ class _CommonScryptTest(TestCase):
     def descriptionPrefix(cls):
         return f"passlib.utils.scrypt.scrypt() <{cls.backend} backend>"
 
-    backend = None
+    backend: str | None = None
 
     def setUp(self):
         assert self.backend

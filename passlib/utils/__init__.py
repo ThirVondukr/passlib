@@ -465,7 +465,7 @@ def repeat_string(source: str, size: int) -> str:
     return (source * mult)[:size]
 
 
-def utf8_repeat_string(source: str, size: int) -> str:
+def utf8_repeat_string(source: bytes, size: int) -> bytes:
     """
     variant of repeat_string() which truncates to nearest UTF8 boundary.
     """
@@ -869,6 +869,7 @@ def genseed(value=None):
     return int(sha512(text.encode("utf-8")).hexdigest(), 16)
 
 
+rng: random.Random
 if has_urandom:  # noqa: SIM108
     rng = random.SystemRandom()
 else:  # pragma: no cover -- runtime detection

@@ -4,6 +4,7 @@ this module is getting increasingly poorly named.
 maybe rename to "kdf" since it's getting more key derivation functions added.
 """
 
+from typing import Any
 from warnings import warn
 
 from passlib.crypto.digest import (
@@ -33,13 +34,13 @@ warn(
 
 
 #: cache mapping prf name/func -> (func, digest_size)
-_prf_cache = {}
+_prf_cache: dict[str, Any] = {}
 
 #: list of accepted prefixes
 _HMAC_PREFIXES = ("hmac_", "hmac-")
 
 
-def get_prf(name):
+def get_prf(name: str):
     """Lookup pseudo-random family (PRF) by name.
 
     :arg name:

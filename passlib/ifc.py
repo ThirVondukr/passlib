@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+
+from typing_extensions import Self
 
 from passlib.utils.decor import deprecated_method
 
@@ -21,7 +25,7 @@ class PasswordHash(ABC):
     # ---------------------------------------------------------------
     ##name
     ##setting_kwds
-    ##context_kwds
+    context_kwds: tuple[str, ...]
 
     #: flag which indicates this hasher matches a "disabled" hash
     #: (e.g. unix_disabled, or django_disabled); and doesn't actually
@@ -35,7 +39,7 @@ class PasswordHash(ABC):
     #: NOTE: calls may treat as boolean, since value will never be 0.
     #: .. versionadded:: 1.7
     #: .. TODO: passlib 1.8: deprecate/rename this attr to "max_secret_size"?
-    truncate_size = None
+    truncate_size: int | None = None
 
     # NOTE: these next two default to the optimistic "ideal",
     #       most hashes in passlib have to default to False
@@ -83,7 +87,7 @@ class PasswordHash(ABC):
         cls,
         secret,  # *
         **setting_and_context_kwds,
-    ):  # pragma: no cover -- abstract method
+    ) -> str:  # pragma: no cover -- abstract method
         r"""
         Hash secret, returning result.
         Should handle generating salt, etc, and should return string
@@ -111,7 +115,7 @@ class PasswordHash(ABC):
 
     @deprecated_method(deprecated="1.7", removed="2.0", replacement=".hash()")
     @classmethod
-    def encrypt(cls, *args, **kwds):
+    def encrypt(cls, *args, **kwds) -> str:
         """
         Legacy alias for :meth:`hash`.
 
@@ -129,13 +133,13 @@ class PasswordHash(ABC):
     @abstractmethod
     def verify(
         cls, secret, hash, **context_kwds
-    ):  # pragma: no cover -- abstract method
+    ) -> bool:  # pragma: no cover -- abstract method
         """verify secret against hash, returns True/False"""
         raise NotImplementedError("must be implemented by subclass")
 
     @classmethod
     @abstractmethod
-    def using(cls, relaxed=False, **kwds):
+    def using(cls, relaxed=False, **kwds) -> type[Self]:
         """
         Return another hasher object (typically a subclass of the current one),
         which integrates the configuration options specified by ``kwds``.
@@ -155,7 +159,7 @@ class PasswordHash(ABC):
         raise NotImplementedError("must be implemented by subclass")
 
     @classmethod
-    def needs_update(cls, hash, secret=None):
+    def needs_update(cls, hash, secret=None) -> bool:
         """
         check if hash's configuration is outside desired bounds,
         or contains some other internal option which requires
@@ -178,13 +182,13 @@ class PasswordHash(ABC):
 
     @classmethod
     @abstractmethod
-    def identify(cls, hash):  # pragma: no cover -- abstract method
+    def identify(cls, hash) -> bool:  # pragma: no cover -- abstract method
         """check if hash belongs to this scheme, returns True/False"""
         raise NotImplementedError("must be implemented by subclass")
 
     @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
-    def genconfig(cls, **setting_kwds):  # pragma: no cover -- abstract method
+    def genconfig(cls, **setting_kwds) -> str:  # pragma: no cover -- abstract method
         """
         compile settings into a configuration string for genhash()
 
@@ -206,7 +210,7 @@ class PasswordHash(ABC):
 
     @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
-    def genhash(cls, secret, config, **context):
+    def genhash(cls, secret, config, **context) -> str:
         """
         generated hash for secret, using settings from config/hash string
 
@@ -285,7 +289,7 @@ class DisabledHash(PasswordHash):
     is_disabled = True
 
     @classmethod
-    def disable(cls, hash=None):
+    def disable(cls, hash=None) -> str:
         """
         return string representing a 'disabled' hash;
         optionally including previously enabled hash
@@ -295,7 +299,7 @@ class DisabledHash(PasswordHash):
         return cls.hash("")
 
     @classmethod
-    def enable(cls, hash):
+    def enable(cls, hash) -> str:
         """
         given a disabled-hash string,
         extract previously-enabled hash if one is present,
