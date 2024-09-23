@@ -791,7 +791,7 @@ class TotpTest(TestCase):
 
             assert otp.normalize_time(tint) == tint
 
-            dt = datetime.datetime.fromtimestamp(time, datetime.UTC)
+            dt = datetime.datetime.fromtimestamp(time, datetime.timezone.utc)
             assert otp.normalize_time(dt) == tint
 
             orig = TotpFactory.now
@@ -890,7 +890,7 @@ class TotpTest(TestCase):
         assert otp.generate(start_time + 30).token != token
 
         # verify round-trip conversion of datetime
-        dt = datetime.datetime.fromtimestamp(time, datetime.UTC)
+        dt = datetime.datetime.fromtimestamp(time, datetime.timezone.utc)
         assert int(otp.normalize_time(dt)) == int(time)
 
         # handle datetime object
@@ -1048,7 +1048,7 @@ class TotpTest(TestCase):
         # -------------------------------
 
         # handle datetimes
-        dt = datetime.datetime.fromtimestamp(time, datetime.UTC)
+        dt = datetime.datetime.fromtimestamp(time, datetime.timezone.utc)
         assertMatches(0, token, dt, window=0)
 
         # reject invalid time

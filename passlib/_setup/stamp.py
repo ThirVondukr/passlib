@@ -113,7 +113,7 @@ def append_hg_revision(version):
     except (OSError, subprocess.CalledProcessError):
         # fallback - just use build date
         now = int(os.environ.get("SOURCE_DATE_EPOCH") or time.time())
-        build_date = datetime.datetime.utcfromtimestamp(now)
+        build_date = datetime.datetime.fromtimestamp(now, datetime.timezone.utc)
         stamp = build_date.strftime("%Y%m%d%H%M%S")
 
     # modify version
