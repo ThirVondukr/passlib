@@ -11,12 +11,10 @@ as a framework for managing existing password hashes. It's designed to be useful
 for a wide range of tasks, from verifying a hash found in /etc/shadow, to
 providing full-strength password hashing for multi-user application.
 
-- See the [documentation](<https://passlib.readthedocs.io>) 
+- See the [documentation](https://passlib.readthedocs.io)
   for details, installation instructions, and examples.
-
-[//]: # (- See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_)
-[//]: # (  for a description of what's new in Passlib.)
-
+- See the [changelog](https://github.com/ThirVondukr/passlib/blob/main/CHANGELOG.md)
+  for a description of what's new in Passlib.
 - Visit [PyPI](https://pypi.org/project/libpass) for the latest stable release.
 
 
