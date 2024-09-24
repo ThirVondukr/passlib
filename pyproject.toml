@@ -77,8 +77,8 @@ build-backend = "pdm.backend"
 distribution = true
 
 [tool.pdm.build]
-includes = ["passlib/"]
-excludes = ["tests/"]
+includes = ["passlib"]
+source-includes = ["passlib"]
 
 
 [tool.pdm.dev-dependencies]
