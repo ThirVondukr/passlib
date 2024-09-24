@@ -1,3 +1,26 @@
+## 1.8.0 (2024-09-24)
+
+### Fix
+- add python 3.13 compatability
+
+### Refactor
+
+- enable ruff "FURB" rule
+- enable ruff "PERF" rule
+- enable ruff "RSE" rule
+- enable ruff "FA" rule
+- enable ruff "ISC" rule
+- enable ruff "SIM" rule
+- enable ruff "PIE" rule
+- enable ruff "G" rule
+- enable RET ruff rule
+- enable pyupgrade(UP) checks in ruff
+- **tests/**: use pytest to capture warnings
+- **utils**: improve typing
+- remove jython and pypy compatiblity helpers, remove setup.py
+- remove dependency on built-in crypt, use legacycrypt instead
+- replace consteq and str_consteq implementations with hmac.compare_digest
+
 ## 1.7.5.post0 (2024-09-11)
 
 ## 1.7.5 (2024-09-11)
