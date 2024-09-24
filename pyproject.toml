@@ -1,6 +1,6 @@
 [project]
 name = "libpass"
-version = "1.7.5.post0"
+version = "1.8.0"
 description = "Fork of passlib, a comprehensive password hashing framework supporting over 30 schemes"
 authors = [
     { name = "Eli Collins", email = "elic@assurancetechnologies.com" },
@@ -187,7 +187,7 @@ ignore = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.7.5.post0"
+version = "1.8.0"
 tag_format = "$version"
 version_files = [
     "passlib/__init__.py",
