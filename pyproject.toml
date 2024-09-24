@@ -189,7 +189,6 @@ ignore = [
 name = "cz_conventional_commits"
 version = "1.7.5.post0"
 tag_format = "$version"
-update_changelog_on_bump = true
 version_files = [
     "passlib/__init__.py",
     "pyproject.toml:version"
