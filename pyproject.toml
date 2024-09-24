@@ -76,6 +76,10 @@ build-backend = "pdm.backend"
 [tool.pdm]
 distribution = true
 
+[tool.pdm.build]
+includes = ["passlib/"]
+excludes = ["tests/"]
+
 
 [tool.pdm.dev-dependencies]
 linters = [
