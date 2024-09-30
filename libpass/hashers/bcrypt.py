@@ -7,13 +7,15 @@ from typing import ClassVar, Literal
 
 import bcrypt
 
+from libpass._utils.bytes import StrOrBytes, as_bytes, as_str
 from libpass.errors import MalformedHashError, Panic
-from libpass.hashers.abc import PasswordHasher, StrOrBytes, as_bytes, as_str
+from libpass.hashers.abc import PasswordHasher
 from libpass.inspect.bcrypt import (
     BcryptHashInfo,
     inspect_bcrypt_hash,
 )
-from libpass.inspect.phc import BcryptSHA256PHCV2, inspect_phc
+from libpass.inspect.phc import inspect_phc
+from libpass.inspect.phc.defs import BcryptSHA256PHCV2
 
 BcryptPrefix = Literal["2b", "2a"]
 _bcrypt_prefixes = (b"2b", b"2a")

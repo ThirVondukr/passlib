@@ -1,6 +1,6 @@
-from typing import Protocol, Union
+from typing import Protocol
 
-StrOrBytes = Union[str, bytes]
+from libpass._utils.bytes import StrOrBytes
 
 
 class PasswordHasher(Protocol):
@@ -9,11 +9,3 @@ class PasswordHasher(Protocol):
     def verify(self, hash: StrOrBytes, secret: StrOrBytes) -> bool: ...
 
     def identify(self, hash: StrOrBytes) -> bool: ...
-
-
-def as_bytes(value: StrOrBytes) -> bytes:
-    return value.encode("utf8") if isinstance(value, str) else value
-
-
-def as_str(value: StrOrBytes) -> str:
-    return value.decode("utf8") if isinstance(value, bytes) else value

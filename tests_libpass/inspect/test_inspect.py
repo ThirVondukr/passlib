@@ -1,7 +1,8 @@
 import pytest
 
 from libpass.inspect.bcrypt import BcryptHashInfo, inspect_bcrypt_hash
-from libpass.inspect.phc import Argon2PHC, inspect_phc
+from libpass.inspect.phc import inspect_phc
+from libpass.inspect.phc.defs import Argon2PHC
 
 
 @pytest.mark.parametrize(

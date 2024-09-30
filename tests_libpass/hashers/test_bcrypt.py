@@ -1,7 +1,7 @@
 import bcrypt
 import pytest
 
-from libpass.hashers.bcrypt import BcryptHasher, BcryptSHA256Hasher
+from libpass.hashers.bcrypt import BcryptHasher
 from libpass.inspect.bcrypt import inspect_bcrypt_hash
 
 UPASS_TABLE = "t\u00e1\u0411\u2113\u0259"
@@ -12,7 +12,7 @@ def hasher() -> BcryptHasher:
     return BcryptHasher()
 
 
-def test_password_truncation(hasher: BcryptSHA256Hasher):
+def test_password_truncation(hasher: BcryptHasher):
     secret = "a" * 72
     secret1 = secret + "a"
 
@@ -133,7 +133,7 @@ def test_hash(
 
 @pytest.mark.parametrize("rounds", [4, 8, 12])
 def test_rounds(rounds: int) -> None:
-    hasher = BcryptSHA256Hasher(rounds=rounds)
+    hasher = BcryptHasher(rounds=rounds)
     hash = hasher.hash("Secret")
     info = inspect_bcrypt_hash(hash)
     assert info
