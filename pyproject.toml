@@ -179,7 +179,6 @@ ignore = [
     "PLW",
     "PLC",
     "BLE",
-    "T",
     "FLY",
     "INP",
 ]
@@ -188,6 +187,8 @@ ignore = [
 "passlib/hash.py" = ["F401"]
 "passlib/crypto/_blowfish/base.py" = ["E741"]
 "passlib/crypto/_blowfish/unrolled.py" = ["E741"]
+"libpass/*" = ["UP007"]
+"passlib/*" = ["T"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
