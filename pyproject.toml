@@ -78,8 +78,6 @@ distribution = true
 
 [tool.pdm.build]
 includes = ["passlib"]
-source-includes = ["passlib"]
-
 
 [tool.pdm.dev-dependencies]
 linters = [
