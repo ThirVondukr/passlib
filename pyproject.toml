@@ -10,6 +10,7 @@ maintainers = [
 ]
 dependencies = [
     "legacycrypt>=0.3",
+    "typing-extensions>=4.6.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -78,7 +79,6 @@ distribution = true
 
 [tool.pdm.build]
 includes = ["passlib"]
-source-includes = ["passlib"]
 
 
 [tool.pdm.dev-dependencies]

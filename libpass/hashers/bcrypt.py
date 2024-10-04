@@ -35,6 +35,7 @@ class BcryptHasher(PasswordHasher):
     def hash(
         self,
         secret: StrOrBytes,
+        *,
         salt: bytes | None = None,
     ) -> str:
         """
@@ -65,6 +66,7 @@ class BcryptSHA256Hasher(PasswordHasher):
     def hash(
         self,
         secret: StrOrBytes,
+        *,
         salt: bytes | None = None,
     ) -> str:
         salt = salt or bcrypt.gensalt(rounds=self._rounds, prefix=self.prefixes[0])

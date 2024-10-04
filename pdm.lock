@@ -5,7 +5,7 @@
 groups = ["default", "argon2", "bcrypt", "dev", "django", "linters", "sphinx-docs", "testing", "totp", "types"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:b723fc70432dad00373e796d240bd6801892b737de07c153b393df173b2598be"
+content_hash = "sha256:8551729add14e547231cf30b9ec278ae7ae126f6b1eb86875220918c663125c8"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -1000,7 +1000,7 @@ name = "typing-extensions"
 version = "4.12.2"
 requires_python = ">=3.8"
 summary = "Backported and Experimental Type Hints for Python 3.8+"
-groups = ["django", "linters", "testing", "types"]
+groups = ["default", "django", "linters", "testing", "types"]
 files = [
     {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
     {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
