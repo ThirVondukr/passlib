@@ -457,7 +457,7 @@ def xor_bytes(left: bytes, right: bytes) -> bytes:
     return int_to_bytes(bytes_to_int(left) ^ bytes_to_int(right), len(left))
 
 
-def repeat_string(source: str, size: int) -> str:
+def repeat_string(source: AnyStr, size: int) -> AnyStr:
     """
     repeat or truncate <source> string, so it has length <size>
     """

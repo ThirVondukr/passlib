@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "argon2", "bcrypt", "dev", "django", "linters", "sphinx-docs", "testing", "totp", "types"]
+groups = ["default", "argon2", "bcrypt", "django", "linters", "sphinx-docs", "testing", "totp", "types"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:b723fc70432dad00373e796d240bd6801892b737de07c153b393df173b2598be"
+content_hash = "sha256:efe6e8c178e00904204729a12954c697b618631f22840c16cee4f23b015ed1b2"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -772,6 +772,20 @@ files = [
 ]
 
 [[package]]
+name = "pytest-archon"
+version = "0.0.6"
+requires_python = ">=3.8"
+summary = "Rule your architecture like a real developer"
+groups = ["testing"]
+dependencies = [
+    "pytest>=7.2",
+]
+files = [
+    {file = "pytest-archon-0.0.6.tar.gz", hash = "sha256:5af260a7617fc0a9e8bcd7a62adc42ed1ad466e20ae128b218589f49f73b1bcf"},
+    {file = "pytest_archon-0.0.6-py3-none-any.whl", hash = "sha256:f49b6b1f33a541dda1cab8a733b93b8a712594a002f03283294a624d0b394e83"},
+]
+
+[[package]]
 name = "pytest-xdist"
 version = "3.6.1"
 requires_python = ">=3.8"
@@ -1000,7 +1014,7 @@ name = "typing-extensions"
 version = "4.12.2"
 requires_python = ">=3.8"
 summary = "Backported and Experimental Type Hints for Python 3.8+"
-groups = ["django", "linters", "testing", "types"]
+groups = ["default", "django", "linters", "testing", "types"]
 files = [
     {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
     {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
