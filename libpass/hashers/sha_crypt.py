@@ -14,6 +14,8 @@ from libpass.inspect.sha_crypt import SHA256CryptInfo, inspect_sha_crypt
 if TYPE_CHECKING:
     from libpass._utils.protocols import HashLike
 
+__all__ = ["SHA256Hasher"]
+
 
 def _gen_salt(size: int) -> str:
     return "".join(secrets.choice(B64_CHARS) for _ in range(size))
@@ -206,6 +208,8 @@ def _sha_crypt(
 
 
 class SHA256Hasher(PasswordHasher):
+    _DEFAULT_ROUNDS = 5000
+
     def __init__(self, rounds: int = 535_000) -> None:
         self._rounds = rounds
         validate_rounds(self._rounds, 1000, 999_999_999)
@@ -229,12 +233,11 @@ class SHA256Hasher(PasswordHasher):
         info = inspect_sha_crypt(as_str(hash))
         if info is None:
             return False
-
         hashed = _sha_crypt(
-            as_bytes(secret),
-            as_bytes(info.salt),
-            info.rounds,
-            hashlib.sha256,
+            secret=as_bytes(secret),
+            salt=as_bytes(info.salt),
+            rounds=info.rounds or self._DEFAULT_ROUNDS,
+            hash_method=hashlib.sha256,
         )
         return hashed == info.hash
 

@@ -20,6 +20,8 @@ from libpass.inspect.phc.defs import BcryptSHA256PHCV2
 BcryptPrefix = Literal["2b", "2a"]
 _bcrypt_prefixes = (b"2b", b"2a")
 
+__all__ = ["BcryptHasher", "BcryptSHA256Hasher"]
+
 
 class BcryptHasher(PasswordHasher):
     prefixes: ClassVar[tuple[bytes, ...]] = _bcrypt_prefixes

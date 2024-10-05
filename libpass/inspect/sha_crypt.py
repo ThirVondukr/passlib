@@ -4,13 +4,13 @@ import dataclasses
 import re
 
 SHA256_CRYPT_HASH_REGEX = re.compile(
-    r"^\$5\$rounds=(?P<rounds>\d+)\$(?P<salt>.{0,16})\$(?P<hash>.{43})$"
+    r"^\$5(\$rounds=(?P<rounds>\d+))?\$(?P<salt>.{0,16})\$(?P<hash>.{43})$"
 )
 
 
 @dataclasses.dataclass
 class SHA256CryptInfo:
-    rounds: int
+    rounds: int | None
     salt: str
     hash: str
 
@@ -23,8 +23,9 @@ def inspect_sha_crypt(hash: str) -> SHA256CryptInfo | None:
     if match is None:
         return None
 
+    rounds = match.group("rounds")
     return SHA256CryptInfo(
-        rounds=int(match.group("rounds")),
+        rounds=int(rounds) if rounds is not None else None,
         salt=match.group("salt"),
         hash=match.group("hash"),
     )
