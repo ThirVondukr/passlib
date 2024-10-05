@@ -1,20 +1,27 @@
 from __future__ import annotations
 
+import functools
 import hashlib
+import hmac
 import secrets
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Protocol
 
 from libpass._utils.bytes import StrOrBytes, as_bytes, as_str
 from libpass._utils.str import repeat_string
 from libpass._utils.validation import validate_rounds
 from libpass.binary import B64_CHARS, h64_engine
 from libpass.hashers.abc import PasswordHasher
-from libpass.inspect.sha_crypt import SHA256CryptInfo, inspect_sha_crypt
+from libpass.inspect.sha_crypt import (
+    SHA256CryptInfo,
+    SHA512CryptInfo,
+    SHACryptInfo,
+    inspect_sha_crypt,
+)
 
 if TYPE_CHECKING:
     from libpass._utils.protocols import HashLike
 
-__all__ = ["SHA256Hasher"]
+__all__ = ["SHA256Hasher", "SHA512Hasher"]
 
 
 def _gen_salt(size: int) -> str:
@@ -56,6 +63,72 @@ _256_transpose_map = (
     30,
     31,
 )
+_512_transpose_map = (
+    42,
+    21,
+    0,
+    1,
+    43,
+    22,
+    23,
+    2,
+    44,
+    45,
+    24,
+    3,
+    4,
+    46,
+    25,
+    26,
+    5,
+    47,
+    48,
+    27,
+    6,
+    7,
+    49,
+    28,
+    29,
+    8,
+    50,
+    51,
+    30,
+    9,
+    10,
+    52,
+    31,
+    32,
+    11,
+    53,
+    54,
+    33,
+    12,
+    13,
+    55,
+    34,
+    35,
+    14,
+    56,
+    57,
+    36,
+    15,
+    16,
+    58,
+    37,
+    38,
+    17,
+    59,
+    60,
+    39,
+    18,
+    19,
+    61,
+    40,
+    41,
+    20,
+    62,
+    63,
+)
 
 _c_digest_offsets = (
     (0, 3),
@@ -83,7 +156,11 @@ _c_digest_offsets = (
 
 
 def _sha_crypt(
-    secret: bytes, salt: bytes, rounds: int, hash_method: Callable[[bytes], HashLike]
+    secret: bytes,
+    salt: bytes,
+    rounds: int,
+    hash_method: Callable[[bytes], HashLike],
+    transpose_map: tuple[int, ...],
 ) -> str:
     """perform raw sha256-crypt / sha512-crypt
 
@@ -204,11 +281,15 @@ def _sha_crypt(
         # last round will be an even-numbered round)
         if tail & 1:
             dc = hash_method(dc + data[pairs][0]).digest()
-    return h64_engine.encode_transposed_bytes(dc, _256_transpose_map).decode("ascii")
+    return h64_engine.encode_transposed_bytes(dc, transpose_map).decode("ascii")
 
 
-class SHA256Hasher(PasswordHasher):
-    _DEFAULT_ROUNDS = 5000
+class _ShaHasher(PasswordHasher, Protocol):
+    _rounds: int
+    _DEFAULT_ROUNDS: int = 5000
+    _transpose_map: tuple[int, ...]
+    _inspect: Callable[[str], SHACryptInfo | None]
+    _sha_func: Callable[[bytes], HashLike]
 
     def __init__(self, rounds: int = 535_000) -> None:
         self._rounds = rounds
@@ -221,7 +302,8 @@ class SHA256Hasher(PasswordHasher):
             secret=as_bytes(secret),
             salt=as_bytes(salt),
             rounds=self._rounds,
-            hash_method=hashlib.sha256,
+            hash_method=self._sha_func,
+            transpose_map=self._transpose_map,
         )
         return SHA256CryptInfo(
             rounds=self._rounds,
@@ -230,16 +312,30 @@ class SHA256Hasher(PasswordHasher):
         ).as_str()
 
     def verify(self, hash: StrOrBytes, secret: StrOrBytes) -> bool:
-        info = inspect_sha_crypt(as_str(hash))
+        info = self._inspect(as_str(hash))
+
         if info is None:
             return False
         hashed = _sha_crypt(
             secret=as_bytes(secret),
             salt=as_bytes(info.salt),
             rounds=info.rounds or self._DEFAULT_ROUNDS,
-            hash_method=hashlib.sha256,
+            hash_method=self._sha_func,
+            transpose_map=self._transpose_map,
         )
-        return hashed == info.hash
+        return hmac.compare_digest(info.hash, hashed)
 
     def identify(self, hash: StrOrBytes) -> bool:
-        return inspect_sha_crypt(as_str(hash)) is not None
+        return self._inspect(as_str(hash)) is not None
+
+
+class SHA256Hasher(_ShaHasher):
+    _inspect = functools.partial(inspect_sha_crypt, cls=SHA256CryptInfo)
+    _sha_func = hashlib.sha256
+    _transpose_map = _256_transpose_map
+
+
+class SHA512Hasher(_ShaHasher):
+    _inspect = functools.partial(inspect_sha_crypt, cls=SHA512CryptInfo)
+    _sha_func = hashlib.sha512
+    _transpose_map = _512_transpose_map
