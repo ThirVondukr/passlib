@@ -5,7 +5,7 @@ from libpass.hashers.bcrypt import BcryptSHA256Hasher
 from libpass.inspect.phc import inspect_phc
 from libpass.inspect.phc.defs import BcryptSHA256PHCV2
 from passlib.utils import repeat_string
-from tests_libpass.hashers.test_bcrypt import UPASS_TABLE
+from tests.libpass.hashers.test_bcrypt import UPASS_TABLE
 
 
 @pytest.fixture

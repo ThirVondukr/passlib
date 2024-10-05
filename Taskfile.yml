@@ -50,7 +50,7 @@ tasks:
       - "{{.RUNNER}} ruff format {{ .SOURCES }}"
       - "{{.RUNNER}} ruff check --fix {{.SOURCES}}"
       - "{{.RUNNER}} mypy {{.SOURCES}}"
-      - "{{.RUNNER}} pytest tests_libpass"
+      - "{{.RUNNER}} pytest tests/libpass"
 
 
   all:
