@@ -80,7 +80,6 @@ distribution = true
 [tool.pdm.build]
 includes = ["passlib"]
 
-
 [tool.pdm.dev-dependencies]
 linters = [
     "deptry>=0.20.0",
