@@ -92,6 +92,7 @@ testing = [
     "pytest>=8.3.3",
     "typeguard>=4.3.0",
     "pytest-xdist>=3.6.1",
+    "pytest-archon>=0.0.6",
 ]
 django = [
     "django>=4.2.16",
@@ -103,8 +104,6 @@ sphinx-docs = [
     "sphinx>=7.4.7",
     "cloud-sptheme>=1.10.1.post20200504175005",
     "sphinxcontrib-fulltoc>=1.2.0",
-]
-dev = [
 ]
 
 [tool.coverage.run]

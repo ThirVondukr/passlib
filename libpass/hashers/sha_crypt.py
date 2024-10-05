@@ -5,11 +5,11 @@ import secrets
 from typing import TYPE_CHECKING, Callable
 
 from libpass._utils.bytes import StrOrBytes, as_bytes, as_str
+from libpass._utils.str import repeat_string
 from libpass._utils.validation import validate_rounds
 from libpass.binary import B64_CHARS, h64_engine
 from libpass.hashers.abc import PasswordHasher
 from libpass.inspect.sha_crypt import SHA256CryptInfo, inspect_sha_crypt
-from passlib.utils import repeat_string
 
 if TYPE_CHECKING:
     from libpass._utils.protocols import HashLike

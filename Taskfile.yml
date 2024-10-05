@@ -26,19 +26,10 @@ tasks:
 
   deptry:
     desc: Check used dependencies with deptry
-    silent: true
     cmd: "{{.RUNNER}} deptry {{.SOURCES_ROOT}}"
-
-
-  typecheck-libpass:
-    desc: Perform type-checking
-    silent: true
-    cmd: "{{.RUNNER}} mypy libpass tests_libpass"
-
 
   typecheck:
     desc: Perform type-checking
-    silent: true
     cmd: "{{.RUNNER}} mypy {{.SOURCES}}"
 
   test:
@@ -47,11 +38,20 @@ tasks:
 
   testcov:
     desc: Run tests and generate a coverage report
-    silent: true
     cmds:
       - "{{.RUNNER}} coverage run"
       - "{{.RUNNER}} coverage report -m"
       - "{{.RUNNER}} coverage xml"
+
+  libpass:
+    vars:
+      SOURCES: libpass tests_libpass
+    cmds:
+      - "{{.RUNNER}} ruff format {{ .SOURCES }}"
+      - "{{.RUNNER}} ruff check --fix {{.SOURCES}}"
+      - "{{.RUNNER}} mypy {{.SOURCES}}"
+      - "{{.RUNNER}} pytest tests_libpass"
+
 
   all:
     desc: Run the standard set of checks performed in CI
