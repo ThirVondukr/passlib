@@ -330,12 +330,12 @@ class _ShaHasher(PasswordHasher, Protocol):
 
 
 class SHA256Hasher(_ShaHasher):
-    _inspect = functools.partial(inspect_sha_crypt, cls=SHA256CryptInfo)
+    _inspect = staticmethod(functools.partial(inspect_sha_crypt, cls=SHA256CryptInfo))
     _sha_func = hashlib.sha256
     _transpose_map = _256_transpose_map
 
 
 class SHA512Hasher(_ShaHasher):
-    _inspect = functools.partial(inspect_sha_crypt, cls=SHA512CryptInfo)
+    _inspect = staticmethod(functools.partial(inspect_sha_crypt, cls=SHA512CryptInfo))
     _sha_func = hashlib.sha512
     _transpose_map = _512_transpose_map
