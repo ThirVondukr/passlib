@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import hashlib
 import hmac
 import secrets
@@ -330,12 +329,16 @@ class _ShaHasher(PasswordHasher, Protocol):
 
 
 class SHA256Hasher(_ShaHasher):
-    _inspect = staticmethod(functools.partial(inspect_sha_crypt, cls=SHA256CryptInfo))
     _sha_func = hashlib.sha256
     _transpose_map = _256_transpose_map
 
+    def _inspect(self, hash: str) -> SHA256CryptInfo | None:
+        return inspect_sha_crypt(hash, cls=SHA256CryptInfo)
+
 
 class SHA512Hasher(_ShaHasher):
-    _inspect = staticmethod(functools.partial(inspect_sha_crypt, cls=SHA512CryptInfo))
     _sha_func = hashlib.sha512
     _transpose_map = _512_transpose_map
+
+    def _inspect(self, hash: str) -> SHA512CryptInfo | None:
+        return inspect_sha_crypt(hash, cls=SHA512CryptInfo)

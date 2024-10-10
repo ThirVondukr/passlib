@@ -45,10 +45,9 @@ tasks:
 
   libpass:
     vars:
-      SOURCES: libpass tests_libpass
+      SOURCES: libpass tests/libpass
     cmds:
-      - "{{.RUNNER}} ruff format {{ .SOURCES }}"
-      - "{{.RUNNER}} ruff check --fix {{.SOURCES}}"
+      - task: format
       - "{{.RUNNER}} mypy {{.SOURCES}}"
       - "{{.RUNNER}} pytest tests/libpass"
 
