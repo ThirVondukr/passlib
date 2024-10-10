@@ -3,6 +3,7 @@ import pytest
 from libpass.inspect.bcrypt import BcryptHashInfo, inspect_bcrypt_hash
 from libpass.inspect.phc import inspect_phc
 from libpass.inspect.phc.defs import Argon2PHC
+from libpass.inspect.sha_crypt import SHA256CryptInfo, inspect_sha_crypt
 
 
 @pytest.mark.parametrize(
@@ -42,3 +43,34 @@ def test_argon_inspect(hash: str, expected: Argon2PHC) -> None:
     parsed = inspect_phc(hash, Argon2PHC)
     assert parsed == expected
     assert parsed.as_str() == hash
+
+
+@pytest.mark.parametrize(
+    ("hash", "expected"),
+    [
+        (
+            "$5$rounds=80000$wnsT7Yr92oJoP28r$cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5",
+            SHA256CryptInfo(
+                rounds=80000,
+                salt="wnsT7Yr92oJoP28r",
+                hash="cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5",
+            ),
+        ),
+        (
+            "$5$wnsT7Yr92oJoP28r$cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5",
+            SHA256CryptInfo(
+                rounds=None,
+                salt="wnsT7Yr92oJoP28r",
+                hash="cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5",
+            ),
+        ),
+        (
+            # SHA512 hash
+            "$6$wnsT7Yr92oJoP28r$cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5",
+            None,
+        ),
+    ],
+)
+def test_sha_crypt(hash: str, expected: SHA256CryptInfo) -> None:
+    info = inspect_sha_crypt(hash, SHA256CryptInfo)
+    assert info == expected
