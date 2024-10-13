@@ -5,6 +5,7 @@ import dataclasses
 import functools
 import re
 import typing
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, ClassVar, Optional, TypeVar
 
 if TYPE_CHECKING:
@@ -72,7 +73,22 @@ if not TYPE_CHECKING:
     _parse_phc_def = functools.cache(_parse_phc_def)
 
 
-def inspect_phc(hash: str, definition: type[TPHC]) -> TPHC | None:
+def _choose_definition(
+    definitions: Sequence[type[TPHC]] | type[TPHC], id: str | None, version: int | None
+) -> type[TPHC] | None:
+    if not isinstance(definitions, Sequence):
+        definitions = (definitions,)
+
+    for definition in definitions:
+        if definition.id == id and definition.version == version:
+            return definition
+    return None
+
+
+def inspect_phc(
+    hash: str,
+    definition: Sequence[type[TPHC]] | type[TPHC],
+) -> TPHC | None:
     """
     Parses PHC-style formatted string
 
@@ -87,7 +103,8 @@ def inspect_phc(hash: str, definition: type[TPHC]) -> TPHC | None:
     id_ = groups["id"]
     version = int(groups["version"]) if groups["version"] is not None else None
 
-    if id_ != definition.id or version != definition.version:
+    chosen_definition = _choose_definition(definition, id=id_, version=version)
+    if chosen_definition is None:
         return None
 
     salt = groups["salt"]
@@ -96,8 +113,8 @@ def inspect_phc(hash: str, definition: type[TPHC]) -> TPHC | None:
         key: value for key, value in (p.split("=") for p in groups["params"].split(","))
     }
 
-    definition_info = _parse_phc_def(definition)
-    return definition(
+    definition_info = _parse_phc_def(chosen_definition)
+    return chosen_definition(
         salt=salt,
         hash=hash,
         **{
