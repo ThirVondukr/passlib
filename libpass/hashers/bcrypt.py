@@ -49,8 +49,12 @@ class BcryptHasher(PasswordHasher):
         return as_str(bcrypt.hashpw(as_bytes(secret), salt))
 
     def verify(self, hash: StrOrBytes, secret: StrOrBytes) -> bool:
-        prepared_secret = as_bytes(secret)
-        return bcrypt.checkpw(password=prepared_secret, hashed_password=as_bytes(hash))
+        if not self.identify(hash):
+            return False
+        return bcrypt.checkpw(
+            password=as_bytes(secret),
+            hashed_password=as_bytes(hash),
+        )
 
     def identify(self, hash: StrOrBytes) -> bool:
         return inspect_bcrypt_hash(as_str(hash)) is not None
@@ -107,7 +111,7 @@ class BcryptSHA256Hasher(PasswordHasher):
         )
 
     def identify(self, hash: StrOrBytes) -> bool:
-        return bool(inspect_phc(as_str(hash), BcryptSHA256PHCV2))
+        return inspect_phc(as_str(hash), BcryptSHA256PHCV2) is not None
 
     @classmethod
     def _prepare_secret(cls, secret: StrOrBytes, salt: StrOrBytes) -> bytes:

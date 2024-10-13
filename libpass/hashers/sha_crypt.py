@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
-from typing import TYPE_CHECKING, Callable, Protocol
+from typing import TYPE_CHECKING, Callable
 
 from libpass._utils.bytes import StrOrBytes, as_bytes, as_str
 from libpass._utils.str import repeat_string
@@ -283,8 +283,7 @@ def _sha_crypt(
     return h64_engine.encode_transposed_bytes(dc, transpose_map).decode("ascii")
 
 
-class _ShaHasher(PasswordHasher, Protocol):
-    _rounds: int
+class _ShaHasher(PasswordHasher):
     _DEFAULT_ROUNDS: int = 5000
     _transpose_map: tuple[int, ...]
     _inspect: Callable[[str], SHACryptInfo | None]

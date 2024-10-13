@@ -57,6 +57,5 @@ tasks:
     cmds:
       - task: format
       - task: deptry
-      - task: typecheck-libpass
       - task: typecheck
       - task: testcov
