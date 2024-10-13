@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 from typing import TYPE_CHECKING, Literal
 
 import typing_extensions
-
-from libpass.errors import MalformedHashError
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -30,12 +27,7 @@ class CryptContext:
         return scheme.hash(secret=secret)
 
     def verify(self, secret: str, hash: str) -> bool:
-        for scheme in self._schemes:
-            with self._suppress_hashing_errors():
-                is_valid = scheme.verify(secret=secret, hash=hash)
-                if is_valid:
-                    return True
-        return False
+        return any(scheme.verify(secret=secret, hash=hash) for scheme in self._schemes)
 
     def needs_update(self, hash: str) -> bool:
         # Todo: Don't filter list in place
@@ -58,6 +50,3 @@ class CryptContext:
             return self._schemes[1:]
 
         typing_extensions.assert_never(self._deprecated)
-
-    def _suppress_hashing_errors(self) -> contextlib.AbstractContextManager[None]:
-        return contextlib.suppress(MalformedHashError)

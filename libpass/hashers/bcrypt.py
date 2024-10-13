@@ -8,7 +8,7 @@ from typing import ClassVar, Literal
 import bcrypt
 
 from libpass._utils.bytes import StrOrBytes, as_bytes, as_str
-from libpass.errors import MalformedHashError, Panic
+from libpass.errors import Panic
 from libpass.hashers.abc import PasswordHasher
 from libpass.inspect.bcrypt import (
     BcryptHashInfo,
@@ -93,7 +93,7 @@ class BcryptSHA256Hasher(PasswordHasher):
     def verify(self, hash: StrOrBytes, secret: StrOrBytes) -> bool:
         info = inspect_phc(as_str(hash), BcryptSHA256PHCV2)
         if not info:
-            raise MalformedHashError
+            return False
 
         hashed_password = (
             BcryptHashInfo(
