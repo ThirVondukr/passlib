@@ -2,7 +2,7 @@ import pytest
 
 from libpass.inspect.bcrypt import BcryptHashInfo, inspect_bcrypt_hash
 from libpass.inspect.phc import inspect_phc
-from libpass.inspect.phc.defs import Argon2IdPHC
+from libpass.inspect.phc.defs import Argon2PHC
 from libpass.inspect.sha_crypt import SHA256CryptInfo, inspect_sha_crypt
 
 
@@ -29,7 +29,8 @@ def test_bcrypt_inspect(hash: str, expected: BcryptHashInfo) -> None:
     [
         (
             "$argon2id$v=19$m=65536,t=2,p=1$gZiV/M1gPc22ElAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno",
-            Argon2IdPHC(
+            Argon2PHC(
+                id="argon2id",
                 memory_cost=65536,
                 time_cost=2,
                 parallelism_cost=1,
@@ -39,8 +40,8 @@ def test_bcrypt_inspect(hash: str, expected: BcryptHashInfo) -> None:
         )
     ],
 )
-def test_argon_inspect(hash: str, expected: Argon2IdPHC) -> None:
-    parsed = inspect_phc(hash, Argon2IdPHC)
+def test_argon_inspect(hash: str, expected: Argon2PHC) -> None:
+    parsed = inspect_phc(hash, Argon2PHC)
     assert parsed == expected
     assert parsed.as_str() == hash
 

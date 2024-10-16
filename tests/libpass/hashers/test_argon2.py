@@ -6,8 +6,7 @@ from libpass.errors import Panic
 from libpass.hashers.argon2 import Argon2Hasher
 from libpass.inspect.phc import inspect_phc
 from libpass.inspect.phc.defs import (
-    BaseArgon2PHC,
-    any_argon_phc,
+    Argon2PHC,
 )
 
 
@@ -71,7 +70,7 @@ def test_hash_version_19(
     salt: str,
     hash: str,
 ) -> None:
-    info: BaseArgon2PHC | None = inspect_phc(hash=hash, definition=any_argon_phc)
+    info: Argon2PHC | None = inspect_phc(hash=hash, definition=Argon2PHC)
     if not info:
         raise Panic
     hasher = Argon2Hasher(

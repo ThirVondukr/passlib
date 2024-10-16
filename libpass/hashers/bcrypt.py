@@ -83,6 +83,7 @@ class BcryptSHA256Hasher(PasswordHasher):
             raise Panic
 
         return BcryptSHA256PHCV2(
+            id="bcrypt-sha256",
             version_=2,
             type=info.prefix,
             rounds=info.rounds,

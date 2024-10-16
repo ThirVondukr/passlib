@@ -33,7 +33,7 @@ class ParsedParameter:
 
 @dataclasses.dataclass
 class PHC:
-    id: ClassVar[str]
+    id: str
     version: ClassVar[Optional[int]]
 
     salt: str
@@ -56,17 +56,24 @@ TPHC = TypeVar("TPHC", bound=PHC)
 
 @dataclasses.dataclass
 class _PHCDefinitionInfo:
+    id: tuple[str, ...]
     parameters: Mapping[str, ParsedParameter]
 
 
 def _parse_phc_def(definition: type[TPHC]) -> _PHCDefinitionInfo:
     result = {}
-    for key, value in typing.get_type_hints(definition, include_extras=True).items():
+    hints = typing.get_type_hints(definition, include_extras=True)
+    for key, value in hints.items():
         args = typing.get_args(value)
         for arg in args:
             if isinstance(arg, Param):
                 result[key] = ParsedParameter(param=arg, type=args[0])
-    return _PHCDefinitionInfo(parameters=result)
+
+    id_arg = hints["id"]
+    if typing.get_origin(id_arg) != typing.Literal:
+        raise ValueError
+    id = typing.get_args(id_arg)
+    return _PHCDefinitionInfo(id=id, parameters=result)
 
 
 if not TYPE_CHECKING:
@@ -80,7 +87,9 @@ def _choose_definition(
         definitions = (definitions,)
 
     for definition in definitions:
-        if definition.id == id and definition.version == version:
+        definition_info = _parse_phc_def(definition)
+        id_matches = id in definition_info.id
+        if id_matches and definition.version == version:
             return definition
     return None
 
@@ -115,6 +124,7 @@ def inspect_phc(
 
     definition_info = _parse_phc_def(chosen_definition)
     return chosen_definition(
+        id=id_,
         salt=salt,
         hash=hash,
         **{

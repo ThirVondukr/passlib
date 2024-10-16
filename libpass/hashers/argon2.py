@@ -9,7 +9,7 @@ from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from libpass._utils.bytes import StrOrBytes, as_bytes, as_str
 from libpass.hashers.abc import PasswordHasher
 from libpass.inspect.phc import inspect_phc
-from libpass.inspect.phc.defs import any_argon_phc
+from libpass.inspect.phc.defs import Argon2PHC
 
 
 class Argon2Hasher(PasswordHasher):
@@ -42,4 +42,4 @@ class Argon2Hasher(PasswordHasher):
         return False
 
     def identify(self, hash: StrOrBytes) -> bool:
-        return inspect_phc(hash=as_str(hash), definition=any_argon_phc) is not None
+        return inspect_phc(hash=as_str(hash), definition=Argon2PHC) is not None
