@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import pytest
 
 from libpass.errors import Panic
@@ -82,6 +84,7 @@ def test_hash_version_19(
     )
     hashed = hasher.hash(secret=secret, salt=salt)
     assert hashed == hash
+    assert hasher.verify(secret=secret, hash=hash)
 
 
 @pytest.mark.parametrize(
@@ -113,3 +116,15 @@ def test_hash_version_19(
 )
 def test_verify(secret: str, hash: str, hasher: Argon2Hasher) -> None:
     assert hasher.verify(hash=hash, secret=secret)
+
+
+@pytest.mark.parametrize("argon2_type", ["id", "i", "d"])
+def test_type(argon2_type: Literal["id", "i", "d"]) -> None:
+    hasher = Argon2Hasher(type=argon2_type)
+
+    hash = hasher.hash("secret")
+
+    info = inspect_phc(hash, Argon2PHC)
+    assert info
+    assert info.type == argon2_type
+    assert info.id == f"argon2{argon2_type}"
