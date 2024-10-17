@@ -8,6 +8,7 @@ from libpass.inspect.phc import inspect_phc
 from libpass.inspect.phc.defs import (
     Argon2PHC,
 )
+from tests.test_handlers import PASS_TABLE_UTF8, UPASS_TABLE
 
 
 @pytest.fixture
@@ -81,3 +82,34 @@ def test_hash_version_19(
     )
     hashed = hasher.hash(secret=secret, salt=salt)
     assert hashed == hash
+
+
+@pytest.mark.parametrize(
+    ("secret", "hash"),
+    [
+        ("password", "$argon2i$v=19$m=256,t=1,p=1$c29tZXNhbHQ$AJFIsNZTMKTAewB4+ETN1A"),
+        # sample w/ all parameters different
+        ("password", "$argon2i$v=19$m=380,t=2,p=2$c29tZXNhbHQ$SrssP8n7m/12VWPM8dvNrw"),
+        # ensures utf-8 used for unicode
+        (
+            UPASS_TABLE,
+            "$argon2i$v=19$m=512,t=2,p=2$1sV0O4PWLtc12Ypv1f7oGw$"
+            "z+yqzlKtrq3SaNfXDfIDnQ",
+        ),
+        (
+            PASS_TABLE_UTF8,
+            "$argon2i$v=19$m=512,t=2,p=2$1sV0O4PWLtc12Ypv1f7oGw$"
+            "z+yqzlKtrq3SaNfXDfIDnQ",
+        ),
+        (
+            "password\x00",
+            "$argon2i$v=19$m=512,t=2,p=2$c29tZXNhbHQ$Fb5+nPuLzZvtqKRwqUEtUQ",
+        ),
+        (
+            "password",
+            "$argon2d$v=19$m=102400,t=2,p=8$g2RodLh8j8WbSdCp+lUy/A$zzAJqL/HSjm809PYQu6qkA",
+        ),
+    ],
+)
+def test_verify(secret: str, hash: str, hasher: Argon2Hasher) -> None:
+    assert hasher.verify(hash=hash, secret=secret)
