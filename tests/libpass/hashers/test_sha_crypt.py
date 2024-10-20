@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from libpass.binary import B64_CHARS
@@ -236,3 +238,67 @@ def test_sha256_known_hashes(secret: str, hash: str) -> None:
 def test_sha512_known_hashes(secret: str, hash: str) -> None:
     hasher = SHA512Hasher()
     assert hasher.verify(secret=secret, hash=hash)
+
+
+@pytest.mark.parametrize(
+    ("hasher_cls", "rounds", "hash", "expected"),
+    [
+        (
+            # Default amount of rounds is 5000 if not specified in hash string
+            SHA256Hasher,
+            5000,
+            "$5$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0",
+            False,
+        ),
+        (
+            SHA256Hasher,
+            5001,
+            "$5$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0",
+            True,
+        ),
+        (
+            SHA256Hasher,
+            7777,
+            "$5$rounds=7777$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0",
+            False,
+        ),
+        (
+            SHA512Hasher,
+            5000,
+            "$6$saltstring$xc66FVXO.Zvv5pS02B4bCmJh5FCBAZpqTK3NoFxTU9U5b6BokbHwmeqQfMqrrkB3j9CXhCzgvC/pvoGPM1xgM1",
+            False,
+        ),
+        (
+            SHA512Hasher,
+            5001,
+            "$6$saltstring$xc66FVXO.Zvv5pS02B4bCmJh5FCBAZpqTK3NoFxTU9U5b6BokbHwmeqQfMqrrkB3j9CXhCzgvC/pvoGPM1xgM1",
+            True,
+        ),
+        (
+            SHA512Hasher,
+            7777,
+            "$6$rounds=7777$saltstring$xc66FVXO.Zvv5pS02B4bCmJh5FCBAZpqTK3NoFxTU9U5b6BokbHwmeqQfMqrrkB3j9CXhCzgvC/pvoGPM1xgM1",
+            False,
+        ),
+        (
+            SHA256Hasher,
+            5000,
+            "$6$saltstring$xc66FVXO.Zvv5pS02B4bCmJh5FCBAZpqTK3NoFxTU9U5b6BokbHwmeqQfMqrrkB3j9CXhCzgvC/pvoGPM1xgM1",
+            True,
+        ),
+        (
+            SHA512Hasher,
+            5000,
+            "$5$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0",
+            True,
+        ),
+    ],
+)
+def test_needs_update(
+    hasher_cls: type[SHA256Hasher | SHA512Hasher],
+    rounds: int,
+    hash: str,
+    expected: bool,
+) -> None:
+    hasher = hasher_cls(rounds=rounds)
+    assert hasher.needs_update(hash=hash) is expected

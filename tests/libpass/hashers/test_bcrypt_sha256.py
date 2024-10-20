@@ -88,3 +88,28 @@ def test_known_hashes(
     hasher: BcryptSHA256Hasher,
 ):
     assert hasher.verify(hash, secret)
+
+
+@pytest.mark.parametrize(
+    ("rounds", "hash", "expected"),
+    [
+        (
+            5,
+            "$bcrypt-sha256$v=2,t=2b,r=5$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            False,
+        ),
+        (
+            5,
+            "$bcrypt-sha256$v=2,t=2b,r=4$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+        (
+            5,
+            "$bcrypt-sha256$v=2,t=2b,r=6$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+    ],
+)
+def test_needs_update(rounds: int, hash: str, expected: bool) -> None:
+    hasher = BcryptSHA256Hasher(rounds=rounds)
+    assert hasher.needs_update(hash) is expected

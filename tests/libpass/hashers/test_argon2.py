@@ -128,3 +128,59 @@ def test_type(argon2_type: Literal["id", "i", "d"]) -> None:
     assert info
     assert info.type == argon2_type
     assert info.id == f"argon2{argon2_type}"
+
+
+@pytest.mark.parametrize(
+    ("memory_cost", "time_cost", "parallelism", "hash", "expected"),
+    [
+        (
+            512,
+            2,
+            2,
+            "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            False,
+        ),
+        (
+            512 + 1,
+            2,
+            2,
+            "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+        (
+            512 - 1,
+            2,
+            2,
+            "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+        (
+            512,
+            3,
+            2,
+            "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+        (
+            512,
+            2,
+            3,
+            "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+    ],
+)
+def test_needs_update(
+    memory_cost: int,
+    time_cost: int,
+    parallelism: int,
+    hash: str,
+    expected: bool,
+) -> None:
+    # TODO: Test hash/salt lengths and hash type
+    hasher = Argon2Hasher(
+        memory_cost=memory_cost,
+        time_cost=time_cost,
+        parallelism=parallelism,
+    )
+    assert hasher.needs_update(hash=hash) is expected

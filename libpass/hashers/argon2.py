@@ -43,3 +43,6 @@ class Argon2Hasher(PasswordHasher):
 
     def identify(self, hash: StrOrBytes) -> bool:
         return inspect_phc(hash=as_str(hash), definition=Argon2PHC) is not None
+
+    def needs_update(self, hash: StrOrBytes) -> bool:
+        return self._hasher.check_needs_rehash(hash=as_str(hash))

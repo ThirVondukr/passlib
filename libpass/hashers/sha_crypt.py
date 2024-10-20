@@ -288,6 +288,7 @@ class _ShaHasher(PasswordHasher):
     _transpose_map: tuple[int, ...]
     _inspect: Callable[[str], SHACryptInfo | None]
     _sha_func: Callable[[bytes], HashLike]
+    _info_cls: type[SHACryptInfo]
 
     def __init__(self, rounds: int = 535_000) -> None:
         self._rounds = rounds
@@ -326,10 +327,17 @@ class _ShaHasher(PasswordHasher):
     def identify(self, hash: StrOrBytes) -> bool:
         return self._inspect(as_str(hash)) is not None
 
+    def needs_update(self, hash: StrOrBytes) -> bool:
+        info = inspect_sha_crypt(hash=as_str(hash), cls=self._info_cls)
+        if info is None:
+            return True
+        return (info.rounds or self._DEFAULT_ROUNDS) != self._rounds
+
 
 class SHA256Hasher(_ShaHasher):
     _sha_func = hashlib.sha256
     _transpose_map = _256_transpose_map
+    _info_cls = SHA256CryptInfo
 
     def _inspect(self, hash: str) -> SHA256CryptInfo | None:
         return inspect_sha_crypt(hash, cls=SHA256CryptInfo)
@@ -338,6 +346,7 @@ class SHA256Hasher(_ShaHasher):
 class SHA512Hasher(_ShaHasher):
     _sha_func = hashlib.sha512
     _transpose_map = _512_transpose_map
+    _info_cls = SHA512CryptInfo
 
     def _inspect(self, hash: str) -> SHA512CryptInfo | None:
         return inspect_sha_crypt(hash, cls=SHA512CryptInfo)

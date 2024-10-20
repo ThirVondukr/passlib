@@ -138,3 +138,28 @@ def test_rounds(rounds: int) -> None:
     info = inspect_bcrypt_hash(hash)
     assert info
     assert info.rounds == rounds
+
+
+@pytest.mark.parametrize(
+    ("rounds", "hash", "expected"),
+    [
+        (
+            5,
+            "$2a$5$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq",
+            False,
+        ),
+        (
+            5,
+            "$2a$4$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq",
+            True,
+        ),
+        (
+            5,
+            "$2a$6$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq",
+            True,
+        ),
+    ],
+)
+def test_needs_update(rounds: int, hash: str, expected: bool) -> None:
+    hasher = BcryptHasher(rounds=rounds)
+    assert hasher.needs_update(hash) is expected

@@ -59,6 +59,12 @@ class BcryptHasher(PasswordHasher):
     def identify(self, hash: StrOrBytes) -> bool:
         return inspect_bcrypt_hash(as_str(hash)) is not None
 
+    def needs_update(self, hash: StrOrBytes) -> bool:
+        info = inspect_bcrypt_hash(as_str(hash))
+        if info is None:
+            return True
+        return info.rounds != self._rounds
+
 
 class BcryptSHA256Hasher(PasswordHasher):
     prefixes: ClassVar[tuple[bytes, ...]] = _bcrypt_prefixes
@@ -113,6 +119,12 @@ class BcryptSHA256Hasher(PasswordHasher):
 
     def identify(self, hash: StrOrBytes) -> bool:
         return inspect_phc(as_str(hash), BcryptSHA256PHCV2) is not None
+
+    def needs_update(self, hash: StrOrBytes) -> bool:
+        info = inspect_phc(as_str(hash), BcryptSHA256PHCV2)
+        if not info:
+            return True
+        return info.rounds != self._rounds
 
     @classmethod
     def _prepare_secret(cls, secret: StrOrBytes, salt: StrOrBytes) -> bytes:
