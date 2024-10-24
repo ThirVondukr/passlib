@@ -168,6 +168,34 @@ def test_type(argon2_type: Literal["id", "i", "d"]) -> None:
             "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             True,
         ),
+        (  # Hash type
+            512,
+            2,
+            2,
+            "$argon2i$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+        (  # Hash type
+            512,
+            2,
+            2,
+            "$argon2d$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+        (  # Salt length
+            512,
+            2,
+            2,
+            "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
+        (  # Hash length
+            512,
+            2,
+            2,
+            "$argon2id$v=19$m=512,t=2,p=2$aaaaaaaaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            True,
+        ),
     ],
 )
 def test_needs_update(
@@ -177,7 +205,6 @@ def test_needs_update(
     hash: str,
     expected: bool,
 ) -> None:
-    # TODO: Test hash/salt lengths and hash type
     hasher = Argon2Hasher(
         memory_cost=memory_cost,
         time_cost=time_cost,
