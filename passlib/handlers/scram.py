@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
+class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):  # type: ignore[misc]
     """This class provides a format for storing SCRAM passwords, and follows
     the :ref:`password-hash-api`.
 

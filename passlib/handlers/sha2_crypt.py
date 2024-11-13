@@ -1,5 +1,7 @@
 """SHA256-Crypt / SHA512-Crypt"""
 
+from __future__ import annotations
+
 import hashlib
 
 import passlib.utils.handlers as uh
@@ -331,7 +333,12 @@ _UDOLLAR = "$"
 _UZERO = "0"
 
 
-class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class _SHA2_Common(  # type: ignore[misc]
+    uh.HasManyBackends,
+    uh.HasRounds,
+    uh.HasSalt,
+    uh.GenericHandler,
+):
     """class containing common code shared by sha256_crypt & sha512_crypt"""
 
     # name - set by subclass
@@ -430,7 +437,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     # ---------------------------------------------------------------
 
     #: test hash for OS detection -- provided by subclass
-    _test_hash = None
+    _test_hash: tuple[str, ...] | None = None
 
     @classmethod
     def _load_backend_os_crypt(cls):

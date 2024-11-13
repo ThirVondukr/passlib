@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-class Pbkdf2DigestHandler(
+class Pbkdf2DigestHandler(  # type: ignore[misc]
     uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler
 ):
     """base class for various pbkdf2_{digest} algorithms"""
@@ -153,7 +153,7 @@ ldap_pbkdf2_sha512 = uh.PrefixWrapper(
 CTA_ALTCHARS = b"-_"
 
 
-class cta_pbkdf2_sha1(
+class cta_pbkdf2_sha1(  # type: ignore[misc]
     uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler
 ):
     """This class implements Cryptacular's PBKDF2-based crypt algorithm, and follows the :ref:`password-hash-api`.
@@ -235,7 +235,7 @@ class cta_pbkdf2_sha1(
         return pbkdf2_hmac("sha1", secret, self.salt, self.rounds, 20)
 
 
-class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):  # type: ignore[misc]
     """This class implements Dwayne Litzenberger's PBKDF2-based crypt algorithm, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -381,7 +381,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
         return pbkdf2_hmac("sha1", secret, self.salt, 10000, 32)
 
 
-class grub_pbkdf2_sha512(
+class grub_pbkdf2_sha512(  # type: ignore[misc]
     uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler
 ):
     """This class implements Grub's pbkdf2-hmac-sha512 hash, and follows the :ref:`password-hash-api`.

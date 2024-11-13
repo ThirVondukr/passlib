@@ -127,6 +127,8 @@ def compile_byte_translation(
         assert isinstance(source, bytes)
         assert len(source) == 255
         target = list(iter_byte_chars(source))
+
+    v: bytes | int | str
     for k, v in mapping.items():
         if isinstance(k, unicode_or_bytes):
             k = ord(k)

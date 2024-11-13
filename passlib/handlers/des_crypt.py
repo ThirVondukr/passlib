@@ -102,7 +102,7 @@ def _raw_bsdi_crypt(secret, rounds, salt):
     return h64big.encode_int64(result)
 
 
-class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
+class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):  # type: ignore[misc]
     """This class implements the des-crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
@@ -218,7 +218,7 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
         return _raw_des_crypt(secret, self.salt.encode("ascii")).decode("ascii")
 
 
-class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):  # type: ignore[misc]
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -442,7 +442,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         return chk.decode("ascii")
 
 
-class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
+class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):  # type: ignore[misc]
     """This class implements the crypt16 password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.

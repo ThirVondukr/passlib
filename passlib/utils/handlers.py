@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import math
 import threading
+from typing import TYPE_CHECKING
 from warnings import warn
 
 from passlib import exc, ifc
@@ -34,6 +35,10 @@ from passlib.utils.binary import (
 )
 from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import classproperty, deprecated_method
+
+if TYPE_CHECKING:
+    import re
+    from collections.abc import Mapping
 
 # local
 __all__ = [
@@ -603,7 +608,7 @@ class GenericHandler(MinimalHandler):
 
     # optional regexp for recognizing hashes,
     # used by default identify() if .ident isn't specified.
-    _hash_regex = None
+    _hash_regex: re.Pattern[str] | None = None
 
     # if specified, _norm_checksum will require this length
     checksum_size: int | None = None
@@ -824,13 +829,13 @@ class GenericHandler(MinimalHandler):
     # ===================================================================
 
     #: internal helper for forcing settings to be included, even if default matches
-    _always_parse_settings = ()
+    _always_parse_settings: tuple[str, ...] = ()
 
     #: internal helper for excluding certain setting_kwds from parsehash() result
-    _unparsed_settings = ("salt_size", "relaxed")
+    _unparsed_settings: tuple[str, ...] = ("salt_size", "relaxed")
 
     #: parsehash() keys that need to be sanitized
-    _unsafe_settings = ("salt", "checksum")
+    _unsafe_settings: tuple[str, ...] = ("salt", "checksum")
 
     @classproperty
     def _parsed_settings(cls):
@@ -920,7 +925,7 @@ class StaticHandler(GenericHandler):
 
     # TODO: document _norm_hash()
 
-    setting_kwds = ()
+    setting_kwds: tuple[str, ...] = ()
 
     # optional constant prefix subclasses can specify
     _hash_prefix = ""
@@ -1036,9 +1041,11 @@ class HasManyIdents(GenericHandler):
     .. todo:: document using() and needs_update() options
     """
 
-    default_ident = None  # should be str
-    ident_values = None  # should be list of unicode strings
-    ident_aliases = None  # should be dict of unicode -> unicode
+    default_ident: str | None = None  # should be str
+    ident_values: tuple[str, ...] | None = None  # should be list of unicode strings
+    ident_aliases: Mapping[str, str] | None = (
+        None  # should be dict of unicode -> unicode
+    )
     # NOTE: any aliases provided to norm_ident() as bytes
     #       will have been converted to unicode before
     #       comparing against this dictionary.
@@ -1216,7 +1223,7 @@ class HasSalt(GenericHandler):
 
     min_salt_size = 0
     max_salt_size: int | None = None
-    salt_chars: str | None = None
+    salt_chars: str | bytes | None = None
 
     @classproperty
     def default_salt_size(cls):
@@ -1550,7 +1557,7 @@ class HasRounds(GenericHandler):
     rounds = None
 
     @classmethod
-    def using(
+    def using(  # type: ignore[override]
         cls,
         min_desired_rounds=None,
         max_desired_rounds=None,
@@ -1967,14 +1974,14 @@ class BackendMixin(PasswordHash):
     """
 
     #: list of backend names, provided by subclass.
-    backends = None
+    backends: tuple[str, ...] | None = None
 
     #: private attr mixin uses to hold currently loaded backend (or ``None``)
     __backend = None
 
     #: optional class-specific text containing suggestion about what to do
     #: when no backends are available.
-    _no_backend_suggestion = None
+    _no_backend_suggestion: str | None = None
 
     #: shared attr used by set_backend() to indicate what backend it's loaded;
     #: meaningless while not in set_backend().
@@ -2187,7 +2194,7 @@ class SubclassBackendMixin(BackendMixin):
     _backend_mixin_target = False
 
     #: map of backend name -> mixin class
-    _backend_mixin_map = None
+    _backend_mixin_map: dict[str | None, type[GenericHandler]] | None = None
 
     @classmethod
     def _get_backend_owner(cls):
@@ -2372,7 +2379,7 @@ class PrefixWrapper:
     """
 
     #: list of attributes which should be cloned by .using()
-    _using_clone_attrs = ()
+    _using_clone_attrs: tuple[str, ...] = ()
 
     def __init__(
         self, name, wrapped, prefix="", orig_prefix="", lazy=False, doc=None, ident=None

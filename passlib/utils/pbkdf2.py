@@ -4,6 +4,7 @@ this module is getting increasingly poorly named.
 maybe rename to "kdf" since it's getting more key derivation functions added.
 """
 
+from collections.abc import Mapping
 from warnings import warn
 
 from passlib.crypto.digest import (
@@ -33,7 +34,7 @@ warn(
 
 
 #: cache mapping prf name/func -> (func, digest_size)
-_prf_cache = {}
+_prf_cache: Mapping[str, tuple[str, int]] = {}
 
 #: list of accepted prefixes
 _HMAC_PREFIXES = ("hmac_", "hmac-")
@@ -79,7 +80,6 @@ def get_prf(name):
         This function is deprecated, and will be removed in Passlib 2.0.
         This only related replacement is :func:`passlib.crypto.digest.compile_hmac`.
     """
-    global _prf_cache
     if name in _prf_cache:
         return _prf_cache[name]
     if isinstance(name, str):

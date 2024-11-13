@@ -22,7 +22,6 @@ __all__ = [
     "django_disabled",
 ]
 
-
 # imported by django_des_crypt._calc_checksum()
 des_crypt = None
 
@@ -43,7 +42,7 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
 
     # name, ident, checksum_size must be set by subclass.
     # ident must include "$" suffix.
-    setting_kwds = ("salt", "salt_size")
+    setting_kwds: tuple[str, ...] = ("salt", "salt_size")
 
     # NOTE: django 1.0-1.3 would accept empty salt strings.
     #       django 1.4 won't, but this appears to be regression
@@ -65,7 +64,10 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
 
 
 # NOTE: only used by PBKDF2
-class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
+class DjangoVariableHash(  # type: ignore[misc]
+    uh.HasRounds,
+    DjangoSaltedHash,
+):
     """base class providing common code for django hashes w/ variable rounds"""
 
     setting_kwds = DjangoSaltedHash.setting_kwds + ("rounds",)
@@ -362,7 +364,11 @@ django_argon2.django_name = "argon2"
 django_argon2._using_clone_attrs += ("django_name",)
 
 
-class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
+class django_des_crypt(  # type: ignore[misc]
+    uh.TruncateMixin,
+    uh.HasSalt,
+    uh.GenericHandler,
+):
     """This class implements Django's :class:`des_crypt` wrapper, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.

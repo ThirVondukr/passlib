@@ -19,7 +19,7 @@ import warnings
 # core
 from binascii import unhexlify
 from functools import partial, wraps
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest import SkipTest
 from warnings import warn
 
@@ -51,8 +51,11 @@ from passlib.utils.decor import classproperty
 from tests.utils_ import no_warnings
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from passlib.ifc import PasswordHash
     from passlib.utils.handlers import PrefixWrapper
+
 
 log = logging.getLogger(__name__)
 # local
@@ -639,33 +642,33 @@ class HandlerCase(TestCase):
     # ---------------------------------------------------------------
 
     # handler class to test [required]
-    handler: type[PasswordHash] | PrefixWrapper = None
+    handler: type[PasswordHash] | PrefixWrapper | None = None
 
     # if set, run tests against specified backend
-    backend = None
+    backend: str | None = None
 
     # ---------------------------------------------------------------
     # test vectors
     # ---------------------------------------------------------------
 
     # list of (secret, hash) tuples which are known to be correct
-    known_correct_hashes = []
+    known_correct_hashes: list[Any] = []
 
     # list of (config, secret, hash) tuples are known to be correct
-    known_correct_configs = []
+    known_correct_configs: list[tuple[str, str, str]] = []
 
     # list of (alt_hash, secret, hash) tuples, where alt_hash is a hash
     # using an alternate representation that should be recognized and verify
     # correctly, but should be corrected to match hash when passed through
     # genhash()
-    known_alternate_hashes = []
+    known_alternate_hashes: list[tuple[str, str | tuple[str, ...], str]] = []
 
     # hashes so malformed they aren't even identified properly
-    known_unidentified_hashes = []
+    known_unidentified_hashes: list[str | bytes] = []
 
     # hashes which are identifiabled but malformed - they should identify()
     # as True, but cause an error when passed to genhash/verify.
-    known_malformed_hashes = []
+    known_malformed_hashes: list[str | bytes] = []
 
     # list of (handler name, hash) pairs for other algorithm's hashes that
     # handler shouldn't identify as belonging to it this list should generally
@@ -691,7 +694,7 @@ class HandlerCase(TestCase):
     # whether hash is case insensitive
     # True, False, or special value "verify-only" (which indicates
     # hash contains case-sensitive portion, but verifies is case-insensitive)
-    secret_case_insensitive = False
+    secret_case_insensitive: str | bool = False
 
     # flag if scheme accepts ALL hash strings (e.g. plaintext)
     accepts_all_hashes = False
@@ -2500,7 +2503,7 @@ class HandlerCase(TestCase):
         self.do_identify("abc\x91\x00")  # non-utf8
 
     #: optional list of known parse hash results for hasher
-    known_parsehash_results = []
+    known_parsehash_results: list[tuple[str, dict[str, object]]] = []
 
     def require_parsehash(self):
         if not hasattr(self.handler, "parsehash"):
@@ -2850,7 +2853,7 @@ class HandlerCase(TestCase):
         )
 
         # map of context kwd -> method name.
-        context_map = {}
+        context_map: dict[str, str] = {}
 
         def __init__(self, test, rng):
             self.test = test
@@ -3070,7 +3073,7 @@ class OsCryptMixin(HandlerCase):
 
     # platforms that are known to support / not support this hash natively.
     # list of (platform_regex, True|False|None) entries.
-    platform_crypt_support = []
+    platform_crypt_support: Sequence[tuple[str, bool]] = []
     __unittest_skip = True
 
     # force this backend
@@ -3272,7 +3275,7 @@ class OsCryptMixin(HandlerCase):
             return None
 
         # create a wrapper for fuzzy verified to use
-        from legacycrypt import crypt
+        from legacycrypt import crypt  # type: ignore[import-untyped]
 
         from passlib.utils import _safe_crypt_lock
 

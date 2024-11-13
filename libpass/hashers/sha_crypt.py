@@ -18,7 +18,7 @@ from libpass.inspect.sha_crypt import (
 )
 
 if TYPE_CHECKING:
-    from libpass._utils.protocols import HashLike
+    from libpass._utils.protocols import HashLike, SHAFunc
 
 __all__ = ["SHA256Hasher", "SHA512Hasher"]
 
@@ -287,7 +287,7 @@ class _ShaHasher(PasswordHasher):
     _DEFAULT_ROUNDS: int = 5000
     _transpose_map: tuple[int, ...]
     _inspect: Callable[[str], SHACryptInfo | None]
-    _sha_func: Callable[[bytes], HashLike]
+    _sha_func: SHAFunc
     _info_cls: type[SHACryptInfo]
 
     def __init__(self, rounds: int = 535_000) -> None:

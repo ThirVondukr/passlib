@@ -23,7 +23,7 @@ try:
     del cryptography
 except ImportError:
     logging.debug("can't import 'cryptography' package, totp encryption disabled")
-    _cg_ciphers = _cg_default_backend = None
+    _cg_ciphers = _cg_default_backend = None  # type: ignore[assignment]
 # pkg
 from passlib import exc
 from passlib.crypto.digest import compile_hmac, lookup_hash, pbkdf2_hmac

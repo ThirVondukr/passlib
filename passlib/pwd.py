@@ -3,7 +3,7 @@ import contextlib
 import logging
 import os
 from collections import defaultdict
-from collections.abc import MutableMapping
+from collections.abc import Hashable, MutableMapping
 from importlib import resources
 from math import ceil, log2
 
@@ -113,7 +113,7 @@ _sequence_types = (list, tuple)
 _set_types = (set, frozenset)
 
 #: set of elements that ensure_unique() has validated already.
-_ensure_unique_cache = set()
+_ensure_unique_cache: set[Hashable] = set()
 
 
 def _ensure_unique(source, param="source"):

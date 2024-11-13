@@ -167,7 +167,7 @@ _chk_offsets = (
 )
 
 
-class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):  # type: ignore[misc]
     """This class implements the Sun-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.

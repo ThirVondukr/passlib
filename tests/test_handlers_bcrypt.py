@@ -370,7 +370,7 @@ class _bcrypt_test(HandlerCase):
 bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
 
 
-class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):
+class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):  # type: ignore[misc]
     # os crypt doesn't support non-utf8 secret bytes
     known_correct_hashes = _bcrypt_test.known_correct_hashes
 
@@ -616,7 +616,7 @@ class _bcrypt_sha256_test(HandlerCase):
 bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")
 
 
-class bcrypt_sha256_os_crypt_test(_bcrypt_sha256_test.create_backend_case("os_crypt")):
+class bcrypt_sha256_os_crypt_test(_bcrypt_sha256_test.create_backend_case("os_crypt")):  # type: ignore[misc]
     @classmethod
     def _get_safe_crypt_handler_backend(cls):
         return bcrypt_os_crypt_test._get_safe_crypt_handler_backend()

@@ -62,15 +62,6 @@ def _is_handler_registered(handler):
     return get_crypt_handler(handler.name, None) is handler
 
 
-@staticmethod
-def _always_needs_update(hash, secret=None):
-    """
-    dummy function patched into handler.needs_update() by _CryptConfig
-    when hash alg has been deprecated for context.
-    """
-    return True
-
-
 #: list of keys allowed under wildcard "all" scheme w/o a security warning.
 _global_settings = set(["truncate_error", "vary_rounds"])
 

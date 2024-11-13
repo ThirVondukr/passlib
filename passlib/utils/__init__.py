@@ -465,7 +465,7 @@ def repeat_string(source: AnyStr, size: int) -> AnyStr:
     return (source * mult)[:size]
 
 
-def utf8_repeat_string(source: str, size: int) -> str:
+def utf8_repeat_string(source: bytes, size: int) -> bytes:
     """
     variant of repeat_string() which truncates to nearest UTF8 boundary.
     """
@@ -674,7 +674,9 @@ _false_set = set("false f no n off 0 disable disabled".split())
 _none_set = set(["", "none"])
 
 
-def as_bool(value: AnyStr, none: bool | None = None, param="boolean") -> bool:
+def as_bool(
+    value: str | bytes | None, none: bool | None = None, param="boolean"
+) -> bool | None:
     """
     helper to convert value to boolean.
     recognizes strings such as "true", "false"
@@ -870,7 +872,7 @@ def genseed(value=None):
 
 
 if has_urandom:  # noqa: SIM108
-    rng = random.SystemRandom()
+    rng: random.Random = random.SystemRandom()
 else:  # pragma: no cover -- runtime detection
     # NOTE: to reseed use ``rng.seed(genseed(rng))``
     # XXX: could reseed on every call

@@ -661,7 +661,7 @@ class _base_argon2_test(HandlerCase):
 # -----------------------------------------
 
 
-class argon2_argon2_cffi_test(_base_argon2_test.create_backend_case("argon2_cffi")):
+class argon2_argon2_cffi_test(_base_argon2_test.create_backend_case("argon2_cffi")):  # type: ignore[misc]
     # add some more test vectors that take too long under argon2pure
     known_correct_hashes = _base_argon2_test.known_correct_hashes + [
         #
@@ -711,7 +711,7 @@ class argon2_argon2_cffi_test(_base_argon2_test.create_backend_case("argon2_cffi
     )
 
 
-class argon2_argon2pure_test(_base_argon2_test.create_backend_case("argon2pure")):
+class argon2_argon2pure_test(_base_argon2_test.create_backend_case("argon2pure")):  # type: ignore[misc]
     # XXX: setting max_threads at 1 to prevent argon2pure from using multiprocessing,
     #      which causes big problems when testing under pypy.
     #      would like a "pure_use_threads" option instead, to make it use multiprocessing.dummy instead.

@@ -8,6 +8,8 @@ TODO:
 * deal with lack of PY3-compatibile c-ext implementation
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -77,13 +79,15 @@ def _detect_pybcrypt():
     # which bcrypt lacks (confirmed for v1.0 - 2.0)
     # "._bcrypt" alone isn't sufficient, since bcrypt 2.0 now has that attribute.
     try:
-        from bcrypt._bcrypt import __version__  # noqa: F401
+        from bcrypt._bcrypt import (  # type: ignore[import-not-found]  #  noqa: F401
+            __version__,
+        )
     except ImportError:
         return False
     return True
 
 
-class _BcryptCommon(
+class _BcryptCommon(  # type: ignore[misc]
     uh.SubclassBackendMixin,
     uh.TruncateMixin,
     uh.HasManyIdents,
@@ -104,7 +108,7 @@ class _BcryptCommon(
     # PasswordHash
     # --------------------
     name = "bcrypt"
-    setting_kwds = ("salt", "rounds", "ident", "truncate_error")
+    setting_kwds: tuple[str, ...] = ("salt", "rounds", "ident", "truncate_error")
 
     # --------------------
     # GenericHandler
@@ -116,7 +120,7 @@ class _BcryptCommon(
     # HasManyIdents
     # --------------------
     default_ident = IDENT_2B
-    ident_values = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
+    ident_values: tuple[str, ...] = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
     ident_aliases = {"2": IDENT_2, "2a": IDENT_2A, "2y": IDENT_2Y, "2b": IDENT_2B}
 
     # --------------------
@@ -139,7 +143,7 @@ class _BcryptCommon(
     # --------------------
     # TruncateMixin
     # --------------------
-    truncate_size = 72
+    truncate_size: int | None = 72
 
     # --------------------
     # custom
@@ -756,7 +760,7 @@ class _BuiltinBackend(_BcryptCommon):
         return chk.decode("ascii")
 
 
-class bcrypt(_NoBackend, _BcryptCommon):
+class bcrypt(_NoBackend, _BcryptCommon):  # type: ignore[misc]
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -858,7 +862,7 @@ class _wrapped_bcrypt(bcrypt):
     setting_kwds = tuple(
         elem for elem in bcrypt.setting_kwds if elem not in ["truncate_error"]
     )
-    truncate_size = None
+    truncate_size: int | None = None
 
     # XXX: these will be needed if any bcrypt backends directly implement this...
     # @classmethod

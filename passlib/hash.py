@@ -23,7 +23,7 @@ import sys
 
 from passlib.registry import _proxy
 
-sys.modules[__name__] = _proxy
+sys.modules[__name__] = _proxy  # type: ignore[assignment]
 
 # =============================================================================
 # HACK: the following bit of code is unreachable, but it's presence seems to
@@ -59,7 +59,7 @@ if False:
         django_salted_sha1,
     )
     from passlib.handlers.fshp import fshp
-    from passlib.handlers.ldap_digests import (
+    from passlib.handlers.ldap_digests import (  # type: ignore[attr-defined]
         ldap_bcrypt,
         ldap_bsdi_crypt,
         ldap_des_crypt,

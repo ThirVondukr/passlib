@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Callable, Protocol
 
 from typing_extensions import Buffer, Self
 
@@ -26,3 +26,6 @@ class HashLike(Protocol):
     def hexdigest(self) -> str: ...
 
     def update(self, __data: Buffer) -> None: ...
+
+
+SHAFunc = Callable[[bytes], HashLike]

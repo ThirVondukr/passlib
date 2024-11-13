@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 
 from passlib.utils.decor import deprecated_method
@@ -35,7 +37,7 @@ class PasswordHash(ABC):
     #: NOTE: calls may treat as boolean, since value will never be 0.
     #: .. versionadded:: 1.7
     #: .. TODO: passlib 1.8: deprecate/rename this attr to "max_secret_size"?
-    truncate_size = None
+    truncate_size: int | None = None
 
     # NOTE: these next two default to the optimistic "ideal",
     #       most hashes in passlib have to default to False

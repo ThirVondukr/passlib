@@ -16,6 +16,7 @@ References
 import logging
 import re
 from importlib import metadata
+from typing import Any
 from warnings import warn
 
 import passlib.utils.handlers as uh
@@ -55,7 +56,7 @@ ALL_TYPES_SET = set(ALL_TYPES)
 #       so that we can always use the libargon2 default settings when possible.
 _argon2_cffi_error = None
 try:
-    import argon2 as _argon2_cffi
+    import argon2 as _argon2_cffi  # type: ignore[assignment]
 except ImportError:
     _argon2_cffi = None
 else:
@@ -77,8 +78,8 @@ else:
 # if we have argon2_cffi >= 16.0, use their default hasher settings, otherwise use static default
 if hasattr(_argon2_cffi, "PasswordHasher"):
     # use cffi's default settings
-    _default_settings = _argon2_cffi.PasswordHasher()
-    _default_version = _argon2_cffi.low_level.ARGON2_VERSION
+    _default_settings = _argon2_cffi.PasswordHasher()  # type: ignore[attr-defined]
+    _default_version = _argon2_cffi.low_level.ARGON2_VERSION  # type: ignore[attr-defined]
 else:
     # use fallback settings (for no backend, or argon2pure)
     class _DummyCffiHasher:
@@ -102,7 +103,7 @@ else:
     _default_version = 0x13  # v1.9
 
 
-class _Argon2Common(
+class _Argon2Common(  # type: ignore[misc]
     uh.SubclassBackendMixin,
     uh.ParallelismMixin,
     uh.HasRounds,
@@ -209,7 +210,7 @@ class _Argon2Common(
     #: internal helper used to store mapping of TYPE_XXX constants -> backend-specific type constants;
     #: this is populated by _load_backend_mixin(); and used to detect which types are supported.
     #: XXX: could expose keys as class-level .supported_types property?
-    _backend_type_map = {}
+    _backend_type_map: Any = {}
 
     @classproperty
     def type_values(cls):
@@ -392,7 +393,7 @@ class _Argon2Common(
             )?
         )?
         $
-    """,
+    """,  # type: ignore[arg-type]
         re.VERBOSE,
     )
 
@@ -835,7 +836,7 @@ class _PureBackend(_Argon2Common):
         # import argon2pure
         global _argon2pure
         try:
-            import argon2pure as _argon2pure
+            import argon2pure as _argon2pure  # type: ignore[import-not-found]
         except ImportError:
             return False
 
@@ -908,7 +909,7 @@ class _PureBackend(_Argon2Common):
             raise self._adapt_backend_error(err, self=self)
 
 
-class argon2(_NoBackend, _Argon2Common):
+class argon2(_NoBackend, _Argon2Common):  # type: ignore[misc]
     """
     This class implements the Argon2 password hash [#argon2-home]_, and follows the :ref:`password-hash-api`.
 

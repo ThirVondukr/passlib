@@ -1,15 +1,21 @@
 """tests for passlib.util"""
 
+from __future__ import annotations
+
 import re
 import warnings
 from functools import partial
+from typing import TYPE_CHECKING
 
 import pytest
 
-from passlib.utils import is_ascii_safe, to_bytes
+from passlib.utils import Base64Engine, is_ascii_safe, to_bytes
 from passlib.utils.binary import h64, h64big
 from passlib.utils.compat import join_bytes
 from tests.utils import TestCase, hb, run_with_fixed_seeds
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class MiscTest(TestCase):
@@ -814,13 +820,13 @@ class _Base64Test(TestCase):
     """common tests for all Base64Engine instances"""
 
     # Base64Engine instance to test
-    engine = None
+    engine: Base64Engine | None = None
 
     # pairs of (raw, encoded) bytes to test - should encode/decode correctly
-    encoded_data = None
+    encoded_data: Sequence[Sequence[bytes | int]] | None = None
 
     # tuples of (encoded, value, bits) for known integer encodings
-    encoded_ints = None
+    encoded_ints: Sequence[Sequence[bytes | int]] | None = None
 
     # invalid encoded byte
     bad_byte = b"?"

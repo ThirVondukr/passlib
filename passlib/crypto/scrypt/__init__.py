@@ -162,7 +162,7 @@ def _load_cffi_backend():
     ``scrypt <https://pypi.python.org/pypi/scrypt/>``_ package.
     """
     try:
-        from scrypt import hash
+        from scrypt import hash  # type: ignore[import-not-found]
 
         return hash
     except ImportError:

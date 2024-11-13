@@ -3,11 +3,16 @@ from passlib.crypto.digest import compile_hmac
 from passlib.utils import safe_crypt, test_crypt
 from passlib.utils.binary import h64
 
-__all__ = []
+__all__: list[str] = []
 _BNULL = b"\x00"
 
 
-class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class sha1_crypt(  # type: ignore[misc]
+    uh.HasManyBackends,
+    uh.HasRounds,
+    uh.HasSalt,
+    uh.GenericHandler,
+):
     """This class implements the SHA1-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.

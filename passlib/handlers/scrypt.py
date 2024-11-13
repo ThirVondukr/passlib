@@ -18,7 +18,7 @@ IDENT_7 = "$7$"  # used by official scrypt spec
 _UDOLLAR = "$"
 
 
-class scrypt(
+class scrypt(  # type: ignore[misc]
     uh.ParallelismMixin,
     uh.HasRounds,
     uh.HasRawSalt,

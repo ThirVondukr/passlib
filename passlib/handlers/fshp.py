@@ -11,7 +11,12 @@ __all__ = [
 ]
 
 
-class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
+class fshp(  # type: ignore[misc]
+    uh.HasRounds,
+    uh.HasRawSalt,
+    uh.HasRawChecksum,
+    uh.GenericHandler,
+):
     """This class implements the FSHP password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.

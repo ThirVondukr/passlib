@@ -1,13 +1,19 @@
 """plain hash digests"""
 
+from __future__ import annotations
+
 import re
 from base64 import b64decode, b64encode
 from hashlib import md5, sha1, sha256, sha512
+from typing import TYPE_CHECKING
 
 import passlib.utils.handlers as uh
 from passlib.handlers.misc import plaintext
 from passlib.utils import to_unicode, unix_crypt_schemes
 from passlib.utils.decor import classproperty
+
+if TYPE_CHECKING:
+    from libpass._utils.protocols import SHAFunc
 
 __all__ = [
     "ldap_plaintext",
@@ -25,9 +31,9 @@ class _Base64DigestHelper(uh.StaticHandler):
 
     # XXX: could combine this with hex digests in digests.py
 
-    ident = None  # required - prefix identifier
-    _hash_func = None  # required - hash function
-    _hash_regex = None  # required - regexp to recognize hash
+    ident: str | None = None  # required - prefix identifier
+    _hash_func: SHAFunc | None = None  # required - hash function
+    _hash_regex: re.Pattern[str] | None = None  # required - regexp to recognize hash
     checksum_chars = uh.PADDED_BASE64_CHARS
 
     @classproperty
@@ -48,9 +54,9 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
     setting_kwds = ("salt", "salt_size")
     checksum_chars = uh.PADDED_BASE64_CHARS
 
-    ident = None  # required - prefix identifier
-    _hash_func = None  # required - hash function
-    _hash_regex = None  # required - regexp to recognize hash
+    ident: str | None = None  # required - prefix identifier
+    _hash_func: SHAFunc | None = None  # required - hash function
+    _hash_regex: re.Pattern[str] | None = None  # required - regexp to recognize hash
     min_salt_size = max_salt_size = 4
 
     # NOTE: openldap implementation uses 4 byte salt,
