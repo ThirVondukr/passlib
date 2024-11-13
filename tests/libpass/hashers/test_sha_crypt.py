@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from libpass.binary import B64_CHARS
+from libpass._utils.binary import B64_CHARS
 from libpass.hashers.sha_crypt import SHA256Hasher, SHA512Hasher
 
 
