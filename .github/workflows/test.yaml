@@ -23,8 +23,6 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
-      - run: uv run ${{ matrix.job }}
-
       - run: |
           uv run coverage run
           uv run coverage report -m
