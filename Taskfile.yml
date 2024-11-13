@@ -2,7 +2,7 @@ version: "3"
 
 vars:
   RUNNER:
-    sh: 'echo {{ .RUNNER | default "" }}'
+    sh: 'echo {{ .RUNNER | default "uv run " }}'
   SOURCES: .
   SOURCES_ROOT: .
 
@@ -58,4 +58,4 @@ tasks:
       - task: format
       - task: deptry
       - task: typecheck
-      - task: testcov
+      - task: test
