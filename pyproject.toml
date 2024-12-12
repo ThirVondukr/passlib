@@ -72,19 +72,26 @@ totp = [
 
 [dependency-groups]
 dev = [
-    "cloud-sptheme>=1.10.1.post20200504175005",
-    "coverage>=7.6.4",
-    "deptry>=0.21.0",
-    "django-stubs>=5.1.1",
-    "django>=4.2.16",
+    "ipython>=8.18.1",
+]
+lint = [
+    "deptry>=0.21.1",
     "mypy>=1.13.0",
+    "ruff>=0.8.2",
+]
+test = [
+    "coverage>=7.6.4",
+    "django>=4.2.16",
+    "django-stubs>=5.1.1",
+    "pytest>=8.3.3",
     "pytest-archon>=0.0.6",
     "pytest-xdist>=3.6.1",
-    "pytest>=8.3.3",
-    "ruff>=0.7.3",
+    "typeguard>=4.4.1",
+]
+docs = [
+    "cloud-sptheme>=1.10.1.post20200504175005",
     "sphinx>=7.4.7",
     "sphinxcontrib-fulltoc>=1.2.0",
-    "typeguard>=4.4.1",
 ]
 
 [build-system]
@@ -105,8 +112,8 @@ members = ["test"]
 
 
 [tool.coverage.run]
-source = ["passlib"]
-omit = [""]
+source = ["passlib", "libpass"]
+omit = []
 command_line = "-m pytest -v"
 branch = true
 
@@ -178,6 +185,7 @@ ignore = [
     "BLE",
     "FLY",
     "INP",
+    "UP031",
 ]
 
 [tool.ruff.lint.per-file-ignores]
