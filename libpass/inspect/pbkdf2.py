@@ -12,7 +12,7 @@ class BasePBKDF2CryptInfo:
     salt: str
     hash: str
 
-    def as_str(self):
+    def as_str(self) -> str:
         return f"${self.DIGEST_NAME}${self.rounds}${self.salt}${self.hash}"
 
     @property

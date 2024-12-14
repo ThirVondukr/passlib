@@ -19,7 +19,7 @@ class BcryptHashInfo:
     def bcrypt_salt(self) -> bytes:
         return f"${self.prefix}${self.rounds:02}${self.salt}".encode()
 
-    def as_str(self):
+    def as_str(self) -> str:
         return f"${self.prefix}${self.rounds:02}${self.salt}{self.hash}"
 
 

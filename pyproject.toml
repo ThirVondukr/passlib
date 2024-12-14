@@ -205,8 +205,12 @@ version_files = [
 ]
 
 
+[tool.pytest.ini_options]
+addopts = "-W error::Warning"
+
+
 [tool.mypy]
 python_version = "3.9"
 
-[tool.pytest.ini_options]
-addopts = "-W error::Warning"
+follow_imports = "normal"
+ignore_missing_imports = false

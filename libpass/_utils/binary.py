@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -8,7 +8,15 @@ if TYPE_CHECKING:
 B64_CHARS = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 
-def _encode_bytes_big(next_value, chunks: int, tail: int) -> Iterator[int]:
+class EncodeBytes(Protocol):
+    def __call__(
+        self, next_value: Callable[[], int], chunks: int, tail: int
+    ) -> Iterator[int]: ...
+
+
+def _encode_bytes_big(
+    next_value: Callable[[], int], chunks: int, tail: int
+) -> Iterator[int]:
     """helper used by encode_bytes() to handle big-endian encoding"""
     #
     # output bit layout:
@@ -48,7 +56,9 @@ def _encode_bytes_big(next_value, chunks: int, tail: int) -> Iterator[int]:
             yield ((v2 & 0x0F) << 2)
 
 
-def _encode_bytes_little(next_value, chunks, tail):
+def _encode_bytes_little(
+    next_value: Callable[[], int], chunks: int, tail: int
+) -> Iterator[int]:
     """helper used by encode_bytes() to handle little-endian encoding"""
     #
     # output bit layout:
@@ -104,7 +114,7 @@ class Base64Engine:
         return self._charmap[i]
 
     @property
-    def _encode_bytes(self):
+    def _encode_bytes(self) -> EncodeBytes:
         if self._big:
             return _encode_bytes_big
         return _encode_bytes_little

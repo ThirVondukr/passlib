@@ -16,7 +16,7 @@ class SHACryptInfo:
     salt: str
     hash: str
 
-    def as_str(self):
+    def as_str(self) -> str:
         if self.rounds == SHA_CRYPT_DEFAULT_ROUNDS:
             return f"{self._prefix}{self.salt}${self.hash}"
 

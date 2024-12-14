@@ -36,7 +36,7 @@ class CryptContext:
         )
         return all(not scheme.identify(hash) for scheme in schemes)
 
-    def _validate_init(self):
+    def _validate_init(self) -> None:
         if not self._schemes:
             raise ValueError("At least one scheme must be supplied")
 
