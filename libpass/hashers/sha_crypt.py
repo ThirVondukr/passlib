@@ -294,18 +294,25 @@ class _ShaHasher(PasswordHasher):
         self._rounds = rounds
         validate_rounds(self._rounds, 1000, 999_999_999)
 
-    def hash(self, secret: StrOrBytes, *, salt: StrOrBytes | None = None) -> str:
+    def hash(
+        self,
+        secret: StrOrBytes,
+        *,
+        salt: StrOrBytes | None = None,
+        rounds: int | None = None,
+    ) -> str:
         salt = as_str(salt) if salt is not None else _gen_salt(16)
+        rounds = rounds or self._rounds
 
         sha = _sha_crypt(
             secret=as_bytes(secret),
             salt=as_bytes(salt),
-            rounds=self._rounds,
+            rounds=rounds,
             hash_method=self._sha_func,
             transpose_map=self._transpose_map,
         )
         return self._info_cls(
-            rounds=self._rounds,
+            rounds=rounds,
             salt=salt,
             hash=as_str(sha),
         ).as_str()
