@@ -9,7 +9,6 @@ maintainers = [
     { name = "Doctor", email = "thirvondukr@gmail.com" },
 ]
 dependencies = [
-    "legacycrypt>=0.3",
     "typing-extensions>=4.6.0",
 ]
 requires-python = ">=3.9"

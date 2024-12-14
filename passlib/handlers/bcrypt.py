@@ -11,7 +11,6 @@ TODO:
 from __future__ import annotations
 
 import logging
-import os
 import re
 from base64 import b64encode
 from hashlib import sha256
@@ -23,10 +22,7 @@ import passlib.utils.handlers as uh
 from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityError
 from passlib.utils import (
-    crypt_accepts_bytes,
     repeat_string,
-    safe_crypt,
-    test_crypt,
     to_unicode,
     utf8_repeat_string,
     utf8_truncate,
@@ -34,7 +30,6 @@ from passlib.utils import (
 from passlib.utils.binary import bcrypt64
 
 _bcrypt = None  # dynamically imported by _load_backend_bcrypt()
-_builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 
 log = logging.getLogger(__name__)
 __all__ = [
@@ -658,108 +653,6 @@ class _BcryptBackend(_BcryptCommon):
         return hash[-31:].decode("ascii")
 
 
-# -----------------------------------------------------------------------
-# os crypt backend
-# -----------------------------------------------------------------------
-class _OsCryptBackend(_BcryptCommon):
-    """
-    backend which uses :func:`crypt.crypt`
-    """
-
-    #: set flag to ensure _prepare_digest_args() doesn't create invalid utf8 string
-    #: when truncating bytes.
-    _require_valid_utf8_bytes = not crypt_accepts_bytes
-
-    @classmethod
-    def _load_backend_mixin(mixin_cls, name, dryrun):
-        if not test_crypt("test", TEST_HASH_2A):
-            return False
-        return mixin_cls._finalize_backend_mixin(name, dryrun)
-
-    def _calc_checksum(self, secret):
-        #
-        # run secret through crypt.crypt().
-        # if everything goes right, we'll get back a properly formed bcrypt hash.
-        #
-        secret, ident = self._prepare_digest_args(secret)
-        config = self._get_config(ident)
-        hash = safe_crypt(secret, config)
-        if hash is not None:
-            if not hash.startswith(config) or len(hash) != len(config) + 31:
-                raise uh.exc.CryptBackendError(self, config, hash)
-            return hash[-31:]
-
-        #
-        # Check if this failed due to non-UTF8 bytes
-        # In detail: under py3, crypt.crypt() requires unicode inputs, which are then encoded to
-        # utf8 before passing them to os crypt() call.  this is done according to the "s" format
-        # specifier for PyArg_ParseTuple (https://docs.python.org/3/c-api/arg.html).
-        # There appears no way to get around that to pass raw bytes; so we just throw error here
-        # to let user know they need to use another backend if they want raw bytes support.
-        #
-        # XXX: maybe just let safe_crypt() throw UnicodeDecodeError under passlib 2.0,
-        #      and then catch it above? maybe have safe_crypt ALWAYS throw error
-        #      instead of returning None? (would save re-detecting what went wrong)
-        # XXX: isn't secret ALWAYS bytes at this point?
-        #
-        if isinstance(secret, bytes):
-            try:
-                secret.decode("utf-8")
-            except UnicodeDecodeError:
-                raise uh.exc.PasswordValueError(
-                    "python3 crypt.crypt() ony supports bytes passwords using UTF8; "
-                    "passlib recommends running `pip install bcrypt` for general bcrypt support.",
-                ) from None
-
-        #
-        # else crypt() call failed for unknown reason.
-        #
-        # NOTE: getting here should be considered a bug in passlib --
-        #       if os_crypt backend detection said there's support,
-        #       and we've already checked all known reasons above;
-        #       want them to file bug so we can figure out what happened.
-        #       in the meantime, users can avoid this by installing bcrypt-cffi backend;
-        #       which won't have this (or utf8) edgecases.
-        #
-        # XXX: throw something more specific, like an "InternalBackendError"?
-        # NOTE: if do change this error, need to update test_81_crypt_fallback() expectations
-        #       about what will be thrown; as well as safe_verify() above.
-        #
-        debug_only_repr = uh.exc.debug_only_repr
-        raise uh.exc.InternalBackendError(
-            "crypt.crypt() failed for unknown reason; "
-            "passlib recommends running `pip install bcrypt` for general bcrypt support."
-            # for debugging UTs --
-            f"(config={debug_only_repr(config)}, secret={debug_only_repr(secret)})",
-        )
-
-
-class _BuiltinBackend(_BcryptCommon):
-    """
-    backend which uses passlib's pure-python implementation
-    """
-
-    @classmethod
-    def _load_backend_mixin(mixin_cls, name, dryrun):
-        from passlib.utils import as_bool
-
-        if not as_bool(os.environ.get("PASSLIB_BUILTIN_BCRYPT")):
-            log.debug(
-                "bcrypt 'builtin' backend not enabled via $PASSLIB_BUILTIN_BCRYPT"
-            )
-            return False
-        global _builtin_bcrypt
-
-        return mixin_cls._finalize_backend_mixin(name, dryrun)
-
-    def _calc_checksum(self, secret):
-        secret, ident = self._prepare_digest_args(secret)
-        chk = _builtin_bcrypt(
-            secret, ident[1:-1], self.salt.encode("ascii"), self.rounds
-        )
-        return chk.decode("ascii")
-
-
 class bcrypt(_NoBackend, _BcryptCommon):  # type: ignore[misc]
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -833,7 +726,7 @@ class bcrypt(_NoBackend, _BcryptCommon):  # type: ignore[misc]
     #       in order to load the appropriate backend.
 
     #: list of potential backends
-    backends = ("bcrypt", "os_crypt", "builtin")
+    backends = ("bcrypt",)
 
     #: flag that this class's bases should be modified by SubclassBackendMixin
     _backend_mixin_target = True
@@ -842,8 +735,6 @@ class bcrypt(_NoBackend, _BcryptCommon):  # type: ignore[misc]
     _backend_mixin_map = {
         None: _NoBackend,
         "bcrypt": _BcryptBackend,
-        "os_crypt": _OsCryptBackend,
-        "builtin": _BuiltinBackend,
     }
 
 
