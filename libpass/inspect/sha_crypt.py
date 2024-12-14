@@ -5,16 +5,21 @@ import dataclasses
 import re
 from typing import ClassVar, TypeVar
 
+from libpass._utils.const import SHA_CRYPT_DEFAULT_ROUNDS
+
 _TShaCryptInfo = TypeVar("_TShaCryptInfo", bound="SHACryptInfo")
 
 
 @dataclasses.dataclass
 class SHACryptInfo:
-    rounds: int | None
+    rounds: int
     salt: str
     hash: str
 
     def as_str(self):
+        if self.rounds == SHA_CRYPT_DEFAULT_ROUNDS:
+            return f"{self._prefix}{self.salt}${self.hash}"
+
         return f"{self._prefix}rounds={self.rounds}${self.salt}${self.hash}"
 
     @property
@@ -48,7 +53,7 @@ def inspect_sha_crypt(hash: str, cls: type[_TShaCryptInfo]) -> _TShaCryptInfo | 
 
     rounds = match.group("rounds")
     return cls(
-        rounds=int(rounds) if rounds is not None else None,
+        rounds=int(rounds) if rounds is not None else SHA_CRYPT_DEFAULT_ROUNDS,
         salt=match.group("salt"),
         hash=match.group("hash"),
     )

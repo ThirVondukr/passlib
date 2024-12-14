@@ -60,7 +60,7 @@ def test_argon_inspect(hash: str, expected: Argon2PHC) -> None:
         (
             "$5$wnsT7Yr92oJoP28r$cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5",
             SHA256CryptInfo(
-                rounds=None,
+                rounds=5000,
                 salt="wnsT7Yr92oJoP28r",
                 hash="cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5",
             ),

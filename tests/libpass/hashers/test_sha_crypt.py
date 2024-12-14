@@ -4,6 +4,7 @@ import pytest
 
 from libpass._utils.binary import B64_CHARS
 from libpass.hashers.sha_crypt import SHA256Hasher, SHA512Hasher
+from libpass.inspect.sha_crypt import SHA512CryptInfo, inspect_sha_crypt
 
 
 def test_salt_alphabet():
@@ -238,6 +239,10 @@ def test_sha256_known_hashes(secret: str, hash: str) -> None:
 def test_sha512_known_hashes(secret: str, hash: str) -> None:
     hasher = SHA512Hasher()
     assert hasher.verify(secret=secret, hash=hash)
+
+    info = inspect_sha_crypt(hash, SHA512CryptInfo)
+    assert info
+    assert hasher.hash(secret=secret, salt=info.salt, rounds=info.rounds) == hash
 
 
 @pytest.mark.parametrize(
