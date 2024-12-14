@@ -284,7 +284,6 @@ def _sha_crypt(
 
 
 class _ShaHasher(PasswordHasher):
-    _DEFAULT_ROUNDS: int = 5000
     _transpose_map: tuple[int, ...]
     _inspect: Callable[[str], SHACryptInfo | None]
     _sha_func: SHAFunc
@@ -325,7 +324,7 @@ class _ShaHasher(PasswordHasher):
         hashed = _sha_crypt(
             secret=as_bytes(secret),
             salt=as_bytes(info.salt),
-            rounds=info.rounds or self._DEFAULT_ROUNDS,
+            rounds=info.rounds,
             hash_method=self._sha_func,
             transpose_map=self._transpose_map,
         )
@@ -338,7 +337,7 @@ class _ShaHasher(PasswordHasher):
         info = inspect_sha_crypt(hash=as_str(hash), cls=self._info_cls)
         if info is None:
             return True
-        return (info.rounds or self._DEFAULT_ROUNDS) != self._rounds
+        return info.rounds != self._rounds
 
 
 class SHA256Hasher(_ShaHasher):
