@@ -304,7 +304,7 @@ class _ShaHasher(PasswordHasher):
             hash_method=self._sha_func,
             transpose_map=self._transpose_map,
         )
-        return SHA256CryptInfo(
+        return self._info_cls(
             rounds=self._rounds,
             salt=salt,
             hash=as_str(sha),
