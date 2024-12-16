@@ -212,7 +212,6 @@ class _bsdi_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-bsdi_crypt_os_crypt_test = _bsdi_crypt_test.create_backend_case("os_crypt")
 bsdi_crypt_builtin_test = _bsdi_crypt_test.create_backend_case("builtin")
 
 
@@ -285,7 +284,6 @@ class _des_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-des_crypt_os_crypt_test = _des_crypt_test.create_backend_case("os_crypt")
 des_crypt_builtin_test = _des_crypt_test.create_backend_case("builtin")
 
 
@@ -707,7 +705,6 @@ class _ldap_md5_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-ldap_md5_crypt_os_crypt_test = _ldap_md5_crypt_test.create_backend_case("os_crypt")
 ldap_md5_crypt_builtin_test = _ldap_md5_crypt_test.create_backend_case("builtin")
 
 
@@ -730,7 +727,7 @@ class _ldap_sha1_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-ldap_sha1_crypt_os_crypt_test = _ldap_sha1_crypt_test.create_backend_case("os_crypt")
+ldap_sha1_crypt_os_crypt_test = _ldap_sha1_crypt_test.create_backend_case("builtin")
 
 
 class lmhash_test(EncodingHandlerMixin, HandlerCase):
@@ -830,7 +827,6 @@ class _md5_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-md5_crypt_os_crypt_test = _md5_crypt_test.create_backend_case("os_crypt")
 md5_crypt_builtin_test = _md5_crypt_test.create_backend_case("builtin")
 
 
@@ -1383,7 +1379,6 @@ class _sha1_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-sha1_crypt_os_crypt_test = _sha1_crypt_test.create_backend_case("os_crypt")
 sha1_crypt_builtin_test = _sha1_crypt_test.create_backend_case("builtin")
 
 
@@ -1574,7 +1569,6 @@ class _sha256_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-sha256_crypt_os_crypt_test = _sha256_crypt_test.create_backend_case("os_crypt")
 sha256_crypt_builtin_test = _sha256_crypt_test.create_backend_case("builtin")
 
 
@@ -1698,7 +1692,6 @@ class _sha512_crypt_test(HandlerCase):
 
 
 # create test cases for specific backends
-sha512_crypt_os_crypt_test = _sha512_crypt_test.create_backend_case("os_crypt")
 sha512_crypt_builtin_test = _sha512_crypt_test.create_backend_case("builtin")
 
 

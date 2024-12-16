@@ -1,6 +1,5 @@
 import passlib.utils.handlers as uh
 from passlib.crypto.digest import compile_hmac
-from passlib.utils import safe_crypt, test_crypt
 from passlib.utils.binary import h64
 
 __all__: list[str] = []
@@ -73,28 +72,7 @@ class sha1_crypt(  # type: ignore[misc]
         chk = None if config else self.checksum
         return uh.render_mc3(self.ident, self.rounds, self.salt, chk)
 
-    backends = ("os_crypt", "builtin")
-
-    # ---------------------------------------------------------------
-    # os_crypt backend
-    # ---------------------------------------------------------------
-    @classmethod
-    def _load_backend_os_crypt(cls):
-        if test_crypt("test", "$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe"):
-            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
-            return True
-        return False
-
-    def _calc_checksum_os_crypt(self, secret):
-        config = self.to_string(config=True)
-        hash = safe_crypt(secret, config)
-        if hash is None:
-            # py3's crypt.crypt() can't handle non-utf8 bytes.
-            # fallback to builtin alg, which is always available.
-            return self._calc_checksum_builtin(secret)
-        if not hash.startswith(config) or len(hash) != len(config) + 29:
-            raise uh.exc.CryptBackendError(self, config, hash)
-        return hash[-28:]
+    backends = ("builtin",)
 
     # ---------------------------------------------------------------
     # builtin backend

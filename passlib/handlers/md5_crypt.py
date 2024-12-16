@@ -3,7 +3,7 @@
 from hashlib import md5
 
 import passlib.utils.handlers as uh
-from passlib.utils import repeat_string, safe_crypt, test_crypt
+from passlib.utils import repeat_string
 from passlib.utils.binary import h64
 
 __all__ = [
@@ -241,28 +241,7 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
     # FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
     #        all backends currently coerce -> utf-8
 
-    backends = ("os_crypt", "builtin")
-
-    # ---------------------------------------------------------------
-    # os_crypt backend
-    # ---------------------------------------------------------------
-    @classmethod
-    def _load_backend_os_crypt(cls):
-        if test_crypt("test", "$1$test$pi/xDtU5WFVRqYS6BMU8X/"):
-            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
-            return True
-        return False
-
-    def _calc_checksum_os_crypt(self, secret):
-        config = self.ident + self.salt
-        hash = safe_crypt(secret, config)
-        if hash is None:
-            # py3's crypt.crypt() can't handle non-utf8 bytes.
-            # fallback to builtin alg, which is always available.
-            return self._calc_checksum_builtin(secret)
-        if not hash.startswith(config) or len(hash) != len(config) + 23:
-            raise uh.exc.CryptBackendError(self, config, hash)
-        return hash[-22:]
+    backends = ("builtin",)
 
     # ---------------------------------------------------------------
     # builtin backend

@@ -42,7 +42,6 @@ from passlib.utils import (
     repeat_string,
     rounds_cost_values,
     tick,
-    to_native_str,
 )
 from passlib.utils import (
     rng as sys_rng,
@@ -3264,33 +3263,6 @@ class OsCryptMixin(HandlerCase):
             self.fail(
                 f"did not expect {platform!r} platform would have native support for {name!r}"
             )
-
-    def fuzz_verifier_crypt(self):
-        """test results against OS crypt()"""
-
-        # don't use this if we're faking safe_crypt (pointless test),
-        # or if handler is a wrapper (only original handler will be supported by os)
-        handler = self.handler
-        if self.using_patched_crypt or hasattr(handler, "wrapped"):
-            return None
-
-        # create a wrapper for fuzzy verified to use
-        from legacycrypt import crypt  # type: ignore[import-untyped]
-
-        from passlib.utils import _safe_crypt_lock
-
-        encoding = self.FuzzHashGenerator.password_encoding
-
-        def check_crypt(secret, hash):
-            """stdlib-crypt"""
-            if not self.crypt_supports_variant(hash):
-                return "skip"
-            # XXX: any reason not to use safe_crypt() here?  or just want to test against bare metal?
-            secret = to_native_str(secret, encoding)
-            with _safe_crypt_lock:
-                return crypt(secret, hash) == hash
-
-        return check_crypt
 
     def crypt_supports_variant(self, hash):
         """

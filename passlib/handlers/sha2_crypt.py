@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 
 import passlib.utils.handlers as uh
-from passlib.utils import repeat_string, safe_crypt, test_crypt, to_unicode
+from passlib.utils import repeat_string, to_unicode
 from passlib.utils.binary import h64
 
 __all__ = [
@@ -430,35 +430,7 @@ class _SHA2_Common(  # type: ignore[misc]
             )
         return hash
 
-    backends = ("os_crypt", "builtin")
-
-    # ---------------------------------------------------------------
-    # os_crypt backend
-    # ---------------------------------------------------------------
-
-    #: test hash for OS detection -- provided by subclass
-    _test_hash: tuple[str, ...] | None = None
-
-    @classmethod
-    def _load_backend_os_crypt(cls):
-        if test_crypt(*cls._test_hash):
-            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
-            return True
-        return False
-
-    def _calc_checksum_os_crypt(self, secret):
-        config = self.to_string()
-        hash = safe_crypt(secret, config)
-        if hash is None:
-            # py3's crypt.crypt() can't handle non-utf8 bytes.
-            # fallback to builtin alg, which is always available.
-            return self._calc_checksum_builtin(secret)
-        # NOTE: avoiding full parsing routine via from_string().checksum,
-        # and just extracting the bit we need.
-        cs = self.checksum_size
-        if not hash.startswith(self.ident) or hash[-cs - 1] != _UDOLLAR:
-            raise uh.exc.CryptBackendError(self, config, hash)
-        return hash[-cs:]
+    backends = ("builtin",)
 
     # ---------------------------------------------------------------
     # builtin backend

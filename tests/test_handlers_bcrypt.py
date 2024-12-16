@@ -200,16 +200,6 @@ class _bcrypt_test(HandlerCase):
             kwds.setdefault("rounds", 4)
         super().populate_settings(kwds)
 
-    def crypt_supports_variant(self, hash):
-        """check if OS crypt is expected to support given ident"""
-        from passlib.handlers.bcrypt import bcrypt
-        from passlib.utils import safe_crypt
-
-        ident = bcrypt.from_string(hash)
-        return (
-            safe_crypt("test", ident + "04$5BJqKfqMQvV7nS.yUguNcu") or ""
-        ).startswith(ident)
-
     fuzz_verifiers = HandlerCase.fuzz_verifiers + ("fuzz_verifier_bcrypt",)
 
     def fuzz_verifier_bcrypt(self):
@@ -368,17 +358,6 @@ class _bcrypt_test(HandlerCase):
 
 # create test cases for specific backends
 bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
-
-
-class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):  # type: ignore[misc]
-    # os crypt doesn't support non-utf8 secret bytes
-    known_correct_hashes = _bcrypt_test.known_correct_hashes
-
-    # os crypt backend doesn't currently implement a per-call fallback if it fails
-    has_os_crypt_fallback = False
-
-
-bcrypt_builtin_test = _bcrypt_test.create_backend_case("builtin")
 
 
 class _bcrypt_sha256_test(HandlerCase):
@@ -614,14 +593,3 @@ class _bcrypt_sha256_test(HandlerCase):
 
 # create test cases for specific backends
 bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")
-
-
-class bcrypt_sha256_os_crypt_test(_bcrypt_sha256_test.create_backend_case("os_crypt")):  # type: ignore[misc]
-    @classmethod
-    def _get_safe_crypt_handler_backend(cls):
-        return bcrypt_os_crypt_test._get_safe_crypt_handler_backend()
-
-    has_os_crypt_fallback = False
-
-
-bcrypt_sha256_builtin_test = _bcrypt_sha256_test.create_backend_case("builtin")
