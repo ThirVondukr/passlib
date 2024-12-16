@@ -43,6 +43,12 @@ tasks:
       - "{{.RUNNER}} coverage report -m"
       - "{{.RUNNER}} coverage xml"
 
+  testcov-libpass:
+    cmds:
+      - "{{.RUNNER}} coverage run -m pytest -v tests/libpass"
+      - '{{.RUNNER}} coverage report -m --include "libpass/*"'
+      - "{{.RUNNER}} coverage xml"
+
   libpass:
     vars:
       SOURCES: libpass tests/libpass

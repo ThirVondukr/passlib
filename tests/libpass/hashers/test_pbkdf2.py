@@ -2,7 +2,11 @@ import pytest
 
 from libpass._utils.bytes import as_bytes
 from libpass._utils.deprecated import ab64_decode
-from libpass.hashers.pbkdf2 import PBKDF2SHA256Handler, PBKDF2SHA512Handler
+from libpass.hashers.pbkdf2 import (
+    PBKDF2SHA256Handler,
+    PBKDF2SHA512Handler,
+    PBKDF2SHAHandler,
+)
 from libpass.inspect.pbkdf2 import (
     PBKDF2SHA256CryptInfo,
     PBKDF2SHA512CryptInfo,
@@ -88,7 +92,48 @@ def test_pbkdf2_sha512_needs_update():
     hash = hasher.hash("password", rounds=rounds + 1)
     assert hasher.needs_update(hash)
     assert not hasher.needs_update(hasher.hash("password"))
+
     # SHA256 hash
     assert hasher.needs_update(
         "$pbkdf2-sha256$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ"
     )
+
+
+def test_dklen_needs_update():
+    hasher = PBKDF2SHA512Handler(rounds=1000, dklen=20)
+    hash = hasher.hash("password", dklen=40)
+    assert hasher.needs_update(hash)
+
+
+@pytest.mark.parametrize(
+    ("hasher_cls", "hash", "expected"),
+    [
+        (
+            PBKDF2SHA256Handler,
+            "$pbkdf2-sha256$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ",
+            True,
+        ),
+        (
+            PBKDF2SHA512Handler,
+            "$pbkdf2-sha256$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ",
+            False,
+        ),
+        (
+            PBKDF2SHA256Handler,
+            "$pbkdf2-sha512$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ",
+            False,
+        ),
+        (
+            PBKDF2SHA512Handler,
+            "$pbkdf2-sha512$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ",
+            True,
+        ),
+    ],
+)
+def test_identify(
+    hasher_cls: type[PBKDF2SHAHandler],
+    hash: str,
+    expected: bool,
+) -> None:
+    hasher = hasher_cls()
+    assert hasher.identify(hash=hash) is expected
