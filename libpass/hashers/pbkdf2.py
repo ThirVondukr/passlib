@@ -20,9 +20,6 @@ from libpass.inspect.pbkdf2 import (
 if TYPE_CHECKING:
     from libpass._utils.bytes import StrOrBytes
 
-# PBKDF2 Recommended rounds:
-# https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
-
 _ab64_encoder = Base64Encoder(
     encode=lambda v: ab64_encode(v).decode("ascii"),
     decode=ab64_decode,
@@ -101,6 +98,10 @@ class PBKDF2SHAHandler(PasswordHasher):
             or len(self.B64_ENCODER.decode(hash_info.hash.encode())) == self._dklen
         )
         return not (hash_info.rounds == self._rounds and key_length_matches)
+
+
+# PBKDF2 Recommended rounds:
+# https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
 
 
 class PBKDF2SHA256Handler(PBKDF2SHAHandler):
