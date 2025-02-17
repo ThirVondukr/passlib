@@ -5,7 +5,7 @@ from warnings import warn
 
 import passlib.utils.handlers as uh
 from passlib.crypto.des import des_encrypt_int_block
-from passlib.utils import safe_crypt, test_crypt, to_unicode
+from passlib.utils import to_unicode
 from passlib.utils.binary import h64, h64big
 
 # local
@@ -182,29 +182,7 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
 
         return self._calc_checksum_backend(secret)
 
-    backends = ("os_crypt", "builtin")
-
-    # ---------------------------------------------------------------
-    # os_crypt backend
-    # ---------------------------------------------------------------
-    @classmethod
-    def _load_backend_os_crypt(cls):
-        if test_crypt("test", "abgOeLfPimXQo"):
-            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
-            return True
-        return False
-
-    def _calc_checksum_os_crypt(self, secret):
-        # NOTE: we let safe_crypt() encode unicode secret -> utf8;
-        #       no official policy since des-crypt predates unicode
-        hash = safe_crypt(secret, self.salt)
-        if hash is None:
-            # py3's crypt.crypt() can't handle non-utf8 bytes.
-            # fallback to builtin alg, which is always available.
-            return self._calc_checksum_builtin(secret)
-        if not hash.startswith(self.salt) or len(hash) != 13:
-            raise uh.exc.CryptBackendError(self, self.salt, hash)
-        return hash[2:]
+    backends = ("builtin",)
 
     # ---------------------------------------------------------------
     # builtin backend
@@ -332,28 +310,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         # hand off to base implementation
         return super()._calc_needs_update(**kwds)
 
-    backends = ("os_crypt", "builtin")
-
-    # ---------------------------------------------------------------
-    # os_crypt backend
-    # ---------------------------------------------------------------
-    @classmethod
-    def _load_backend_os_crypt(cls):
-        if test_crypt("test", "_/...lLDAxARksGCHin."):
-            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
-            return True
-        return False
-
-    def _calc_checksum_os_crypt(self, secret):
-        config = self.to_string()
-        hash = safe_crypt(secret, config)
-        if hash is None:
-            # py3's crypt.crypt() can't handle non-utf8 bytes.
-            # fallback to builtin alg, which is always available.
-            return self._calc_checksum_builtin(secret)
-        if not hash.startswith(config[:9]) or len(hash) != 20:
-            raise uh.exc.CryptBackendError(self, config, hash)
-        return hash[-11:]
+    backends = ("builtin",)
 
     # ---------------------------------------------------------------
     # builtin backend

@@ -11,7 +11,6 @@ import os
 import random
 import stringprep
 import sys
-import threading
 import time
 import timeit
 import unicodedata
@@ -698,128 +697,7 @@ def as_bool(
     return bool(value)
 
 
-def is_safe_crypt_input(value: AnyStr) -> bool:
-    """
-    UT helper --
-    test if value is safe to pass to crypt.crypt();
-    since PY3 won't let us pass non-UTF8 bytes to crypt.crypt.
-    """
-    if crypt_accepts_bytes or not isinstance(value, bytes):
-        return True
-    try:
-        value.decode("utf-8")
-        return True
-    except UnicodeDecodeError:
-        return False
-
-
-_NULL = "\x00"
-crypt_accepts_bytes = False
-# some crypt() variants will return various constant strings when
-# an invalid/unrecognized config string is passed in; instead of
-# returning NULL / None. examples include ":", ":0", "*0", etc.
-# safe_crypt() returns None for any string starting with one of the
-# chars in this string...
-_invalid_prefixes = "*:!"
-_safe_crypt_lock = threading.Lock()
-
-try:
-    import legacycrypt  # type: ignore[import-untyped]
-
-    _crypt = legacycrypt.crypt
-except ImportError:
-    # ImportError: libcrypt / libxcrypt missing
-
-    def safe_crypt(secret, hash):
-        return None
-
-    _crypt = None
-    has_crypt = False
-else:
-    has_crypt = True
-
-    def safe_crypt(secret, hash):
-        # CPython3's crypt() doesn't take bytes, only unicode; unicode which is then
-        # encoding using utf-8 before passing to the C-level crypt().
-        # so we have to decode the secret.
-        if isinstance(secret, bytes):
-            orig = secret
-            try:
-                secret = secret.decode("utf-8")
-            except UnicodeDecodeError:
-                return None
-            # sanity check it encodes back to original byte string,
-            # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
-            assert secret.encode("utf-8") == orig, "utf-8 spec says this can't happen!"
-        if _NULL in secret:
-            raise ValueError("null character in secret")
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        try:
-            with _safe_crypt_lock:
-                result = _crypt(secret, hash)
-        except OSError:
-            # new in py39 -- per https://bugs.python.org/issue39289,
-            # crypt() now throws OSError for various things, mainly unknown hash formats
-            # translating that to None for now (may revise safe_crypt behavior in future)
-            return None
-        # NOTE: per issue 113, crypt() may return bytes in some odd cases.
-        #       assuming it should still return an ASCII hash though,
-        #       or there's a bigger issue at hand.
-        if isinstance(result, bytes):
-            result = result.decode("ascii")
-        if not result or result[0] in _invalid_prefixes:
-            return None
-        return result
-
-
-add_doc(
-    safe_crypt,
-    """Wrapper around stdlib's crypt.
-
-    This is a wrapper around stdlib's :func:`!crypt.crypt`, which attempts
-    to provide uniform behavior across Python 2 and 3.
-
-    :arg secret:
-        password, as bytes or unicode (unicode will be encoded as ``utf-8``).
-
-    :arg hash:
-        hash or config string, as ascii bytes or unicode.
-
-    :returns:
-        resulting hash as ascii unicode; or ``None`` if the password
-        couldn't be hashed due to one of the issues:
-
-        * :func:`crypt()` not available on platform.
-
-        * Under Python 3, if *secret* is specified as bytes,
-          it must be use ``utf-8`` or it can't be passed
-          to :func:`crypt()`.
-
-        * Some OSes will return ``None`` if they don't recognize
-          the algorithm being used (though most will simply fall
-          back to des-crypt).
-
-        * Some OSes will return an error string if the input config
-          is recognized but malformed; current code converts these to ``None``
-          as well.
-    """,
-)
-
-
-def test_crypt(secret, hash):
-    """check if :func:`crypt.crypt` supports specific hash
-    :arg secret: password to test
-    :arg hash: known hash of password to use as reference
-    :returns: True or False
-    """
-    # safe_crypt() always returns unicode, which means that for py3,
-    # 'hash' can't be bytes, or "== hash" will never be True.
-    # under py2 unicode & str(bytes) will compare fine;
-    # so just enforcing "str" limitation
-    assert isinstance(hash, str), f"hash must be str, got {type(hash)}"
-    assert hash, "hash must be non-empty"
-    return safe_crypt(secret, hash) == hash
+has_crypt = False
 
 
 timer = timeit.default_timer

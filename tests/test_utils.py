@@ -175,73 +175,6 @@ class MiscTest(TestCase):
 
         rng.seed(genseed(rng))
 
-    def test_crypt(self):
-        """test crypt.crypt() wrappers"""
-        from passlib.registry import get_crypt_handler, get_supported_os_crypt_schemes
-        from passlib.utils import has_crypt, safe_crypt, test_crypt
-
-        # test everything is disabled
-        supported = get_supported_os_crypt_schemes()
-        if not has_crypt:
-            assert supported == ()
-            assert safe_crypt("test", "aa") is None
-            assert not test_crypt("test", "aaqPiZY5xR5l.")  # des_crypt() hash of "test"
-            raise self.skipTest("crypt.crypt() not available")
-
-        # expect there to be something supported, if crypt() is present
-        if not supported:
-            # NOTE: failures here should be investigated.  usually means one of:
-            # 1) at least one of passlib's os_crypt detection routines is giving false negative
-            # 2) crypt() ONLY supports some hash alg which passlib doesn't know about
-            # 3) crypt() is present but completely disabled (never encountered this yet)
-            raise self.fail("crypt() present, but no supported schemes found!")
-
-        # pick cheap alg if possible, with minimum rounds, to speed up this test.
-        # NOTE: trusting hasher class works properly (should have been verified using it's own UTs)
-        for scheme in ("md5_crypt", "sha256_crypt"):
-            if scheme in supported:
-                break
-        else:
-            scheme = supported[-1]
-        hasher = get_crypt_handler(scheme)
-        if getattr(hasher, "min_rounds", None):
-            hasher = hasher.using(rounds=hasher.min_rounds)
-
-        # helpers to generate hashes & config strings to work with
-        def get_hash(secret):
-            assert isinstance(secret, str)
-            hash = hasher.hash(secret)
-            if isinstance(hash, bytes):  # py2
-                hash = hash.decode("utf-8")
-            assert isinstance(hash, str)
-            return hash
-
-        # test ascii password & return type
-        s1 = "test"
-        h1 = get_hash(s1)
-        result = safe_crypt(s1, h1)
-        assert isinstance(result, str)
-        assert result == h1
-        assert safe_crypt(to_bytes(s1), to_bytes(h1)) == h1
-
-        # make sure crypt doesn't just blindly return h1 for whatever we pass in
-        h1x = h1[:-2] + "xx"
-        assert safe_crypt(s1, h1x) == h1
-
-        # test utf-8 / unicode password
-        s2 = "test\u1234"
-        h2 = get_hash(s2)
-        assert safe_crypt(s2, h2) == h2
-        assert safe_crypt(to_bytes(s2), to_bytes(h2)) == h2
-
-        # test rejects null chars in password
-        with pytest.raises(ValueError):
-            safe_crypt("\x00", h1)
-
-        # check test_crypt()
-        assert test_crypt("test", h1)
-        assert not test_crypt("test", h1x)
-
     def test_consteq(self):
         """test consteq()"""
         # NOTE: this test is kind of over the top, but that's only because
@@ -592,7 +525,6 @@ class CodecTest(TestCase):
 
     def test_to_bytes(self):
         """test to_bytes()"""
-        from passlib.utils import to_bytes
 
         # check unicode inputs
         assert to_bytes("abc") == b"abc"
