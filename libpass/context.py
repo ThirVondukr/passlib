@@ -30,11 +30,7 @@ class CryptContext:
         return any(scheme.verify(secret=secret, hash=hash) for scheme in self._schemes)
 
     def needs_update(self, hash: str) -> bool:
-        # Todo: Don't filter list in place
-        schemes = list(
-            scheme for scheme in self._schemes if scheme not in self._deprecated_schemes
-        )
-        return all(not scheme.identify(hash) for scheme in schemes)
+        return all(not scheme.identify(hash) for scheme in self._active_schemes)
 
     def _validate_init(self) -> None:
         if not self._schemes:
@@ -43,6 +39,12 @@ class CryptContext:
     @functools.cached_property
     def _default_scheme(self) -> PasswordHasher:
         return self._schemes[0]
+
+    @functools.cached_property
+    def _active_schemes(self) -> Sequence[PasswordHasher]:
+        return tuple(
+            scheme for scheme in self._schemes if scheme not in self._deprecated_schemes
+        )
 
     @functools.cached_property
     def _deprecated_schemes(self) -> Sequence[PasswordHasher]:
