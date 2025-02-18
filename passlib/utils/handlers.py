@@ -367,9 +367,9 @@ def validate_default_value(handler, default, norm, param="value"):
     designed to get out of the way and reduce overhead when asserts are stripped.
     """
     assert default is not None, f"{handler.name} lacks default {param}"
-    assert (
-        norm(default) == default
-    ), f"{handler.name}: invalid default {param}: {default!r}"
+    assert norm(default) == default, (
+        f"{handler.name}: invalid default {param}: {default!r}"
+    )
     return True
 
 
@@ -1749,9 +1749,9 @@ class HasRounds(GenericHandler):
             rounds = self._parse_rounds(rounds)
         elif self.use_defaults:
             rounds = self._generate_rounds()
-            assert (
-                self._norm_rounds(rounds) == rounds
-            ), f"generated invalid rounds: {rounds!r}"
+            assert self._norm_rounds(rounds) == rounds, (
+                f"generated invalid rounds: {rounds!r}"
+            )
         else:
             raise TypeError("no rounds specified")
         self.rounds = rounds
@@ -2217,9 +2217,9 @@ class SubclassBackendMixin(BackendMixin):
 
         # sanity check call args (should trust .set_backend, but will really
         # foul things up if this isn't the owner)
-        assert (
-            cls is cls._get_backend_owner()
-        ), "_finalize_backend() not invoked on owner"
+        assert cls is cls._get_backend_owner(), (
+            "_finalize_backend() not invoked on owner"
+        )
 
         # pick mixin class
         mixin_map = cls._backend_mixin_map

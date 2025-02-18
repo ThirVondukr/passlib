@@ -67,9 +67,9 @@ class HostsTest(TestCase):
         # validate schemes is non-empty,
         # and contains unix_disabled + at least one real scheme
         schemes = list(ctx.schemes())
-        assert (
-            schemes
-        ), "appears to be unix system, but no known schemes supported by crypt"
+        assert schemes, (
+            "appears to be unix system, but no known schemes supported by crypt"
+        )
         assert "unix_disabled" in schemes
         schemes.remove("unix_disabled")
         assert schemes, "should have schemes beside fallback scheme"

@@ -266,9 +266,9 @@ class _BcryptCommon(  # type: ignore[misc]
         # ----------------------------------------------------------------
         # setup helpers
         # ----------------------------------------------------------------
-        assert (
-            mixin_cls is bcrypt._backend_mixin_map[backend]
-        ), "_configure_workarounds() invoked from wrong class"
+        assert mixin_cls is bcrypt._backend_mixin_map[backend], (
+            "_configure_workarounds() invoked from wrong class"
+        )
 
         if mixin_cls._workrounds_initialized:
             return True

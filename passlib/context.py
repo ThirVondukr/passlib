@@ -251,8 +251,7 @@ class _CryptConfig:
                 #      should do it in 1.8 at latest.
                 if len(value) > 1:
                     raise ValueError(
-                        "cannot list other schemes if "
-                        "``deprecated=['auto']`` is used"
+                        "cannot list other schemes if ``deprecated=['auto']`` is used"
                     )
             elif schemes:
                 # make sure list of deprecated schemes is subset of configured schemes
@@ -1191,8 +1190,7 @@ class CryptContext:
             pass
         if self._config.handlers:
             raise KeyError(
-                "crypt algorithm not found in this "
-                f"CryptContext instance: {scheme!r}"
+                f"crypt algorithm not found in this CryptContext instance: {scheme!r}"
             )
         raise KeyError("no crypt algorithms loaded in this CryptContext instance")
 

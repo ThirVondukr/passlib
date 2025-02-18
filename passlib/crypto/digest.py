@@ -128,8 +128,7 @@ def _get_hash_aliases(name):
         "scram-"
     ):  # helper for SCRAM protocol (see passlib.handlers.scram)
         name = name[6:]
-        if name.endswith("-plus"):
-            name = name[:-5]
+        name = name.removesuffix("-plus")
 
     # look through standard names and known aliases
     def check_table(name):

@@ -264,13 +264,13 @@ class _ExtensionSupport:
         # make sure no objects have been replaced, by checking __module__
         for obj, attr, source, patched in self._iter_patch_candidates():
             if patched:
-                assert source.startswith(
-                    "django.contrib.auth."
-                ), f"obj={obj!r} attr={attr!r} was not reverted: {source!r}"
+                assert source.startswith("django.contrib.auth."), (
+                    f"obj={obj!r} attr={attr!r} was not reverted: {source!r}"
+                )
             else:
-                assert not source.startswith(
-                    "passlib."
-                ), f"obj={obj!r} attr={attr!r} should not have been patched: {source!r}"
+                assert not source.startswith("passlib."), (
+                    f"obj={obj!r} attr={attr!r} should not have been patched: {source!r}"
+                )
 
     def assert_patched(self, context=None):
         """
@@ -284,13 +284,13 @@ class _ExtensionSupport:
         # make sure only the expected objects have been patched
         for obj, attr, source, patched in self._iter_patch_candidates():
             if patched:
-                assert (
-                    source == "passlib.ext.django.utils"
-                ), f"obj={obj!r} attr={attr!r} should have been patched: {source!r}"
+                assert source == "passlib.ext.django.utils", (
+                    f"obj={obj!r} attr={attr!r} should have been patched: {source!r}"
+                )
             else:
-                assert not source.startswith(
-                    "passlib."
-                ), f"obj={obj!r} attr={attr!r} should not have been patched: {source!r}"
+                assert not source.startswith("passlib."), (
+                    f"obj={obj!r} attr={attr!r} should not have been patched: {source!r}"
+                )
 
         # check context matches
         if context is not None:

@@ -1084,9 +1084,7 @@ class TOTP:
 
         # derive 31-bit token value
         # assert isinstance(digest, bytes)
-        assert (
-            digest_size >= 20
-        ), (
+        assert digest_size >= 20, (
             "digest_size: sanity check 2 failed"
         )  # otherwise 0xF+4 will run off end of hash.
         offset = digest[-1] & 0xF

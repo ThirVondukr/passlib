@@ -529,8 +529,7 @@ class ldap_salted_md5_test(HandlerCase):
         "{SMD5}IGVhwK+anvspmfDt2t0vgGjt/Q==",
         # incorrect base64 encoding
         "{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4c",
-        "{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4cw"
-        "{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4cw=",
+        "{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4cw{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4cw=",
         "{SMD5}LnuZPJhiaY95/4lmV=pg548xBsD4P4cw",
         "{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P===",
     ]
@@ -1553,8 +1552,7 @@ class _sha256_crypt_test(HandlerCase):
         (
             "$5$rounds=10$roundstoolow",
             "the minimum number is still observed",
-            "$5$rounds=1000$roundstoolow$yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQebY9l/gL97"
-            "2bIC",
+            "$5$rounds=1000$roundstoolow$yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQebY9l/gL972bIC",
         ),
     ]
 

@@ -404,9 +404,9 @@ def saslprep(source, param="value"):
     for c in data:
         # check for chars mapping stage should have removed
         assert not stringprep.in_table_b1(c), "failed to strip B.1 in mapping stage"
-        assert not stringprep.in_table_c12(
-            c
-        ), "failed to replace C.1.2 in mapping stage"
+        assert not stringprep.in_table_c12(c), (
+            "failed to replace C.1.2 in mapping stage"
+        )
 
         for func, err_msg in forbidden_:
             if func(c):
