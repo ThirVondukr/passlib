@@ -241,8 +241,8 @@ class scram_test(HandlerCase):
         defaults = dict(salt=b"A" * 10, rounds=1000)
 
         def parse(algs, **kwds):
-            for k in defaults:
-                kwds.setdefault(k, defaults[k])
+            for key, value in defaults.items():
+                kwds.setdefault(key, value)
             return self.handler(algs=algs, **kwds).algs
 
         # None -> default list

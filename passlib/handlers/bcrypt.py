@@ -813,7 +813,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
     ident_values = (IDENT_2A, IDENT_2B)
 
     # clone bcrypt's ident aliases so they can be used here as well...
-    ident_aliases = (
+    ident_aliases = (  # noqa: PLC3002
         lambda ident_values: dict(
             item for item in bcrypt.ident_aliases.items() if item[1] in ident_values
         )

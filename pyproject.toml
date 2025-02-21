@@ -76,7 +76,7 @@ dev = [
 lint = [
     "deptry>=0.23.0",
     "mypy>=1.15.0",
-    "ruff>=0.9.6",
+    "ruff>=0.9.7",
 ]
 test = [
     "coverage>=7.6.12",
@@ -179,7 +179,6 @@ ignore = [
     "C90",
     "PD", # Pandas
     "PLW",
-    "PLC",
     "BLE",
     "FLY",
     "INP",
