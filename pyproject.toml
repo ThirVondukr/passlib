@@ -155,6 +155,7 @@ ignore = [
     "PT011",
     "E501",
     "ISC001", # Conflicts with ruff format
+    "COM812", # Conflicts with ruff format
     # Disabled categories
     "N",
     "ANN",
@@ -162,7 +163,6 @@ ignore = [
     "FBT",
     "B",
     "A",
-    "COM",
     "C4",
     "DTZ",
     "EM",
