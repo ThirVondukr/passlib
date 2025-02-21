@@ -178,11 +178,11 @@ ignore = [
     "ERA",
     "C90",
     "PD", # Pandas
-    "PLW",
     "BLE",
     "FLY",
     "INP",
     "UP031",
+    "PLW2901",
 ]
 
 [tool.ruff.lint.per-file-ignores]

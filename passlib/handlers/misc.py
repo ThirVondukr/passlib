@@ -108,12 +108,13 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
     def genhash(cls, secret, config, marker=None):
         if not cls.identify(config):
             raise uh.exc.InvalidHashError(cls)
+
         if config:
             # preserve the existing str,since it might contain a disabled password hash ("!" + hash)
             uh.validate_secret(secret)
             return to_native_str(config, param="config")
         if marker is not None:
-            cls = cls.using(marker=marker)
+            cls = cls.using(marker=marker)  # noqa: PLW0642
         return cls.hash(secret)
 
     @classmethod

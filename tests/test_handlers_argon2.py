@@ -402,10 +402,10 @@ class _base_argon2_test(HandlerCase):
             # overriding default since no way to get stub config from argon2._calc_hash()
             # (otherwise test_21b_max_rounds blocks trying to do max rounds)
             handler = (handler or self.handler).using(**settings)
-            self = handler(use_defaults=True)
-            self.checksum = self._stub_checksum
-            assert self.checksum
-            return self.to_string()
+            instance = handler(use_defaults=True)
+            instance.checksum = instance._stub_checksum
+            assert instance.checksum
+            return instance.to_string()
         return super().do_stub_encrypt(handler, **settings)
 
     def test_03_legacy_hash_workflow(self):

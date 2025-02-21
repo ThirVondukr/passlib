@@ -418,10 +418,10 @@ class django_argon2_test(HandlerCase, _DjangoHelper):
         # overriding default since no way to get stub config from argon2._calc_hash()
         # (otherwise test_21b_max_rounds blocks trying to do max rounds)
         handler = (handler or self.handler).using(**settings)
-        self = handler.wrapped(use_defaults=True)
-        self.checksum = self._stub_checksum
-        assert self.checksum
-        return handler._wrap_hash(self.to_string())
+        wrapped = handler.wrapped(use_defaults=True)
+        wrapped.checksum = wrapped._stub_checksum
+        assert wrapped.checksum
+        return handler._wrap_hash(wrapped.to_string())
 
     def test_03_legacy_hash_workflow(self):
         # override base method

@@ -15,7 +15,7 @@ BLOWFISH_P = BLOWFISH_S = None
 
 
 def _init_constants():
-    global BLOWFISH_P, BLOWFISH_S
+    global BLOWFISH_P, BLOWFISH_S  # noqa: PLW0603
 
     # NOTE: blowfish's spec states these numbers are the hex representation
     # of the fractional portion of PI, in order.

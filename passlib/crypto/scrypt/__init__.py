@@ -256,7 +256,7 @@ def _set_backend(name, dryrun=False):
         raise exc.MissingBackendError(f"scrypt backend {name!r} not available")
     if dryrun:
         return
-    global _scrypt, backend
+    global _scrypt, backend  # noqa: PLW0603
     backend = name
     _scrypt = hash
 

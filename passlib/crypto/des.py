@@ -72,7 +72,7 @@ PCXROT = IE3264 = SPE = CF6464 = None
 
 def _load_tables():
     """delay loading tables until they are actually needed"""
-    global PCXROT, IE3264, SPE, CF6464
+    global PCXROT, IE3264, SPE, CF6464  # noqa: PLW0603
 
     # ---------------------------------------------------------------
     # Initial key schedule permutation
@@ -2160,7 +2160,6 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
     # DES setup
     # ---------------------------------------------------------------
     # load tables if not already done
-    global SPE, PCXROT, IE3264, CF6464
     if PCXROT is None:
         _load_tables()
 

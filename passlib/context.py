@@ -1278,17 +1278,17 @@ class CryptContext:
             (render_key(key), value) for key, value in self._config.iter_config(resolve)
         )
 
-    def _write_to_parser(self, parser, section):
+    def _write_to_parser(self, parser: ConfigParser, section: str) -> None:
         """helper to write to ConfigParser instance"""
-        render_key = self._render_config_key
-        render_value = self._render_ini_value
         parser.add_section(section)
-        for k, v in self._config.iter_config():
-            v = render_value(k, v)
-            k = render_key(k)
-            parser.set(section, k, v)
+        for key, value in self._config.iter_config():  # type: ignore[attr-defined]
+            parser.set(
+                section=section,
+                option=self._render_config_key(key),
+                value=self._render_ini_value(key, value),
+            )
 
-    def to_string(self, section="passlib"):
+    def to_string(self, section="passlib") -> str:
         """serialize to INI format and return as unicode string.
 
         :param section:

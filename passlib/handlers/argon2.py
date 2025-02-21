@@ -834,7 +834,7 @@ class _PureBackend(_Argon2Common):
         assert mixin_cls is _PureBackend
 
         # import argon2pure
-        global _argon2pure
+        global _argon2pure  # noqa: PLW0603
         try:
             import argon2pure as _argon2pure  # type: ignore[import-not-found]
         except ImportError:

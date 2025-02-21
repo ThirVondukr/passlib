@@ -4,7 +4,7 @@ from unittest import skipUnless
 
 import pytest
 
-from passlib.crypto.digest import lookup_hash
+from passlib.crypto.digest import clear_lookup_hash_cache, lookup_hash
 
 # site
 # pkg
@@ -150,8 +150,8 @@ class MD4_Builtin_Test(_Common_MD4_Test):
             self.patchAttr(hashlib, "new", wrapper)
 
             # flush cache before & after test, since we're mucking with it.
-            lookup_hash.clear_cache()
-            self.addCleanup(lookup_hash.clear_cache)
+            clear_lookup_hash_cache()
+            self.addCleanup(clear_lookup_hash_cache)
 
         # make sure we're using right constructor.
         assert self.get_md4_const().__module__ == "passlib.crypto._md4"

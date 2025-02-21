@@ -600,7 +600,7 @@ class _BcryptBackend(_BcryptCommon):
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
         # try to import bcrypt
-        global _bcrypt
+        global _bcrypt  # noqa: PLW0603
         if _detect_pybcrypt():
             # pybcrypt was installed instead
             return False

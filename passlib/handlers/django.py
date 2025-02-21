@@ -27,7 +27,7 @@ des_crypt = None
 
 
 def _import_des_crypt():
-    global des_crypt
+    global des_crypt  # noqa: PLW0603
     if des_crypt is None:
         from passlib.hash import des_crypt
     return des_crypt
@@ -455,7 +455,7 @@ class django_des_crypt(  # type: ignore[misc]
     def _calc_checksum(self, secret):
         # NOTE: we lazily import des_crypt,
         #       since most django deploys won't use django_des_crypt
-        global des_crypt
+        global des_crypt  # noqa: PLW0602
         if des_crypt is None:
             _import_des_crypt()
         # check for truncation (during .hash() calls only)

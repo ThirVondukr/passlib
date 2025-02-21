@@ -10,6 +10,7 @@ import pytest
 
 from passlib import exc
 from passlib import totp as totp_module
+from passlib.crypto.digest import clear_lookup_hash_cache
 from passlib.exc import InvalidTokenError, UsedTokenError
 from passlib.totp import AES_SUPPORT, TOTP, AppWallet
 from tests.utils import TestCase, time_call
@@ -388,9 +389,7 @@ class TotpTest(TestCase):
         super().setUp()
 
         # clear norm_hash_name() cache so 'unknown hash' warnings get emitted each time
-        from passlib.crypto.digest import lookup_hash
-
-        lookup_hash.clear_cache()
+        clear_lookup_hash_cache()
 
         # monkeypatch module's rng to be deterministic
         self.patchAttr(totp_module, "rng", self.getRandom())

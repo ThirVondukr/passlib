@@ -21,6 +21,7 @@ from passlib.utils.decor import memoized_property
 __all__ = [
     # hash utils
     "lookup_hash",
+    "clear_lookup_hash_cache",
     "HashInfo",
     "norm_hash_name",
     # hmac utils
@@ -30,13 +31,11 @@ __all__ = [
     "pbkdf2_hmac",
 ]
 
-
 #: max 32-bit value
 MAX_UINT32 = (1 << 32) - 1
 
 #: max 64-bit value
 MAX_UINT64 = (1 << 64) - 1
-
 
 #: list of known hash names, used by lookup_hash()'s _norm_hash_name() helper
 _known_hash_names = [
@@ -65,7 +64,6 @@ _known_hash_names = [
     #       so treating "ripemd" as alias here.
     ("ripemd160", "ripemd-160", "ripemd"),
 ]
-
 
 #: dict mapping hashlib names to hardcoded digest info;
 #: so this is available even when hashes aren't present.
@@ -357,8 +355,8 @@ def lookup_hash(
     return info
 
 
-#: UT helper for clearing internal cache
-lookup_hash.clear_cache = _hash_info_cache.clear  # type: ignore[attr-defined]
+def clear_lookup_hash_cache() -> None:
+    _hash_info_cache.clear()
 
 
 def norm_hash_name(name, format="hashlib"):
@@ -458,7 +456,7 @@ class HashInfo(SequenceMixin):
         self.iana_name = names[1]
         self.aliases = names[2:]
 
-        def use_stub_const(msg):
+        def use_stub_const(msg: str) -> None:
             """
             helper that installs stub constructor which throws specified error <msg>.
             """
@@ -470,7 +468,7 @@ class HashInfo(SequenceMixin):
                 # if caller only wants supported digests returned,
                 # just throw error immediately...
                 const()
-                assert "shouldn't get here"
+
             self.error_text = msg
             self.const = const
             with contextlib.suppress(KeyError):
@@ -536,7 +534,6 @@ class HashInfo(SequenceMixin):
 #: flag for detecting if mock fips mode is enabled.
 mock_fips_mode = False
 
-
 #: algorithms allowed under FIPS mode (subset of hashlib.algorithms_available);
 #: per https://csrc.nist.gov/Projects/Hash-Functions FIPS 202 list.
 _fips_algorithms = {
@@ -558,19 +555,18 @@ _fips_algorithms = {
 }
 
 
-def _set_mock_fips_mode(enable=True):
+def _set_mock_fips_mode(enable: bool = True) -> None:
     """
     UT helper which monkeypatches lookup_hash() internals to replicate FIPS mode.
     """
-    global mock_fips_mode
+    global mock_fips_mode  # noqa: PLW0603
     mock_fips_mode = enable
-    lookup_hash.clear_cache()
+    clear_lookup_hash_cache()  # type: ignore[attr-defined]
 
 
 # helper for UTs
 if as_bool(os.environ.get("PASSLIB_MOCK_FIPS_MODE")):
     _set_mock_fips_mode()
-
 
 #: translation tables used by compile_hmac()
 _TRANS_5C = bytes((x ^ 0x5C) for x in range(256))
