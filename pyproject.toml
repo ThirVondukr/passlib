@@ -180,7 +180,6 @@ ignore = [
     "PD", # Pandas
     "BLE",
     "FLY",
-    "INP",
     "UP031",
     "PLW2901",
 ]
@@ -191,6 +190,7 @@ ignore = [
 "passlib/crypto/_blowfish/unrolled.py" = ["E741"]
 "libpass/*" = ["UP007"]
 "passlib/*" = ["T"]
+"docs/conf.py" = ["INP001"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
