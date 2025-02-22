@@ -621,9 +621,6 @@ wheels = [
 name = "libpass"
 version = "1.9.0"
 source = { editable = "." }
-dependencies = [
-    { name = "typing-extensions" },
-]
 
 [package.optional-dependencies]
 argon2 = [
@@ -639,6 +636,7 @@ totp = [
 [package.dev-dependencies]
 dev = [
     { name = "ipython" },
+    { name = "typing-extensions" },
 ]
 docs = [
     { name = "cloud-sptheme" },
@@ -665,12 +663,14 @@ requires-dist = [
     { name = "argon2-cffi", marker = "extra == 'argon2'", specifier = ">=18.2.0" },
     { name = "bcrypt", marker = "extra == 'bcrypt'", specifier = ">=3.1.0" },
     { name = "cryptography", marker = "extra == 'totp'", specifier = ">=43.0.1" },
-    { name = "typing-extensions", specifier = ">=4.6.0" },
 ]
 provides-extras = ["argon2", "bcrypt", "totp"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ipython", specifier = ">=8.18.1" }]
+dev = [
+    { name = "ipython", specifier = ">=8.18.1" },
+    { name = "typing-extensions", specifier = ">=4.6.0" },
+]
 docs = [
     { name = "cloud-sptheme", specifier = ">=1.10.1.post20200504175005" },
     { name = "sphinx", specifier = ">=7.4.7" },

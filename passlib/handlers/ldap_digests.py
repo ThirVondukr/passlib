@@ -13,7 +13,7 @@ from passlib.utils import to_unicode, unix_crypt_schemes
 from passlib.utils.decor import classproperty
 
 if TYPE_CHECKING:
-    from libpass._utils.protocols import SHAFunc
+    from passlib._protocols import SHAFunc
 
 __all__ = [
     "ldap_plaintext",

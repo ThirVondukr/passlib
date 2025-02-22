@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Callable, Protocol
+from typing import TYPE_CHECKING, Callable, Protocol
 
-from typing_extensions import Buffer, Self
+if TYPE_CHECKING:
+    from typing_extensions import Buffer, Self
 
 
 class HashLike(Protocol):
-    """Lifted from hashlib.pyi"""
+    """Lifted from hashlib.pyi."""
 
     @property
     def digest_size(self) -> int: ...
