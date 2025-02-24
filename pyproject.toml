@@ -70,6 +70,7 @@ totp = [
 [dependency-groups]
 dev = [
     "ipython>=8.18.1",
+    "pytest-cov>=6.0.0",
     "typing-extensions>=4.6.0",
 ]
 lint = [
@@ -109,7 +110,7 @@ members = ["test"]
 
 
 [tool.coverage.run]
-source = ["passlib", "libpass"]
+source = ["passlib"]
 omit = []
 command_line = "-m pytest -v"
 branch = true
@@ -187,7 +188,6 @@ ignore = [
 "passlib/hash.py" = ["F401"]
 "passlib/crypto/_blowfish/base.py" = ["E741"]
 "passlib/crypto/_blowfish/unrolled.py" = ["E741"]
-"libpass/*" = ["UP007"]
 "passlib/*" = ["T"]
 "docs/conf.py" = ["INP001"]
 
