@@ -580,7 +580,7 @@ def is_ascii_safe(source: AnyStr) -> bool:
 
 
 def to_bytes(
-    source: AnyStr,
+    source: str | bytes,
     encoding: str = "utf-8",
     param: str = "value",
     source_encoding: str | None = None,

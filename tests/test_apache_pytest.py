@@ -132,7 +132,7 @@ class _BaseTest(ABC, Generic[TApacheFile]):
     def _set_password(self, file: TApacheFile, user: str, password: str) -> bool:
         return file.set_password(user, password)
 
-    def _users(self, file: TApacheFile) -> Sequence[str]:
+    def _users(self, file: TApacheFile) -> Sequence[str | bytes]:
         return file.users()
 
     @pytest.fixture

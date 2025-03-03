@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from configparser import ConfigParser
 from io import StringIO
@@ -30,7 +32,7 @@ __all__ = [
 _UNSET = object()
 
 
-def _coerce_vary_rounds(value):
+def _coerce_vary_rounds(value: str) -> float | int:
     """parse vary_rounds string to percent as [0,1) float, or integer"""
     if value.endswith("%"):
         # XXX: deprecate this in favor of raw float?

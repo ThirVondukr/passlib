@@ -7,8 +7,13 @@ import logging
 import os
 from io import BytesIO
 from os import PathLike
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar, Union, cast
 from warnings import warn
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
+
+    from typing_extensions import Self
 
 from passlib import exc, registry
 from passlib.context import CryptContext
@@ -32,37 +37,60 @@ _BHASH = b"#"
 _INVALID_FIELD_CHARS = b":\n\r\t\x00"
 
 #: _CommonFile._source token types
-_SKIPPED = "skipped"
-_RECORD = "record"
+_SKIPPED: Literal["skipped"] = "skipped"
+_RECORD: Literal["record"] = "record"
+_TRecordKey = TypeVar("_TRecordKey")
+
+if TYPE_CHECKING:
+    _SourceTypes = Union[
+        tuple[Literal["skipped"], bytes],
+        tuple[Literal["record"], _TRecordKey],
+    ]
+else:
+    _SourceTypes = None
 
 
-class _CommonFile:
-    """common framework for HtpasswdFile & HtdigestFile"""
+class _CommonFile(Generic[_TRecordKey]):
+    """Common framework for HtpasswdFile & HtdigestFile"""
 
-    # charset encoding used by file (defaults to utf-8)
-    encoding = None
+    def __init__(
+        self,
+        path: PathLike | None = None,
+        new: bool = False,
+        autosave: bool = False,
+        encoding: str = "utf-8",
+        return_unicode: bool = True,
+    ) -> None:
+        # set encoding
+        if not encoding:
+            raise TypeError("'encoding' is required")
+        if not is_ascii_codec(encoding):
+            # htpasswd/htdigest files assumes 1-byte chars, and use ":" separator,
+            # so only ascii-compatible encodings are allowed.
+            raise ValueError("encoding must be 7-bit ascii compatible")
 
-    # whether users() and other public methods should return str or bytes?
-    # (defaults to True)
-    return_unicode = True
+        # charset encoding used by file (defaults to utf-8)
+        self.encoding = encoding
+        # whether users() and other public methods should return str or bytes?
+        self.return_unicode = return_unicode
+        # if true, automatically save to local file after changes are made.
+        self.autosave = autosave
+        self._path = path  # local file path
+        self._mtime: float = 0  # mtime when last loaded, or 0
 
-    # if bound to local file, these will be set.
-    _path = None  # local file path
-    _mtime = None  # mtime when last loaded, or 0
+        # dict mapping key -> value for all records in database.
+        # (e.g. user => hash for Htpasswd)
+        self._records: dict[_TRecordKey, str] = {}
+        #: list of tokens for recreating original file contents when saving. if present,
+        #: will be sequence of (_SKIPPED, b"whitespace/comments") and (_RECORD, <record key>) tuples.
+        self._source: list[_SourceTypes] = []
 
-    # if true, automatically save to local file after changes are made.
-    autosave = False
-
-    # dict mapping key -> value for all records in database.
-    # (e.g. user => hash for Htpasswd)
-    _records = None
-
-    #: list of tokens for recreating original file contents when saving. if present,
-    #: will be sequence of (_SKIPPED, b"whitespace/comments") and (_RECORD, <record key>) tuples.
-    _source = None
+        # init db
+        if path and not new:
+            self.load()
 
     @classmethod
-    def from_string(cls, data, **kwds):
+    def from_string(cls, data: str | bytes, **kwargs: Any) -> Self:
         """create new object from raw string.
 
         :type data: str or bytes
@@ -72,14 +100,14 @@ class _CommonFile:
         :param \\*\\*kwds:
             all other keywords are the same as in the class constructor
         """
-        if "path" in kwds:
+        if "path" in kwargs:
             raise TypeError("'path' not accepted by from_string()")
-        self = cls(**kwds)
-        self.load_string(data)
-        return self
+        instance = cls(**kwargs)
+        instance.load_string(data)
+        return instance
 
     @classmethod
-    def from_path(cls, path: PathLike, **kwds):
+    def from_path(cls, path: PathLike, **kwds: Any) -> Self:
         """create new object from file, without binding object to file.
 
         :type path: str
@@ -95,37 +123,7 @@ class _CommonFile:
 
     # XXX: add a new() classmethod, ala TOTP.new()?
 
-    def __init__(
-        self,
-        path=None,
-        new=False,
-        autosave=False,
-        encoding="utf-8",
-        return_unicode=True,
-    ):
-        # set encoding
-        if not encoding:
-            raise TypeError("'encoding' is required")
-        if not is_ascii_codec(encoding):
-            # htpasswd/htdigest files assumes 1-byte chars, and use ":" separator,
-            # so only ascii-compatible encodings are allowed.
-            raise ValueError("encoding must be 7-bit ascii compatible")
-        self.encoding = encoding
-
-        # set other attrs
-        self.return_unicode = return_unicode
-        self.autosave = autosave
-        self._path = path
-        self._mtime = 0
-
-        # init db
-        if path and not new:
-            self.load()
-        else:
-            self._records = {}
-            self._source = []
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         tail = ""
         if self.autosave:
             tail += " autosave=True"
@@ -138,21 +136,21 @@ class _CommonFile:
     # NOTE: ``path`` is a property so that ``_mtime`` is wiped when it's set.
 
     @property
-    def path(self):
+    def path(self) -> PathLike | None:
         return self._path
 
     @path.setter
-    def path(self, value):
+    def path(self, value: PathLike | None) -> None:
         if value != self._path:
             self._mtime = 0
         self._path = value
 
     @property
-    def mtime(self):
+    def mtime(self) -> float:
         """modify time when last loaded (if bound to a local file)"""
         return self._mtime
 
-    def load_if_changed(self):
+    def load_if_changed(self) -> bool:
         """Reload from ``self.path`` only if file has changed since last load"""
         if not self._path:
             raise RuntimeError(f"{self!r} is not bound to a local file")
@@ -161,7 +159,7 @@ class _CommonFile:
         self.load()
         return True
 
-    def load(self, path: PathLike | None = None) -> Literal[True]:
+    def load(self, path: PathLike | None = None) -> bool:
         """Load state from local file.
         If no path is specified, attempts to load from ``self.path``.
 
@@ -182,17 +180,15 @@ class _CommonFile:
             )
         return True
 
-    def load_string(self, data):
+    def load_string(self, data: str | bytes) -> None:
         """Load state from unicode or bytes string, replacing current state"""
-        data = to_bytes(data, self.encoding, "data")
         self._mtime = 0
-        self._load_lines(BytesIO(data))
+        self._load_lines(BytesIO(to_bytes(data, self.encoding, "data")))
 
-    def _load_lines(self, lines):
+    def _load_lines(self, lines: Iterable[bytes]) -> None:
         """load from sequence of lists"""
-        parse = self._parse_record
         records = {}
-        source = []
+        source: list[_SourceTypes] = []
         skipped = b""
         for idx, line in enumerate(lines):
             # NOTE: per htpasswd source (https://github.com/apache/httpd/blob/trunk/support/htpasswd.c),
@@ -204,7 +200,7 @@ class _CommonFile:
                 continue
 
             # parse valid line
-            key, value = parse(line, idx + 1)
+            key, value = self._parse_record(line, idx + 1)
 
             # NOTE: if multiple entries for a key, we use the first one,
             #       which seems to match htpasswd source
@@ -233,30 +229,31 @@ class _CommonFile:
         self._records = records
         self._source = source
 
-    def _parse_record(self, record, lineno):  # pragma: no cover - abstract method
+    def _parse_record(
+        self, record: bytes, lineno: int
+    ) -> tuple[_TRecordKey, Any]:  # pragma: no cover - abstract method
         """parse line of file into (key, value) pair"""
         raise NotImplementedError("should be implemented in subclass")
 
-    def _set_record(self, key, value):
+    def _set_record(self, key: _TRecordKey, value: Any) -> bool:
         """
         helper for setting record which takes care of inserting source line if needed;
 
         :returns:
             bool if key already present
         """
-        records = self._records
-        existing = key in records
-        records[key] = value
+        existing = key in self._records
+        self._records[key] = value
         if not existing:
             self._source.append((_RECORD, key))
         return existing
 
-    def _autosave(self):
+    def _autosave(self) -> None:
         """subclass helper to call save() after any changes"""
         if self.autosave and self._path:
             self.save()
 
-    def save(self, path=None):
+    def save(self, path: PathLike | None = None) -> None:
         """Save current state to file.
         If no path is specified, attempts to save to ``self.path``.
         """
@@ -271,7 +268,7 @@ class _CommonFile:
                 f"{self.__class__.__name__}().path is not set, cannot autosave"
             )
 
-    def to_string(self):
+    def to_string(self) -> bytes:
         """Export current state as a string of bytes"""
         return join_bytes(self._iter_lines())
 
@@ -283,7 +280,7 @@ class _CommonFile:
     #     self._source = [(_RECORD, key) for key in sorted(self._records)]
     #     self._autosave()
 
-    def _iter_lines(self):
+    def _iter_lines(self) -> Iterator[Any]:
         """iterator yielding lines of database"""
         # NOTE: this relies on <records> being an OrderedDict so that it outputs
         #       records in a deterministic order.
@@ -296,6 +293,10 @@ class _CommonFile:
                 yield content
             else:
                 assert action == _RECORD
+                content = cast(
+                    _TRecordKey, content
+                )  # Should be _TRecordKey at this point
+
                 # 'content' is record key
                 if content not in records:
                     # record was deleted
@@ -314,15 +315,17 @@ class _CommonFile:
         """given key/value pair, encode as line of file"""
         raise NotImplementedError("should be implemented in subclass")
 
-    def _encode_user(self, user):
+    def _encode_user(self, user: str | bytes) -> bytes:
         """user-specific wrapper for _encode_field()"""
         return self._encode_field(user, "user")
 
-    def _encode_realm(self, realm):  # pragma: no cover - abstract method
+    def _encode_realm(
+        self, realm: str | bytes
+    ) -> bytes:  # pragma: no cover - abstract method
         """realm-specific wrapper for _encode_field()"""
         return self._encode_field(realm, "realm")
 
-    def _encode_field(self, value, param="field"):
+    def _encode_field(self, value: str | bytes, param="field") -> bytes:
         """convert field to internal representation.
 
         internal representation is always bytes. byte strings are left as-is,
@@ -343,13 +346,14 @@ class _CommonFile:
             value = value.encode(self.encoding)
         elif not isinstance(value, bytes):
             raise ExpectedStringError(value, param)
+
         if len(value) > 255:
             raise ValueError(f"{param} must be at most 255 characters: {value!r}")
         if any(c in _INVALID_FIELD_CHARS for c in value):
             raise ValueError(f"{param} contains invalid characters: {value!r}")
         return value
 
-    def _decode_field(self, value):
+    def _decode_field(self, value: bytes) -> bytes | str:
         """decode field from internal representation to format
         returns by users() method, etc.
 
@@ -481,7 +485,7 @@ def _init_htpasswd_context():
 htpasswd_context = _init_htpasswd_context()
 
 
-class HtpasswdFile(_CommonFile):
+class HtpasswdFile(_CommonFile[bytes]):
     """class for reading & writing Htpasswd files.
 
     The class constructor accepts the following arguments:
@@ -667,7 +671,7 @@ class HtpasswdFile(_CommonFile):
     def _render_record(self, user, hash):
         return render_bytes("%s:%s\n", user, hash)
 
-    def users(self):
+    def users(self) -> list[bytes | str]:
         """
         Return list of all users in database
         """
@@ -777,7 +781,7 @@ class HtpasswdFile(_CommonFile):
         return ok
 
 
-class HtdigestFile(_CommonFile):
+class HtdigestFile(_CommonFile[tuple[bytes, bytes]]):
     """class for reading & writing Htdigest files.
 
     The class constructor accepts the following arguments:
