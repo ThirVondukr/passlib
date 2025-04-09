@@ -2353,11 +2353,9 @@ class HandlerCase(TestCase):
             assert not self.known_correct_configs, (
                 "handler should not have config strings"
             )
-            raise self.skipTest("hash has no settings")
 
         if not self.known_correct_configs:
-            # XXX: make this a requirement?
-            raise self.skipTest("no config strings provided")
+            return
 
         # make sure config strings work (hashes in list tested in test_70)
         if self.filter_config_warnings:
