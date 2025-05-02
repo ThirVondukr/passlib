@@ -1,8 +1,8 @@
-import logging
 import re
 from warnings import warn
 
 from passlib import exc
+from passlib._logging import logger
 from passlib.exc import ExpectedTypeError, PasslibWarning
 from passlib.utils import (
     has_crypt as os_crypt_present,
@@ -234,7 +234,7 @@ def register_crypt_handler_path(name, path):
 
     # store location
     _locations[name] = path
-    logging.getLogger(__name__).debug("registered path to %r handler: %r", name, path)
+    logger.debug("registered path to %r handler: %r", name, path)
 
 
 def register_crypt_handler(handler, force=False, _attr=None):
@@ -278,12 +278,10 @@ def register_crypt_handler(handler, force=False, _attr=None):
     other = _handlers.get(name)
     if other:
         if other is handler:
-            logging.getLogger(__name__).debug(
-                "same %r handler already registered: %r", name, handler
-            )
+            logger.debug("same %r handler already registered: %r", name, handler)
             return
         if force:
-            logging.getLogger(__name__).warning(
+            logger.warning(
                 "overriding previously registered %r handler: %r", name, other
             )
         else:
@@ -293,7 +291,7 @@ def register_crypt_handler(handler, force=False, _attr=None):
 
     # register handler
     _handlers[name] = handler
-    logging.getLogger(__name__).debug("registered %r handler: %r", name, handler)
+    logger.debug("registered %r handler: %r", name, handler)
 
 
 def get_crypt_handler(name, default=_UNSET):

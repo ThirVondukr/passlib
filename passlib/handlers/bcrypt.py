@@ -10,7 +10,6 @@ TODO:
 
 from __future__ import annotations
 
-import logging
 import re
 from base64 import b64encode
 from hashlib import sha256
@@ -19,6 +18,7 @@ from importlib.util import find_spec
 from warnings import warn
 
 import passlib.utils.handlers as uh
+from passlib._logging import logger
 from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityError
 from passlib.utils import (
@@ -31,7 +31,6 @@ from passlib.utils.binary import bcrypt64
 
 _bcrypt = None  # dynamically imported by _load_backend_bcrypt()
 
-log = logging.getLogger(__name__)
 __all__ = [
     "bcrypt",
 ]
@@ -294,7 +293,7 @@ class _BcryptCommon(  # type: ignore[misc]
                 # _calc_checksum() code may also throw CryptBackendError
                 # if correct hash isn't returned (e.g. 2y hash converted to 2b,
                 # such as happens with bcrypt 3.0.0)
-                log.debug(
+                logger.debug(
                     "trapped unexpected response from %r backend: verify(%r, %r):",
                     backend,
                     secret,
@@ -406,7 +405,7 @@ class _BcryptCommon(  # type: ignore[misc]
         result = safe_verify("test", test_hash_20)
         if result is NotImplemented:
             mixin_cls._lacks_20_support = True
-            log.debug("%r backend lacks $2$ support, enabling workaround", backend)
+            logger.debug("%r backend lacks $2$ support, enabling workaround", backend)
         elif not result:
             raise RuntimeError(f"{backend} incorrectly rejected $2$ hash")
 
@@ -425,7 +424,7 @@ class _BcryptCommon(  # type: ignore[misc]
                 # don't make this a warning for os crypt (e.g. openbsd);
                 # they'll have proper 2b implementation which will be used for new hashes.
                 # so even if we didn't have a workaround, this bug wouldn't be a concern.
-                log.debug(
+                logger.debug(
                     "%r backend has $2a$ bsd wraparound bug, enabling workaround",
                     backend,
                 )
@@ -448,7 +447,7 @@ class _BcryptCommon(  # type: ignore[misc]
         result = safe_verify("test", test_hash_2y)
         if result is NotImplemented:
             mixin_cls._lacks_2y_support = True
-            log.debug("%r backend lacks $2y$ support, enabling workaround", backend)
+            logger.debug("%r backend lacks $2y$ support, enabling workaround", backend)
         elif not result:
             raise RuntimeError(f"{backend} incorrectly rejected $2y$ hash")
         else:
@@ -468,7 +467,7 @@ class _BcryptCommon(  # type: ignore[misc]
         result = safe_verify("test", test_hash_2b)
         if result is NotImplemented:
             mixin_cls._lacks_2b_support = True
-            log.debug("%r backend lacks $2b$ support, enabling workaround", backend)
+            logger.debug("%r backend lacks $2b$ support, enabling workaround", backend)
         elif not result:
             raise RuntimeError(f"{backend} incorrectly rejected $2b$ hash")
         else:
@@ -611,10 +610,10 @@ class _BcryptBackend(_BcryptCommon):
         try:
             version = metadata.version("bcrypt")
         except Exception:
-            log.warning("(trapped) error reading bcrypt version", exc_info=True)
+            logger.warning("(trapped) error reading bcrypt version", exc_info=True)
             version = "<unknown>"
 
-        log.debug("detected 'bcrypt' backend, version %r", version)
+        logger.debug("detected 'bcrypt' backend, version %r", version)
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     # # TODO: would like to implementing verify() directly,

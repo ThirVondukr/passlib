@@ -4,13 +4,14 @@
 import base64
 import calendar
 import json
-import logging
 import math
 import re
 import struct
 import time as _time
 from urllib.parse import parse_qsl, quote, unquote, urlparse
 from warnings import warn
+
+from passlib._logging import logger
 
 # site
 try:
@@ -22,7 +23,7 @@ try:
 
     del cryptography
 except ImportError:
-    logging.debug("can't import 'cryptography' package, totp encryption disabled")
+    logger.debug("can't import 'cryptography' package, totp encryption disabled")
     _cg_ciphers = _cg_default_backend = None  # type: ignore[assignment]
 # pkg
 from passlib import exc

@@ -1,5 +1,4 @@
 import datetime
-import logging
 import sys
 import time as _time
 from binascii import Error as DecodeError
@@ -10,6 +9,7 @@ import pytest
 
 from passlib import exc
 from passlib import totp as totp_module
+from passlib._logging import logger
 from passlib.crypto.digest import clear_lookup_hash_cache
 from passlib.exc import InvalidTokenError, UsedTokenError
 from passlib.totp import AES_SUPPORT, TOTP, AppWallet
@@ -549,7 +549,7 @@ class TotpTest(TestCase):
                     expires = None
                 # NOTE: not re-using otp between calls so that stateful methods
                 #       (like .match) don't have problems.
-                logging.debug(
+                logger.debug(
                     "test vector: %r time=%r token=%r expires=%r",
                     kwds,
                     time,

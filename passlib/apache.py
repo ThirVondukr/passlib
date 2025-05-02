@@ -3,12 +3,13 @@
 # XXX: relocate this to passlib.ext.apache?
 from __future__ import annotations
 
-import logging
 import os
 from io import BytesIO
 from os import PathLike
 from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar, Union, cast
 from warnings import warn
+
+from passlib._logging import logger
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -205,7 +206,7 @@ class _CommonFile(Generic[_TRecordKey]):
             # NOTE: if multiple entries for a key, we use the first one,
             #       which seems to match htpasswd source
             if key in records:
-                logging.warning(
+                logger.warning(
                     "username occurs multiple times in source file: %r",
                     key,
                 )
@@ -294,7 +295,7 @@ class _CommonFile(Generic[_TRecordKey]):
             else:
                 assert action == _RECORD
                 content = cast(
-                    _TRecordKey, content
+                    "_TRecordKey", content
                 )  # Should be _TRecordKey at this point
 
                 # 'content' is record key

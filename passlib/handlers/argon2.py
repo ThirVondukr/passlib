@@ -13,7 +13,6 @@ References
     - home: https://github.com/bwesterb/argon2pure
 """
 
-import logging
 import re
 from importlib import metadata
 from typing import Any
@@ -21,6 +20,7 @@ from warnings import warn
 
 import passlib.utils.handlers as uh
 from passlib import exc
+from passlib._logging import logger
 from passlib.crypto.digest import MAX_UINT32
 from passlib.utils import classproperty, render_bytes, to_bytes
 from passlib.utils.binary import b64s_decode, b64s_encode
@@ -719,7 +719,7 @@ class _CffiBackend(_Argon2Common):
                 raise exc.PasslibSecurityError(_argon2_cffi_error)
             return False
         max_version = _argon2_cffi.low_level.ARGON2_VERSION
-        logging.debug(
+        logger.debug(
             "detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
             metadata.version("argon2_cffi"),
             max_version,
@@ -844,13 +844,13 @@ class _PureBackend(_Argon2Common):
         try:
             from argon2pure import ARGON2_DEFAULT_VERSION as max_version
         except ImportError:
-            logging.warning(
+            logger.warning(
                 "detected 'argon2pure' backend, but package is too old "
                 "(passlib requires argon2pure >= 1.2.3)"
             )
             return False
 
-        logging.debug(
+        logger.debug(
             "detected 'argon2pure' backend, with support for 0x%x argon2 hashes",
             max_version,
         )
