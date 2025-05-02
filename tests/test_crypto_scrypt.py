@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import logging
 import struct
 import warnings
 from binascii import hexlify
@@ -11,6 +10,7 @@ from binascii import hexlify
 import pytest
 
 from passlib import exc
+from passlib._logging import logger
 from passlib.crypto import scrypt as scrypt_mod
 from passlib.utils import getrandbytes
 from passlib.utils.compat import bascii_to_str
@@ -400,7 +400,7 @@ class _CommonScryptTest(TestCase):
                 # skip largest vector for builtin, takes WAAY too long
                 # (46s under pypy, ~5m under cpython)
                 continue
-            logging.debug(
+            logger.debug(
                 "scrypt reference vector: %r %r n=%r r=%r p=%r", secret, salt, n, r, p
             )
             assert scrypt_mod.scrypt(secret, salt, n, r, p, keylen) == result

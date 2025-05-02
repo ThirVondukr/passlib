@@ -10,6 +10,7 @@ from functools import lru_cache, update_wrapper, wraps
 from warnings import warn
 
 from passlib import exc, registry
+from passlib._logging import logger
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
 from passlib.utils.compat import get_method_function
@@ -19,9 +20,9 @@ DJANGO_VERSION: tuple[int | str, ...]
 try:
     from django import VERSION as DJANGO_VERSION
 
-    logging.debug("found django %r installation", DJANGO_VERSION)
+    logger.debug("found django %r installation", DJANGO_VERSION)
 except ImportError:
-    logging.debug("django installation not found")
+    logger.debug("django installation not found")
     DJANGO_VERSION = ()
 
 
@@ -749,9 +750,9 @@ class DjangoContextAdapter(DjangoTranslator):
                 raise
         else:
             if self.patched:  # pragma: no cover -- sanity check
-                logging.error("didn't expect monkeypatching would be applied!")
+                logger.error("didn't expect monkeypatching would be applied!")
             self.remove_patch()
-        logging.debug("passlib.ext.django loaded")
+        logger.debug("passlib.ext.django loaded")
 
     def _load_settings(self):
         """

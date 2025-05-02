@@ -1,4 +1,3 @@
-import logging
 import re
 import sys
 
@@ -6,6 +5,7 @@ import pytest
 
 from passlib import apps as _apps
 from passlib import exc
+from passlib._logging import logger
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
 from passlib.ext.django.utils import (
@@ -64,7 +64,7 @@ if has_min_django:
 # log a warning if tested w/ newer version.
 # NOTE: this is mainly here as place to mark what version it was run against before release.
 if DJANGO_VERSION >= (3, 2):
-    logging.info("this release hasn't been tested against Django %r", DJANGO_VERSION)
+    logger.info("this release hasn't been tested against Django %r", DJANGO_VERSION)
 
 
 # flag for update_settings() to remove specified key entirely

@@ -668,8 +668,8 @@ def to_hash_str(source, encoding="ascii"):  # pragma: no cover -- deprecated & u
     return to_native_str(source, encoding, param="hash")
 
 
-_true_set = set("true t yes y on 1 enable enabled".split())
-_false_set = set("false f no n off 0 disable disabled".split())
+_true_set = set(["true", "t", "yes", "y", "on", "1", "enable", "enabled"])
+_false_set = set(["false", "f", "no", "n", "off", "0", "disable", "disabled"])
 _none_set = set(["", "none"])
 
 

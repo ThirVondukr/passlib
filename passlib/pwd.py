@@ -1,6 +1,5 @@
 import codecs
 import contextlib
-import logging
 import os
 from collections import defaultdict
 from collections.abc import Hashable, MutableMapping
@@ -8,6 +7,7 @@ from importlib import resources
 from math import ceil, log2
 
 from passlib import exc
+from passlib._logging import logger
 from passlib.utils import getrandstr, rng, to_unicode
 from passlib.utils.decor import memoized_property
 
@@ -453,7 +453,7 @@ def _load_wordset(asset_path):
     # else:
     #     words = tuple(extract(word) for word in words)
 
-    logging.debug("loaded %d-element wordset from %r", len(words), asset_path)
+    logger.debug("loaded %d-element wordset from %r", len(words), asset_path)
     return words
 
 
@@ -522,7 +522,7 @@ class WordsetDict(MutableMapping):
 default_wordsets = WordsetDict()
 
 # register the wordsets built into passlib
-for name in "eff_long eff_short eff_prefixed bip39".split():
+for name in ["eff_long", "eff_short", "eff_prefixed", "bip39"]:
     default_wordsets.set_path(name, f"passlib:_data/wordsets/{name}.txt")
 
 

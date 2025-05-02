@@ -1,4 +1,3 @@
-import logging
 import os
 import subprocess
 import unittest
@@ -6,6 +5,7 @@ import unittest
 import pytest
 
 from passlib import apache
+from passlib._logging import logger
 from passlib.utils.handlers import to_unicode_for_identify
 from tests.utils import TestCase, get_file, set_file
 from tests.utils_ import backdate_file_mtime
@@ -51,7 +51,7 @@ def _detect_htpasswd():
         return False, False
     # when called w/o args, it should print usage to stderr & return rc=2
     if not rc:
-        logging.warning("htpasswd test returned with rc=0")
+        logger.warning("htpasswd test returned with rc=0")
     have_bcrypt = " -B " in out
     return True, have_bcrypt
 

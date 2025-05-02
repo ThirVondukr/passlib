@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
-import logging
 import os
 import re
 from warnings import warn
 
 from passlib import exc
+from passlib._logging import logger
 from passlib.utils import SequenceMixin, as_bool, to_bytes, to_native_str
 from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import memoized_property
@@ -158,7 +158,7 @@ def _get_hash_aliases(name):
             return result
 
         # not found in table, but roughly recognize format. use names we built up as fallback.
-        logging.info(
+        logger.info(
             "normalizing unrecognized hash name %r => %r / %r",
             orig,
             hashlib_name,
@@ -169,7 +169,7 @@ def _get_hash_aliases(name):
         # just can't make sense of it. return something
         iana_name = name
         hashlib_name = name.replace("-", "_")
-        logging.warning(
+        logger.warning(
             "normalizing unrecognized hash name and format %r => %r / %r",
             orig,
             hashlib_name,
