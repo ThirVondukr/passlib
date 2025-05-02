@@ -1,3 +1,16 @@
+## 1.9.1 (2025-05-02)
+
+### Fix
+
+- don't use root logger
+
+### Refactor
+
+- **apache**: improve typing of HtpasswdFile and HtdigestFile
+- enable ruff "INP" rule
+- enable ruff "PLW" rule
+- enable ruff "PLC" rule
+
 ## 1.9.0 (2025-02-18)
 
 ### Refactor
