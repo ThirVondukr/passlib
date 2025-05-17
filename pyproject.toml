@@ -6,7 +6,7 @@ authors = [
     { name = "Eli Collins", email = "elic@assurancetechnologies.com" },
 ]
 maintainers = [
-    { name = "Doctor", email = "thirvondukr@gmail.com" },
+    { name = "Doctor", email = "notypecheck@gmail.com" },
 ]
 dependencies = []
 requires-python = ">=3.9"
@@ -50,11 +50,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ThirVondukr/passlib"
-Repository = "https://github.com/ThirVondukr/passlib"
+Homepage = "https://github.com/notypecheck/passlib"
+Repository = "https://github.com/notypecheck/passlib"
 Docs = "https://passlib.readthedocs.io"
-Issues = "https://github.com/ThirVondukr/passlib/issues"
-Changelog = "https://github.com/ThirVondukr/passlib/blob/main/CHANGELOG.md"
+Issues = "https://github.com/notypecheck/passlib/issues"
+Changelog = "https://github.com/notypecheck/passlib/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 argon2 = [
