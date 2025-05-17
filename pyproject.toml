@@ -205,6 +205,7 @@ version_files = [
 
 [tool.pytest.ini_options]
 addopts = "-W error::Warning"
+python_files = ["test_*.py"]
 
 
 [tool.mypy]

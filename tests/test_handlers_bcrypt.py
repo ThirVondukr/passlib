@@ -1,4 +1,3 @@
-import os
 import warnings
 from base64 import b64encode
 
@@ -177,16 +176,6 @@ class _bcrypt_test(HandlerCase):
     ]
 
     def setUp(self):
-        # ensure builtin is enabled for duration of test.
-        if TEST_MODE("full") and self.backend == "builtin":
-            key = "PASSLIB_BUILTIN_BCRYPT"
-            orig = os.environ.get(key)
-            if orig:
-                self.addCleanup(os.environ.__setitem__, key, orig)
-            else:
-                self.addCleanup(os.environ.__delitem__, key)
-            os.environ[key] = "true"
-
         super().setUp()
 
         # silence this warning, will come up a bunch during testing of old 2a hashes.
@@ -195,9 +184,6 @@ class _bcrypt_test(HandlerCase):
         )
 
     def populate_settings(self, kwds):
-        # builtin is still just way too slow.
-        if self.backend == "builtin":
-            kwds.setdefault("rounds", 4)
         super().populate_settings(kwds)
 
     fuzz_verifiers = HandlerCase.fuzz_verifiers + ("fuzz_verifier_bcrypt",)
@@ -505,24 +491,12 @@ class _bcrypt_sha256_test(HandlerCase):
     ]
 
     def setUp(self):
-        # ensure builtin is enabled for duration of test.
-        if TEST_MODE("full") and self.backend == "builtin":
-            key = "PASSLIB_BUILTIN_BCRYPT"
-            orig = os.environ.get(key)
-            if orig:
-                self.addCleanup(os.environ.__setitem__, key, orig)
-            else:
-                self.addCleanup(os.environ.__delitem__, key)
-            os.environ[key] = "enabled"
         super().setUp()
         warnings.filterwarnings(
             "ignore", ".*backend is vulnerable to the bsd wraparound bug.*"
         )
 
     def populate_settings(self, kwds):
-        # builtin is still just way too slow.
-        if self.backend == "builtin":
-            kwds.setdefault("rounds", 4)
         super().populate_settings(kwds)
 
     def require_many_idents(self):
