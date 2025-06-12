@@ -18,17 +18,8 @@
 ### Refactor
 
 - remove dependency on crypt
-- **libpass**: use functools.cached_property for CryptContext active schemes
 
 ## 1.8.2 (2025-02-13)
-
-### Feat
-
-- add django pbkdf2_sha256 and pbkdf2_sha1 hashers
-- add pbkdf2 sha_256 and sha_512 hashes
-- add PasswordHasher.needs_update method
-- add argon2 hasher
-- add CryptContext class
 
 ### Fix
 - add python 3.13 compatability
